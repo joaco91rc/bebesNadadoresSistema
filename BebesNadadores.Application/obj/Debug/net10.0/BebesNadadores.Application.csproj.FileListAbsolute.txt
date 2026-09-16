@@ -1,0 +1,15 @@
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\bin\Debug\net10.0\BebesNadadores.Application.deps.json
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\bin\Debug\net10.0\BebesNadadores.Application.dll
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\bin\Debug\net10.0\BebesNadadores.Application.pdb
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\bin\Debug\net10.0\BebesNadadores.Domain.dll
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\bin\Debug\net10.0\BebesNadadores.Domain.pdb
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.csproj.AssemblyReference.cache
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.AssemblyInfoInputs.cache
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.AssemblyInfo.cs
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.csproj.CoreCompileInputs.cache
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNad.2563088C.Up2Date
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.dll
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\refint\BebesNadadores.Application.dll
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\BebesNadadores.Application.pdb
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Application\obj\Debug\net10.0\ref\BebesNadadores.Application.dll

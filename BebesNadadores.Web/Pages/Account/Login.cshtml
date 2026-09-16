@@ -1,0 +1,220 @@
+@page "/Account/Login"
+@model BebesNadadores.Web.Pages.Account.LoginModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1" />
+
+    <title>
+        Bebés Nadadores - Iniciar sesión
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/login.css" />
+
+</head>
+
+<body>
+
+<div class="login-page">
+
+    
+<div class="background-circle circle-one"></div>
+    <div class="background-circle circle-two"></div>
+
+    <div class="login-shell">
+       <div class="login-shell__light"></div>
+    <div class="login-container">
+        
+
+        <section class="brand-panel">
+
+            <div class="brand-content">
+
+                <img
+                    src="/images/logo-bebes-nadadores.png"
+                    class="logo"
+                    alt="Bebés Nadadores" />
+
+                <h1>
+                    Bebés Nadadores
+                </h1>
+
+                <p class="brand-subtitle">
+                    Gestión integral del natatorio
+                </p>
+
+                <div class="brand-message">
+
+                    <span class="message-line"></span>
+
+                    <p>
+                        Más que natación,
+                        <br />
+                        confianza para la vida.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="form-panel">
+
+            <div class="form-wrapper">
+
+                <div class="form-header">
+
+                    <span class="welcome">
+                        BIENVENIDO
+                    </span>
+
+                    <h2>
+                        Iniciar sesión
+                    </h2>
+
+                    <p>
+                        Ingresá tus credenciales para acceder
+                        al sistema.
+                    </p>
+
+                </div>
+
+
+                <form method="post">
+
+                    <input
+                        type="hidden"
+                        asp-for="ReturnUrl" />
+
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="validation-summary">
+                            <div asp-validation-summary="ModelOnly"></div>
+                        </div>
+                    }
+
+
+                    <div class="field-group">
+
+                        <label asp-for="Input.Email">
+                            Email
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <span class="input-icon">
+                                @@
+                            </span>
+
+                            <input
+                                asp-for="Input.Email"
+                                autocomplete="username"
+                                placeholder="nombre@bebesnadadores.com" />
+
+                        </div>
+
+                        <span
+                            class="field-error"
+                            asp-validation-for="Input.Email">
+                        </span>
+
+                    </div>
+
+
+                    <div class="field-group">
+
+                        <label asp-for="Input.Password">
+                            Contraseña
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <span class="input-icon password-dot">
+                                ●
+                            </span>
+
+                            <input
+                                asp-for="Input.Password"
+                                autocomplete="current-password"
+                                placeholder="Ingresá tu contraseña" />
+
+                        </div>
+
+                        <span
+                            class="field-error"
+                            asp-validation-for="Input.Password">
+                        </span>
+
+                    </div>
+
+
+                    <div class="login-options">
+
+                        <label class="remember">
+
+                            <input
+                                asp-for="Input.Recordarme" />
+
+                            <span>
+                                Recordarme
+                            </span>
+
+                        </label>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="login-button">
+
+                        <span>
+                            Ingresar
+                        </span>
+
+                        <span class="login-arrow">
+                            →
+                        </span>
+
+                    </button>
+
+                </form>
+
+
+                <div class="login-footer">
+
+                    Sistema de gestión
+                    <strong>
+                        Bebés Nadadores
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

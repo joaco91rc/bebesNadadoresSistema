@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BebesNadadores.Application/BebesNadadores.Application.csproj" />
+  <Project Path="BebesNadadores.Domain/BebesNadadores.Domain.csproj" />
+  <Project Path="BebesNadadores.Infrastructure/BebesNadadores.Infrastructure.csproj" />
+  <Project Path="BebesNadadores.Web/BebesNadadores.Web.csproj" />
+</Solution>
