@@ -1,0 +1,1509 @@
+@page "/asistencia"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using System.Globalization
+@using System.Security.Claims
+@using BebesNadadores.Application.Asistencia
+@using BebesNadadores.Application.Asistencia.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject IAsistenciaService AsistenciaService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Asistencia | Bebés Nadadores</PageTitle>
+
+
+<div class="attendance-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="attendance-header">
+
+        <div>
+
+            <span class="attendance-eyebrow">
+                CONTROL DE CLASES
+            </span>
+
+            <h1>
+                Asistencia
+            </h1>
+
+            <p>
+                Registrá presentes, ausencias y recuperos
+                de cada clase.
+            </p>
+
+        </div>
+
+
+        <button type="button"
+                class="secondary-action"
+                @onclick="VolverTurnera">
+
+            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
+                     Size="Size.Small" />
+
+            Ir a Turnera
+
+        </button>
+
+    </section>
+
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       FECHA
+       ========================================================= *@
+
+    <section class="date-toolbar">
+
+        <button type="button"
+                class="date-nav"
+                title="Día anterior"
+                @onclick="() => CambiarFecha(-1)">
+
+            <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" />
+
+        </button>
+
+
+        <div class="date-title">
+
+            <span>
+                @ObtenerNombreDia(_fecha)
+            </span>
+
+            <strong>
+                @ObtenerFechaCompleta(_fecha)
+            </strong>
+
+        </div>
+
+
+        <button type="button"
+                class="date-nav"
+                title="Día siguiente"
+                @onclick="() => CambiarFecha(1)">
+
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+
+        </button>
+
+
+        <button type="button"
+                class="today-button"
+                @onclick="IrHoy">
+
+            <MudIcon Icon="@Icons.Material.Filled.Today"
+                     Size="Size.Small" />
+
+            Hoy
+
+        </button>
+
+    </section>
+
+
+    @if (_cargando)
+    {
+        <section class="attendance-loading">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando clases...
+            </span>
+
+        </section>
+    }
+    else
+    {
+        <section class="attendance-layout">
+
+            @* =================================================
+               CLASES DEL DÍA
+               ================================================= *@
+
+            <aside class="classes-panel">
+
+                <div class="panel-title">
+
+                    <div>
+
+                        <span>
+                            CLASES DEL DÍA
+                        </span>
+
+                        <strong>
+                            @_clases.Count
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                @if (_clases.Count == 0)
+                {
+                    <div class="classes-empty">
+
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+                        <strong>
+                            Sin clases
+                        </strong>
+
+                        <span>
+                            No hay sesiones generadas
+                            para este día.
+                        </span>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="classes-list">
+
+                        @foreach (var clase in _clases)
+                        {
+                            var seleccionada =
+                                _sesion?.SesionClaseId ==
+                                clase.SesionClaseId;
+
+                            <button type="button"
+                                    class="class-option
+                                           @(seleccionada ? "selected" : "")
+                                           @(clase.EstadoSesion == EstadoSesionClase.Cancelada
+                                               ? "cancelled"
+                                               : "")"
+                                    @onclick="() => SeleccionarSesionAsync(
+                                        clase.SesionClaseId)">
+
+                                <div class="class-option-time">
+
+                                    <strong>
+                                        @clase.HoraInicio.ToString("HH:mm")
+                                    </strong>
+
+                                    <span>
+                                        @clase.HoraFin.ToString("HH:mm")
+                                    </span>
+
+                                </div>
+
+
+                                <div class="class-option-main">
+
+                                    <strong>
+                                        @clase.Nivel
+                                    </strong>
+
+                                    <span>
+                                        @(clase.Profesores.Count == 0
+                                            ? "Sin profesor"
+                                            : string.Join(
+                                                " + ",
+                                                clase.Profesores))
+                                    </span>
+
+                                </div>
+
+
+                                <div class="class-option-progress">
+
+                                    <span>
+                                        @(clase.TotalEsperados
+                                            - clase.Pendientes)
+                                        /
+                                        @clase.TotalEsperados
+                                    </span>
+
+                                    <div class="mini-progress">
+
+                                        <div style="@ObtenerProgresoClase(
+                                            clase)">
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </button>
+                        }
+
+                    </div>
+                }
+
+            </aside>
+
+
+            @* =================================================
+               DETALLE
+               ================================================= *@
+
+            <main class="attendance-main">
+
+                @if (_sesion is null)
+                {
+                    <div class="session-empty">
+
+                        <div class="empty-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.FactCheck" />
+
+                        </div>
+
+                        <h3>
+                            Seleccioná una clase
+                        </h3>
+
+                        <p>
+                            Elegí una clase del día para
+                            registrar su asistencia.
+                        </p>
+
+                    </div>
+                }
+                else
+                {
+                    @* =========================================
+                       SESIÓN HEADER
+                       ========================================= *@
+
+                    <section class="session-header">
+
+                        <div>
+
+                            <div class="session-label">
+
+                                @if (_sesion.EstadoSesion ==
+                                    EstadoSesionClase.Cancelada)
+                                {
+                                    <span class="session-state cancelled">
+                                        CANCELADA
+                                    </span>
+                                }
+                                else if (_sesion.EstadoSesion ==
+                                         EstadoSesionClase.Finalizada)
+                                {
+                                    <span class="session-state finished">
+                                        FINALIZADA
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="session-state active">
+                                        CLASE PROGRAMADA
+                                    </span>
+                                }
+
+                            </div>
+
+
+                            <h2>
+                                @_sesion.Nivel
+                            </h2>
+
+
+                            <div class="session-meta">
+
+                                <span>
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                             Size="Size.Small" />
+
+                                    @_sesion.HoraInicio.ToString("HH:mm")
+                                    —
+                                    @_sesion.HoraFin.ToString("HH:mm")
+
+                                </span>
+
+
+                                <span>
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Sports"
+                                             Size="Size.Small" />
+
+                                    @ProfesorTexto
+
+                                </span>
+
+
+                                <span>
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Groups"
+                                             Size="Size.Small" />
+
+                                    @_sesion.TotalEsperados alumnos
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <button type="button"
+                                class="mass-present-button"
+                                disabled="@(
+                                    _guardandoMasivo
+                                    ||
+                                    _sesion.EstadoSesion ==
+                                        EstadoSesionClase.Cancelada
+                                    ||
+                                    _sesion.Pendientes == 0)"
+                                @onclick="MarcarPendientesPresentes">
+
+                            @if (_guardandoMasivo)
+                            {
+                                <MudProgressCircular Indeterminate="true"
+                                                     Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.DoneAll"
+                                         Size="Size.Small" />
+                            }
+
+                            Marcar pendientes presentes
+
+                        </button>
+
+                    </section>
+
+
+                    @* =========================================
+                       STATS
+                       ========================================= *@
+
+                    <section class="attendance-stats">
+
+                        <article>
+
+                            <span class="stat-dot present"></span>
+
+                            <div>
+                                <span>
+                                    Presentes
+                                </span>
+
+                                <strong>
+                                    @_sesion.Presentes
+                                </strong>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span class="stat-dot notified"></span>
+
+                            <div>
+                                <span>
+                                    Con aviso
+                                </span>
+
+                                <strong>
+                                    @_sesion.AusentesConAviso
+                                </strong>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span class="stat-dot absent"></span>
+
+                            <div>
+                                <span>
+                                    Ausentes
+                                </span>
+
+                                <strong>
+                                    @_sesion.Ausentes
+                                </strong>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span class="stat-dot pending"></span>
+
+                            <div>
+                                <span>
+                                    Pendientes
+                                </span>
+
+                                <strong>
+                                    @_sesion.Pendientes
+                                </strong>
+                            </div>
+
+                        </article>
+
+                    </section>
+
+
+                    @if (_sesion.EstadoSesion ==
+                        EstadoSesionClase.Cancelada)
+                    {
+                        <div class="cancelled-warning">
+
+                            <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+                            <div>
+
+                                <strong>
+                                    La clase está cancelada
+                                </strong>
+
+                                <span>
+                                    No se puede registrar asistencia
+                                    sobre una clase cancelada.
+                                </span>
+
+                            </div>
+
+                        </div>
+                    }
+
+
+                    @* =========================================
+                       TOOLBAR ALUMNOS
+                       ========================================= *@
+
+                    <section class="students-toolbar">
+
+                        <div class="student-search">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Search"
+                                     Size="Size.Small" />
+
+                            <input type="text"
+                                   placeholder="Buscar bebé..."
+                                   @bind="_busqueda"
+                                   @bind:event="oninput" />
+
+                        </div>
+
+
+                        <div class="legend">
+
+                            <span>
+                                <i class="legend-color present"></i>
+                                Presente
+                            </span>
+
+                            <span>
+                                <i class="legend-color notified"></i>
+                                Con aviso
+                            </span>
+
+                            <span>
+                                <i class="legend-color absent"></i>
+                                Ausente
+                            </span>
+
+                        </div>
+
+                    </section>
+
+
+                    @* =========================================
+                       ALUMNOS
+                       ========================================= *@
+
+                    <section class="students-list">
+
+                        @if (!AlumnosFiltrados.Any())
+                        {
+                            <div class="students-empty">
+
+                                <MudIcon Icon="@Icons.Material.Filled.PersonSearch" />
+
+                                <span>
+                                    No se encontraron alumnos.
+                                </span>
+
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var alumno in AlumnosFiltrados)
+                            {
+                                <article class="student-card @ObtenerClaseEstado(alumno.Estado)">
+
+                                    <div class="student-identity">
+
+                                        <div class="student-avatar">
+
+                                            @ObtenerIniciales(
+                                                alumno.NombreCompleto)
+
+                                        </div>
+
+
+                                        <div class="student-name">
+
+                                            <div>
+
+                                                <strong>
+                                                    @alumno.NombreCompleto
+                                                </strong>
+
+
+                                                @if (alumno.EsRecupero)
+                                                {
+                                                    <span class="recovery-attendee">
+                                                        RECUPERO
+                                                    </span>
+                                                }
+
+                                            </div>
+
+
+                                            <span>
+                                                @(alumno.EsRecupero
+                                                    ? "Asiste recuperando una clase"
+                                                    : "Alumno regular")
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="attendance-buttons">
+
+                                        <button type="button"
+                                                title="Presente"
+                                                disabled="@EstaBloqueado(alumno)"
+                                                class="attendance-choice present
+                                                       @(alumno.Estado == EstadoAsistencia.Presente
+                                                           ? "selected"
+                                                           : "")"
+                                                @onclick="() => MarcarAsync(
+                                                    alumno,
+                                                    EstadoAsistencia.Presente)">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Check"
+                                                     Size="Size.Small" />
+
+                                            <span>
+                                                Presente
+                                            </span>
+
+                                        </button>
+
+
+                                        <button type="button"
+                                                title="Ausente con aviso"
+                                                disabled="@EstaBloqueado(alumno)"
+                                                class="attendance-choice notified
+                                                       @(alumno.Estado == EstadoAsistencia.AusenteConAviso
+                                                           ? "selected"
+                                                           : "")"
+                                                @onclick="() => MarcarAsync(
+                                                    alumno,
+                                                    EstadoAsistencia.AusenteConAviso)">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.NotificationsActive"
+                                                     Size="Size.Small" />
+
+                                            <span>
+                                                Con aviso
+                                            </span>
+
+                                        </button>
+
+
+                                        <button type="button"
+                                                title="Ausente"
+                                                disabled="@EstaBloqueado(alumno)"
+                                                class="attendance-choice absent
+                                                       @(alumno.Estado == EstadoAsistencia.Ausente
+                                                           ? "selected"
+                                                           : "")"
+                                                @onclick="() => MarcarAsync(
+                                                    alumno,
+                                                    EstadoAsistencia.Ausente)">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Close"
+                                                     Size="Size.Small" />
+
+                                            <span>
+                                                Ausente
+                                            </span>
+
+                                        </button>
+
+
+                                        <button type="button"
+                                                title="Volver a pendiente"
+                                                disabled="@EstaBloqueado(alumno)"
+                                                class="attendance-choice pending
+                                                       @(alumno.Estado == EstadoAsistencia.Pendiente
+                                                           ? "selected"
+                                                           : "")"
+                                                @onclick="() => MarcarAsync(
+                                                    alumno,
+                                                    EstadoAsistencia.Pendiente)">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Remove"
+                                                     Size="Size.Small" />
+
+                                        </button>
+
+                                    </div>
+
+
+                                    <div class="student-observation">
+
+                                        <input type="text"
+                                               maxlength="1000"
+                                               disabled="@(
+                                                    _sesion.EstadoSesion ==
+                                                    EstadoSesionClase.Cancelada)"
+                                               placeholder="Observación opcional..."
+                                               value="@ObtenerObservacion(
+                                                   alumno.BebeId)"
+                                               @oninput="e => CambiarObservacion(
+                                                   alumno.BebeId,
+                                                   e.Value?.ToString())" />
+
+
+                                        <button type="button"
+                                                title="Guardar observación"
+                                                disabled="@EstaBloqueado(alumno)"
+                                                @onclick="() => GuardarObservacionAsync(
+                                                    alumno)">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Save"
+                                                     Size="Size.Small" />
+
+                                        </button>
+
+                                    </div>
+
+
+                                    @if (alumno.GeneroRecupero)
+                                    {
+                                        <div class="generated-recovery">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Autorenew"
+                                                     Size="Size.Small" />
+
+                                            <span>
+                                                Recupero generado
+                                            </span>
+
+                                            @if (alumno.RecuperoVence.HasValue)
+                                            {
+                                                <strong>
+                                                    vence
+                                                   @(alumno.RecuperoVence.Value.ToString("dd/MM/yyyy"))
+                                                </strong>
+                                            }
+
+                                        </div>
+                                    }
+
+                                </article>
+                            }
+                        }
+
+                    </section>
+
+                }
+
+            </main>
+
+        </section>
+    }
+
+</div>
+
+
+@code
+{
+    [SupplyParameterFromQuery(
+        Name = "sesionId")]
+    public Guid? SesionId { get; set; }
+
+
+    private static readonly CultureInfo Cultura =
+        CultureInfo.GetCultureInfo(
+            "es-AR");
+
+
+    private DateOnly _fecha =
+        DateOnly.FromDateTime(
+            DateTime.Today);
+
+
+    private readonly Dictionary<Guid, string>
+        _observaciones =
+            new();
+
+
+    private readonly HashSet<Guid>
+        _guardandoAlumnos =
+            new();
+
+
+    private List<AsistenciaClaseDiaDto> _clases =
+        [];
+
+
+    private AsistenciaSesionDto? _sesion;
+
+    private Guid? _usuarioId;
+
+    private bool _cargando = true;
+
+    private bool _guardandoMasivo;
+
+    private string _busqueda =
+        string.Empty;
+
+    private string? _error;
+
+    private string? _mensaje;
+
+
+    private IEnumerable<AsistenciaAlumnoDto>
+        AlumnosFiltrados
+    {
+        get
+        {
+            if (_sesion is null)
+                return [];
+
+
+            if (string.IsNullOrWhiteSpace(
+                _busqueda))
+            {
+                return _sesion.Alumnos;
+            }
+
+
+            var buscar =
+                _busqueda.Trim();
+
+
+            return _sesion.Alumnos
+                .Where(x =>
+                    x.NombreCompleto.Contains(
+                        buscar,
+                        StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+
+    private string ProfesorTexto =>
+        _sesion?.Profesores is
+            { Count: > 0 }
+            ? string.Join(
+                " + ",
+                _sesion.Profesores)
+            : "Sin profesor asignado";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await CargarUsuarioAsync();
+
+
+            if (SesionId.HasValue)
+            {
+                var sesion =
+                    await AsistenciaService
+                        .ObtenerSesionAsync(
+                            SesionId.Value);
+
+
+                if (sesion is not null)
+                {
+                    _fecha =
+                        sesion.Fecha;
+
+
+                    await CargarDiaAsync(
+                        sesion.SesionClaseId);
+
+                    return;
+                }
+            }
+
+
+            await CargarDiaAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private async Task CargarUsuarioAsync()
+    {
+        var auth =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+
+        var claim =
+            auth.User.FindFirst(
+                ClaimTypes.NameIdentifier);
+
+
+        if (
+            claim is not null
+            &&
+            Guid.TryParse(
+                claim.Value,
+                out var usuarioId))
+        {
+            _usuarioId =
+                usuarioId;
+        }
+    }
+
+
+    private async Task CargarDiaAsync(
+        Guid? seleccionarSesionId = null)
+    {
+        _cargando =
+            true;
+
+        _error =
+            null;
+
+
+        try
+        {
+            _clases =
+                (await AsistenciaService
+                    .ListarSesionesDiaAsync(
+                        _fecha))
+                .ToList();
+
+
+            if (_clases.Count == 0)
+            {
+                _sesion =
+                    null;
+
+                _observaciones.Clear();
+
+                return;
+            }
+
+
+            Guid sesionSeleccionada;
+
+
+            if (
+                seleccionarSesionId.HasValue
+                &&
+                _clases.Any(x =>
+                    x.SesionClaseId ==
+                    seleccionarSesionId.Value))
+            {
+                sesionSeleccionada =
+                    seleccionarSesionId.Value;
+            }
+            else
+            {
+                var ahora =
+                    TimeOnly.FromDateTime(
+                        DateTime.Now);
+
+
+                var enCurso =
+                    _fecha ==
+                    DateOnly.FromDateTime(
+                        DateTime.Today)
+                    ? _clases.FirstOrDefault(x =>
+                        x.EstadoSesion !=
+                            EstadoSesionClase.Cancelada
+                        &&
+                        x.HoraInicio <= ahora
+                        &&
+                        x.HoraFin >= ahora)
+                    : null;
+
+
+                sesionSeleccionada =
+                    enCurso?.SesionClaseId
+                    ?? _clases[0].SesionClaseId;
+            }
+
+
+            await SeleccionarSesionAsync(
+                sesionSeleccionada);
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private async Task SeleccionarSesionAsync(
+        Guid sesionId)
+    {
+        _error =
+            null;
+
+        _mensaje =
+            null;
+
+
+        try
+        {
+            _sesion =
+                await AsistenciaService
+                    .ObtenerSesionAsync(
+                        sesionId);
+
+
+            if (_sesion is null)
+            {
+                _error =
+                    "La clase seleccionada no existe.";
+
+                return;
+            }
+
+
+            InicializarObservaciones();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private void InicializarObservaciones()
+    {
+        _observaciones.Clear();
+
+
+        if (_sesion is null)
+            return;
+
+
+        foreach (var alumno in
+            _sesion.Alumnos)
+        {
+            _observaciones[
+                alumno.BebeId] =
+                    alumno.Observaciones
+                    ?? string.Empty;
+        }
+    }
+
+
+    private async Task CambiarFecha(
+        int dias)
+    {
+        _fecha =
+            _fecha.AddDays(
+                dias);
+
+        _busqueda =
+            string.Empty;
+
+        _mensaje =
+            null;
+
+
+        await CargarDiaAsync();
+    }
+
+
+    private async Task IrHoy()
+    {
+        _fecha =
+            DateOnly.FromDateTime(
+                DateTime.Today);
+
+        _busqueda =
+            string.Empty;
+
+        await CargarDiaAsync();
+    }
+
+
+    private async Task MarcarAsync(
+        AsistenciaAlumnoDto alumno,
+        EstadoAsistencia estado)
+    {
+        if (_sesion is null)
+            return;
+
+
+        try
+        {
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+            _guardandoAlumnos.Add(
+                alumno.BebeId);
+
+
+            await AsistenciaService
+                .MarcarAsync(
+                    new RegistrarAsistenciaDto
+                    {
+                        SesionClaseId =
+                            _sesion.SesionClaseId,
+
+                        BebeId =
+                            alumno.BebeId,
+
+                        Estado =
+                            estado,
+
+                        Observaciones =
+                            ObtenerObservacion(
+                                alumno.BebeId),
+
+                        UsuarioId =
+                            _usuarioId
+                    });
+
+
+            await RecargarSesionAsync();
+
+
+            _mensaje =
+                estado switch
+                {
+                    EstadoAsistencia.Presente =>
+                        $"{alumno.NombreCompleto}: presente.",
+
+                    EstadoAsistencia.AusenteConAviso =>
+                        $"{alumno.NombreCompleto}: ausencia con aviso. Se generó el recupero correspondiente.",
+
+                    EstadoAsistencia.Ausente =>
+                        $"{alumno.NombreCompleto}: ausente.",
+
+                    _ =>
+                        $"{alumno.NombreCompleto}: asistencia pendiente."
+                };
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _guardandoAlumnos.Remove(
+                alumno.BebeId);
+        }
+    }
+
+
+    private async Task GuardarObservacionAsync(
+        AsistenciaAlumnoDto alumno)
+    {
+        if (_sesion is null)
+            return;
+
+
+        try
+        {
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+            _guardandoAlumnos.Add(
+                alumno.BebeId);
+
+
+            await AsistenciaService
+                .MarcarAsync(
+                    new RegistrarAsistenciaDto
+                    {
+                        SesionClaseId =
+                            _sesion.SesionClaseId,
+
+                        BebeId =
+                            alumno.BebeId,
+
+                        Estado =
+                            alumno.Estado,
+
+                        Observaciones =
+                            ObtenerObservacion(
+                                alumno.BebeId),
+
+                        UsuarioId =
+                            _usuarioId
+                    });
+
+
+            await RecargarSesionAsync();
+
+
+            _mensaje =
+                $"Observación de {alumno.NombreCompleto} guardada.";
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _guardandoAlumnos.Remove(
+                alumno.BebeId);
+        }
+    }
+
+
+    private async Task MarcarPendientesPresentes()
+    {
+        if (_sesion is null)
+            return;
+
+
+        var pendientes =
+            _sesion.Alumnos
+                .Where(x =>
+                    x.Estado ==
+                        EstadoAsistencia.Pendiente)
+                .ToList();
+
+
+        if (pendientes.Count == 0)
+            return;
+
+
+        try
+        {
+            _guardandoMasivo =
+                true;
+
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+
+            var dto =
+                new RegistrarAsistenciaMasivaDto
+                {
+                    SesionClaseId =
+                        _sesion.SesionClaseId,
+
+                    UsuarioId =
+                        _usuarioId,
+
+                    Alumnos =
+                        pendientes
+                            .Select(x =>
+                                new RegistrarAsistenciaAlumnoDto
+                                {
+                                    BebeId =
+                                        x.BebeId,
+
+                                    Estado =
+                                        EstadoAsistencia.Presente,
+
+                                    Observaciones =
+                                        ObtenerObservacion(
+                                            x.BebeId)
+                                })
+                            .ToList()
+                };
+
+
+            await AsistenciaService
+                .MarcarMasivoAsync(
+                    dto);
+
+
+            await RecargarSesionAsync();
+
+
+            _mensaje =
+                $"{pendientes.Count} alumnos marcados como presentes.";
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _guardandoMasivo =
+                false;
+        }
+    }
+
+
+    private async Task RecargarSesionAsync()
+    {
+        if (_sesion is null)
+            return;
+
+
+        var sesionId =
+            _sesion.SesionClaseId;
+
+
+        var actualizada =
+            await AsistenciaService
+                .ObtenerSesionAsync(
+                    sesionId);
+
+
+        if (actualizada is null)
+            return;
+
+
+        _sesion =
+            actualizada;
+
+
+        InicializarObservaciones();
+
+
+        var index =
+            _clases.FindIndex(x =>
+                x.SesionClaseId ==
+                sesionId);
+
+
+        if (index >= 0)
+        {
+            var actual =
+                _clases[index];
+
+
+            _clases[index] =
+                actual with
+                {
+                    TotalEsperados =
+                        actualizada.TotalEsperados,
+
+                    Presentes =
+                        actualizada.Presentes,
+
+                    Ausentes =
+                        actualizada.Ausentes,
+
+                    AusentesConAviso =
+                        actualizada.AusentesConAviso,
+
+                    Pendientes =
+                        actualizada.Pendientes
+                };
+        }
+    }
+
+
+    private bool EstaBloqueado(
+        AsistenciaAlumnoDto alumno)
+    {
+        return
+            _sesion?.EstadoSesion ==
+                EstadoSesionClase.Cancelada
+            ||
+            _guardandoAlumnos.Contains(
+                alumno.BebeId);
+    }
+
+
+    private string ObtenerObservacion(
+        Guid bebeId)
+    {
+        return _observaciones.TryGetValue(
+            bebeId,
+            out var observacion)
+                ? observacion
+                : string.Empty;
+    }
+
+
+    private void CambiarObservacion(
+        Guid bebeId,
+        string? valor)
+    {
+        _observaciones[bebeId] =
+            valor ?? string.Empty;
+    }
+
+
+    private static string ObtenerClaseEstado(
+        EstadoAsistencia estado)
+    {
+        return estado switch
+        {
+            EstadoAsistencia.Presente =>
+                "student-present",
+
+            EstadoAsistencia.AusenteConAviso =>
+                "student-notified",
+
+            EstadoAsistencia.Ausente =>
+                "student-absent",
+
+            _ =>
+                "student-pending"
+        };
+    }
+
+
+    private static string ObtenerIniciales(
+        string nombre)
+    {
+        var partes =
+            nombre.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+
+        if (partes.Length == 0)
+            return "?";
+
+
+        if (partes.Length == 1)
+        {
+            return partes[0][0]
+                .ToString()
+                .ToUpperInvariant();
+        }
+
+
+        return string.Concat(
+                partes[0][0],
+                partes[^1][0])
+            .ToUpperInvariant();
+    }
+
+
+    private static string ObtenerNombreDia(
+        DateOnly fecha)
+    {
+        var texto =
+            fecha.ToDateTime(
+                    TimeOnly.MinValue)
+                .ToString(
+                    "dddd",
+                    Cultura);
+
+
+        return char.ToUpper(texto[0])
+               + texto[1..];
+    }
+
+
+    private static string ObtenerFechaCompleta(
+        DateOnly fecha)
+    {
+        return fecha.ToDateTime(
+                TimeOnly.MinValue)
+            .ToString(
+                "d 'de' MMMM 'de' yyyy",
+                Cultura);
+    }
+
+
+    private static string ObtenerProgresoClase(
+        AsistenciaClaseDiaDto clase)
+    {
+        if (clase.TotalEsperados == 0)
+        {
+            return "width:0%";
+        }
+
+
+        var marcados =
+            clase.TotalEsperados
+            - clase.Pendientes;
+
+
+        var porcentaje =
+            marcados * 100d
+            / clase.TotalEsperados;
+
+
+        return $"width:{porcentaje:0}%";
+    }
+
+
+    private void VolverTurnera()
+    {
+        Navigation.NavigateTo(
+            "/turnos");
+    }
+}

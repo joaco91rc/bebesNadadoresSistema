@@ -1,0 +1,3184 @@
+/* ============================================================
+   BEBÉS NADADORES
+   HOME / DASHBOARD
+   ============================================================ */
+
+.dashboard[b-bkcl5lkbu2] {
+    width: 100%;
+    max-width: 1650px;
+    margin: 0 auto;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.dashboard-header[b-bkcl5lkbu2] {
+    margin-bottom: 26px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.dashboard-eyebrow[b-bkcl5lkbu2],
+.card-eyebrow[b-bkcl5lkbu2] {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 1.7px;
+
+    text-transform: uppercase;
+}
+
+
+.dashboard-header h1[b-bkcl5lkbu2] {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.8px;
+    line-height: 1.18;
+}
+
+
+.dashboard-header p[b-bkcl5lkbu2] {
+    margin:
+        7px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 14px;
+
+    line-height: 1.55;
+}
+
+
+/* ============================================================
+   PRIMARY ACTION
+   ============================================================ */
+
+.quick-primary[b-bkcl5lkbu2] {
+    min-height: 44px;
+
+    padding:
+        0
+        18px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border: 0;
+
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            100deg,
+            #087EC8,
+            #18BDF5
+        );
+
+    color: white;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 9px 25px
+        rgba(7, 142, 207, .18);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.quick-primary:hover[b-bkcl5lkbu2] {
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 13px 30px
+        rgba(7, 142, 207, .27);
+}
+
+
+/* ============================================================
+   KPI
+   ============================================================ */
+
+.kpi-grid[b-bkcl5lkbu2] {
+    margin-bottom: 22px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+
+.kpi-card[b-bkcl5lkbu2] {
+    min-height: 124px;
+
+    padding: 18px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 17px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 7px 25px
+        rgba(0, 27, 47, .035);
+
+    transition:
+        transform .22s ease,
+        border-color .22s ease,
+        box-shadow .22s ease;
+}
+
+
+.kpi-card:hover[b-bkcl5lkbu2] {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 25%,
+            var(--mud-palette-divider)
+        );
+
+    box-shadow:
+        0 14px 35px
+        rgba(0, 45, 77, .07);
+}
+
+
+.kpi-icon[b-bkcl5lkbu2] {
+    width: 47px;
+    height: 47px;
+
+    flex:
+        0
+        0
+        47px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 13px;
+}
+
+
+.kpi-icon[b-bkcl5lkbu2]  svg {
+    width: 22px !important;
+    height: 22px !important;
+
+    color: inherit !important;
+
+    fill: currentColor !important;
+}
+
+
+.kpi-icon.blue[b-bkcl5lkbu2] {
+    color: #56CEFA;
+
+    background:
+        rgba(41, 177, 236, .10);
+}
+
+
+.kpi-icon.cyan[b-bkcl5lkbu2] {
+    color: #67DFF1;
+
+    background:
+        rgba(64, 210, 231, .10);
+}
+
+
+.kpi-icon.warning[b-bkcl5lkbu2] {
+    color: #F2B749;
+
+    background:
+        rgba(242, 183, 73, .11);
+}
+
+
+.kpi-icon.danger[b-bkcl5lkbu2] {
+    color: #F06C79;
+
+    background:
+        rgba(240, 108, 121, .10);
+}
+
+
+.kpi-icon.success[b-bkcl5lkbu2] {
+    color: #45D294;
+
+    background:
+        rgba(69, 210, 148, .10);
+}
+
+
+.kpi-body[b-bkcl5lkbu2] {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.kpi-body > span[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+}
+
+
+.kpi-body strong[b-bkcl5lkbu2] {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 27px;
+    font-weight: 700;
+
+    line-height: 1.1;
+}
+
+
+.kpi-body small[b-bkcl5lkbu2] {
+    margin-top: 6px;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.positive[b-bkcl5lkbu2] {
+    color: #45D294 !important;
+}
+
+
+.negative[b-bkcl5lkbu2] {
+    color: #F06C79 !important;
+}
+
+
+/* ============================================================
+   CLASE EN CURSO
+   ============================================================ */
+
+.current-class-card[b-bkcl5lkbu2] {
+    position: relative;
+
+    margin-bottom: 22px;
+
+    padding:
+        22px
+        22px
+        18px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 30%,
+            var(--mud-palette-divider)
+        );
+
+    border-radius: 19px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 10px 35px
+        rgba(0, 38, 65, .06);
+}
+
+
+.current-class-glow[b-bkcl5lkbu2] {
+    position: absolute;
+
+    width: 400px;
+    height: 400px;
+
+    top: -320px;
+    left: 25%;
+
+    border-radius: 50%;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 13%,
+            transparent
+        );
+
+    filter:
+        blur(30px);
+
+    pointer-events: none;
+}
+
+
+/* ============================================================
+   HEADER CLASE
+   ============================================================ */
+
+.current-class-header[b-bkcl5lkbu2] {
+    position: relative;
+
+    z-index: 2;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-bottom: 18px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.live-badge[b-bkcl5lkbu2] {
+    width: fit-content;
+
+    margin-bottom: 9px;
+
+    padding:
+        5px
+        10px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    border-radius: 20px;
+
+    color: #44D69B;
+
+    background:
+        rgba(68, 214, 155, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.25px;
+}
+
+
+.live-dot[b-bkcl5lkbu2] {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #44D69B;
+
+    box-shadow:
+        0 0 0 4px
+        rgba(68, 214, 155, .10),
+
+        0 0 12px
+        rgba(68, 214, 155, .45);
+
+    animation:
+        currentClassPulse-b-bkcl5lkbu2
+        1.8s
+        infinite;
+}
+
+
+.current-class-heading h2[b-bkcl5lkbu2] {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 23px;
+    font-weight: 700;
+
+    letter-spacing: -.4px;
+}
+
+
+.current-class-meta[b-bkcl5lkbu2] {
+    margin-top: 10px;
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 16px;
+}
+
+
+.current-class-meta > span[b-bkcl5lkbu2] {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.current-class-meta[b-bkcl5lkbu2]  svg {
+    width: 15px !important;
+    height: 15px !important;
+
+    color:
+        var(--mud-palette-primary) !important;
+}
+
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+
+.current-class-clock[b-bkcl5lkbu2] {
+    min-width: 92px;
+
+    padding:
+        9px
+        14px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    border-radius: 11px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 6%,
+            transparent
+        );
+}
+
+
+.current-class-clock span[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.2px;
+}
+
+
+.current-class-clock strong[b-bkcl5lkbu2] {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 23px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   ATTENDANCE SUMMARY
+   ============================================================ */
+
+.attendance-summary[b-bkcl5lkbu2] {
+    position: relative;
+
+    z-index: 2;
+
+    margin:
+        17px
+        0
+        8px;
+
+    display: flex;
+
+    gap: 24px;
+}
+
+
+.attendance-stat[b-bkcl5lkbu2] {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.attendance-dot[b-bkcl5lkbu2] {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+}
+
+
+.attendance-dot.present[b-bkcl5lkbu2] {
+    background: #46D49A;
+}
+
+
+.attendance-dot.absent[b-bkcl5lkbu2] {
+    background: #EF7180;
+}
+
+
+.attendance-dot.pending[b-bkcl5lkbu2] {
+    background: #8CA8BA;
+}
+
+
+.attendance-stat > div[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.attendance-stat strong[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.attendance-stat span:last-child[b-bkcl5lkbu2] {
+    margin-top: 1px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   ALUMNOS
+   ============================================================ */
+
+.student-list[b-bkcl5lkbu2] {
+    position: relative;
+
+    z-index: 2;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        8px
+        10px;
+
+    margin-top: 13px;
+}
+
+
+.student-row[b-bkcl5lkbu2] {
+    min-height: 64px;
+
+    padding:
+        9px
+        11px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        auto;
+
+    align-items: center;
+
+    gap: 11px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 97%,
+            var(--mud-palette-primary) 3%
+        );
+
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        transform .2s ease;
+}
+
+
+.student-row:hover[b-bkcl5lkbu2] {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 18%,
+            var(--mud-palette-divider)
+        );
+
+    transform:
+        translateY(-1px);
+}
+
+
+.student-present[b-bkcl5lkbu2] {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #47D49A 6%
+        );
+
+    border-color:
+        rgba(71, 212, 154, .16);
+}
+
+
+.student-absent[b-bkcl5lkbu2] {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #EF7180 6%
+        );
+
+    border-color:
+        rgba(239, 113, 128, .16);
+}
+
+
+/* ============================================================
+   STUDENT
+   ============================================================ */
+
+.student-main[b-bkcl5lkbu2] {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.student-avatar[b-bkcl5lkbu2] {
+    width: 36px;
+    height: 36px;
+
+    flex:
+        0
+        0
+        36px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 9%,
+            transparent
+        );
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+.student-info[b-bkcl5lkbu2] {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.student-info strong[b-bkcl5lkbu2] {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.student-info span[b-bkcl5lkbu2] {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.student-notified[b-bkcl5lkbu2] {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #F4B740 6%
+        );
+
+    border-color:
+        rgba(244, 183, 64, .18);
+}
+
+
+.attendance-dot.notified[b-bkcl5lkbu2] {
+    background: #F4B740;
+}
+
+
+.status-notified[b-bkcl5lkbu2] {
+    color: #F4B740;
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button:hover[b-bkcl5lkbu2],
+.notified-button.selected[b-bkcl5lkbu2] {
+    color: #F4B740;
+
+    border-color:
+        rgba(244, 183, 64, .30);
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button.selected[b-bkcl5lkbu2] {
+    box-shadow:
+        0 0 12px
+        rgba(244, 183, 64, .09);
+}
+
+.student-notified[b-bkcl5lkbu2] {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #F4B740 6%
+        );
+
+    border-color:
+        rgba(244, 183, 64, .18);
+}
+
+
+.attendance-dot.notified[b-bkcl5lkbu2] {
+    background:
+        #F4B740;
+}
+
+
+.status-notified[b-bkcl5lkbu2] {
+    color:
+        #F4B740;
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button:hover[b-bkcl5lkbu2],
+.notified-button.selected[b-bkcl5lkbu2] {
+    color:
+        #F4B740;
+
+    border-color:
+        rgba(244, 183, 64, .30);
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button.selected[b-bkcl5lkbu2] {
+    box-shadow:
+        0 0 12px
+        rgba(244, 183, 64, .09);
+}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+
+.status-label[b-bkcl5lkbu2] {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: .3px;
+
+    white-space: nowrap;
+}
+
+
+.status-present[b-bkcl5lkbu2] {
+    color: #47D49A;
+
+    background:
+        rgba(71, 212, 154, .08);
+}
+
+
+.status-absent[b-bkcl5lkbu2] {
+    color: #EF7180;
+
+    background:
+        rgba(239, 113, 128, .08);
+}
+
+
+.status-pending[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-text-secondary) 7%,
+            transparent
+        );
+}
+
+
+/* ============================================================
+   BOTONES ASISTENCIA
+   ============================================================ */
+
+.student-actions[b-bkcl5lkbu2] {
+    display: flex;
+
+    gap: 5px;
+}
+
+
+.attendance-button[b-bkcl5lkbu2] {
+    width: 34px;
+    height: 34px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 8px;
+
+    background: transparent;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    cursor: pointer;
+
+    transition:
+        background .18s ease,
+        border-color .18s ease,
+        color .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.attendance-button[b-bkcl5lkbu2]  svg {
+    width: 17px !important;
+    height: 17px !important;
+
+    color: inherit !important;
+}
+
+
+.attendance-button:hover[b-bkcl5lkbu2] {
+    transform:
+        translateY(-1px);
+}
+
+
+.present-button:hover[b-bkcl5lkbu2],
+.present-button.selected[b-bkcl5lkbu2] {
+    color: #47D49A;
+
+    border-color:
+        rgba(71, 212, 154, .28);
+
+    background:
+        rgba(71, 212, 154, .09);
+}
+
+
+.present-button.selected[b-bkcl5lkbu2] {
+    box-shadow:
+        0 0 12px
+        rgba(71, 212, 154, .09);
+}
+
+
+.absent-button:hover[b-bkcl5lkbu2],
+.absent-button.selected[b-bkcl5lkbu2] {
+    color: #EF7180;
+
+    border-color:
+        rgba(239, 113, 128, .28);
+
+    background:
+        rgba(239, 113, 128, .09);
+}
+
+
+.absent-button.selected[b-bkcl5lkbu2] {
+    box-shadow:
+        0 0 12px
+        rgba(239, 113, 128, .09);
+}
+
+
+/* ============================================================
+   FOOTER CLASE
+   ============================================================ */
+
+.current-class-footer[b-bkcl5lkbu2] {
+    position: relative;
+
+    z-index: 2;
+
+    margin-top: 17px;
+
+    padding-top: 15px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.attendance-progress[b-bkcl5lkbu2] {
+    width:
+        min(
+            360px,
+            100%
+        );
+}
+
+
+.attendance-progress-info[b-bkcl5lkbu2] {
+    margin-bottom: 7px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+
+.attendance-progress-info span[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.attendance-progress-info strong[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+.progress-track[b-bkcl5lkbu2] {
+    width: 100%;
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 20px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 7%,
+            transparent
+        );
+}
+
+
+.progress-value[b-bkcl5lkbu2] {
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--mud-palette-primary),
+            var(--mud-palette-secondary)
+        );
+
+    transition:
+        width .3s ease;
+}
+
+
+.open-attendance-button[b-bkcl5lkbu2] {
+    min-height: 38px;
+
+    padding:
+        0
+        13px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 18%,
+            transparent
+        );
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 7%,
+            transparent
+        );
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        background .2s ease;
+}
+
+
+.open-attendance-button:hover[b-bkcl5lkbu2] {
+    transform:
+        translateY(-1px);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 11%,
+            transparent
+        );
+}
+
+
+/* ============================================================
+   LIVE
+   ============================================================ */
+
+@keyframes currentClassPulse-b-bkcl5lkbu2 {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .45;
+    }
+
+}
+
+
+/* ============================================================
+   CUMPLEAÑOS DEL MES
+   ============================================================ */
+
+.birthdays-card[b-bkcl5lkbu2] {
+    position: relative;
+
+    margin-bottom: 22px;
+
+    padding:
+        20px
+        22px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 18px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 8px 28px
+        rgba(0, 27, 47, .035);
+}
+
+
+/* ============================================================
+   BIRTHDAY HEADER
+   ============================================================ */
+
+.birthdays-header[b-bkcl5lkbu2] {
+    margin-bottom: 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+
+.birthdays-eyebrow[b-bkcl5lkbu2] {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #F1AFC4;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.5px;
+}
+
+
+.birthdays-header h2[b-bkcl5lkbu2] {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 20px;
+    font-weight: 700;
+
+    text-transform: capitalize;
+}
+
+
+.birthdays-icon[b-bkcl5lkbu2] {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 12px;
+
+    color: #F2AFC4;
+
+    background:
+        rgba(242, 175, 196, .09);
+}
+
+
+.birthdays-icon[b-bkcl5lkbu2]  svg {
+    width: 21px !important;
+    height: 21px !important;
+
+    color: inherit !important;
+}
+
+
+/* ============================================================
+   CUMPLEAÑOS HOY
+   ============================================================ */
+
+.birthday-today[b-bkcl5lkbu2] {
+    margin-bottom: 14px;
+
+    padding:
+        14px
+        15px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    border:
+        1px solid
+        rgba(66, 205, 242, .16);
+
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            100deg,
+            rgba(25, 172, 228, .10),
+            rgba(82, 216, 246, .045)
+        );
+}
+
+
+.birthday-today-icon[b-bkcl5lkbu2] {
+    width: 40px;
+    height: 40px;
+
+    flex:
+        0
+        0
+        40px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255, 255, 255, .05);
+
+    font-size: 20px;
+}
+
+
+.birthday-today-text[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.birthday-today-text strong[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+.birthday-today-text span[b-bkcl5lkbu2] {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   BIRTHDAY LIST
+   ============================================================ */
+
+.birthday-list[b-bkcl5lkbu2] {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        8px
+        10px;
+}
+
+
+.birthday-row[b-bkcl5lkbu2] {
+    min-height: 67px;
+
+    padding:
+        9px
+        11px;
+
+    display: grid;
+
+    grid-template-columns:
+        46px
+        36px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 97%,
+            var(--mud-palette-primary) 3%
+        );
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        background .2s ease;
+}
+
+
+.birthday-row:hover[b-bkcl5lkbu2] {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 18%,
+            var(--mud-palette-divider)
+        );
+}
+
+
+.birthday-row-today[b-bkcl5lkbu2] {
+    border-color:
+        rgba(62, 209, 245, .22);
+
+    background:
+        linear-gradient(
+            100deg,
+            rgba(18, 167, 224, .08),
+            rgba(69, 214, 244, .035)
+        );
+}
+
+
+/* ============================================================
+   BIRTHDAY DATE
+   ============================================================ */
+
+.birthday-date[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+.birthday-date strong[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 19px;
+    font-weight: 700;
+
+    line-height: 1;
+}
+
+
+.birthday-date span[b-bkcl5lkbu2] {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: .65px;
+}
+
+
+/* ============================================================
+   BIRTHDAY AVATAR
+   ============================================================ */
+
+.birthday-avatar[b-bkcl5lkbu2] {
+    width: 36px;
+    height: 36px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    color: #F2AFC4;
+
+    background:
+        rgba(242, 175, 196, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   BIRTHDAY INFO
+   ============================================================ */
+
+.birthday-info[b-bkcl5lkbu2] {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.birthday-info strong[b-bkcl5lkbu2] {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.birthday-info span[b-bkcl5lkbu2] {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   HOY BADGE
+   ============================================================ */
+
+.birthday-today-badge[b-bkcl5lkbu2] {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    color: #47D7F5;
+
+    background:
+        rgba(71, 215, 245, .08);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: .6px;
+}
+
+
+/* ============================================================
+   DÍAS RESTANTES
+   ============================================================ */
+
+.birthday-days[b-bkcl5lkbu2] {
+    display: flex;
+    align-items: baseline;
+
+    gap: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    white-space: nowrap;
+}
+
+
+.birthday-days span[b-bkcl5lkbu2] {
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 10px;
+}
+
+
+.birthday-days strong[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   MAIN GRID
+   ============================================================ */
+
+.dashboard-grid[b-bkcl5lkbu2] {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(310px, .85fr);
+
+    gap: 16px;
+}
+
+
+/* ============================================================
+   CARD BASE
+   ============================================================ */
+
+.dashboard-card[b-bkcl5lkbu2] {
+    position: relative;
+
+    padding: 20px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 18px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 8px 28px
+        rgba(0, 27, 47, .035);
+
+    overflow: hidden;
+}
+
+
+.dashboard-card[b-bkcl5lkbu2]::before {
+    content: "";
+
+    position: absolute;
+
+    width: 180px;
+    height: 180px;
+
+    top: -120px;
+    right: -100px;
+
+    border-radius: 50%;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 5%,
+            transparent
+        );
+
+    pointer-events: none;
+}
+
+
+.card-header[b-bkcl5lkbu2] {
+    position: relative;
+
+    z-index: 2;
+
+    margin-bottom: 17px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+}
+
+
+.card-header h2[b-bkcl5lkbu2] {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+
+.text-action[b-bkcl5lkbu2] {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    border: 0;
+
+    background: transparent;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   CLASES
+   ============================================================ */
+
+.classes-card[b-bkcl5lkbu2] {
+    min-height: 410px;
+}
+
+
+.class-list[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.class-row[b-bkcl5lkbu2] {
+    min-height: 68px;
+
+    display: grid;
+
+    grid-template-columns:
+        68px
+        1px
+        minmax(0, 1fr)
+        32px;
+
+    align-items: center;
+
+    gap: 14px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+
+    transition:
+        background .2s ease;
+}
+
+
+.class-row:last-child[b-bkcl5lkbu2] {
+    border-bottom: 0;
+}
+
+
+.class-row:hover[b-bkcl5lkbu2] {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 4%,
+            transparent
+        );
+}
+
+
+.class-time[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.class-time strong[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+.class-time span[b-bkcl5lkbu2] {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.class-line[b-bkcl5lkbu2] {
+    width: 1px;
+    height: 31px;
+
+    background:
+        var(--mud-palette-divider);
+}
+
+
+.class-info[b-bkcl5lkbu2] {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.class-title[b-bkcl5lkbu2] {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.class-title strong[b-bkcl5lkbu2] {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.class-info > span[b-bkcl5lkbu2] {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.occupancy[b-bkcl5lkbu2] {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+.occupancy.available[b-bkcl5lkbu2] {
+    color: #44CE8D;
+
+    background:
+        rgba(68, 206, 141, .09);
+}
+
+
+.occupancy.warning[b-bkcl5lkbu2] {
+    color: #E7B14B;
+
+    background:
+        rgba(231, 177, 75, .09);
+}
+
+
+.occupancy.full[b-bkcl5lkbu2] {
+    color: #EC7180;
+
+    background:
+        rgba(236, 113, 128, .09);
+}
+
+
+.row-action[b-bkcl5lkbu2] {
+    width: 31px;
+    height: 31px;
+
+    display: grid;
+    place-items: center;
+
+    border: 0;
+
+    border-radius: 8px;
+
+    background: transparent;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    cursor: pointer;
+
+    transition:
+        color .2s ease,
+        background .2s ease,
+        transform .2s ease;
+}
+
+
+.row-action:hover[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 8%,
+            transparent
+        );
+
+    transform:
+        translateX(2px);
+}
+
+
+/* ============================================================
+   ALERTAS
+   ============================================================ */
+
+.alert-counter[b-bkcl5lkbu2] {
+    min-width: 29px;
+    height: 29px;
+
+    padding:
+        0
+        7px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 20px;
+
+    color: #F06C79;
+
+    background:
+        rgba(240, 108, 121, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+.alert-list[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+
+    gap: 9px;
+}
+
+
+.alert-row[b-bkcl5lkbu2] {
+    padding: 13px;
+
+    display: flex;
+
+    gap: 11px;
+
+    border-radius: 12px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 3%,
+            transparent
+        );
+}
+
+
+.alert-icon[b-bkcl5lkbu2] {
+    width: 32px;
+    height: 32px;
+
+    flex:
+        0
+        0
+        32px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+}
+
+
+.alert-icon[b-bkcl5lkbu2]  svg {
+    width: 17px !important;
+    height: 17px !important;
+
+    color: inherit !important;
+}
+
+
+.alert-row strong[b-bkcl5lkbu2] {
+    display: block;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.alert-row span[b-bkcl5lkbu2] {
+    display: block;
+
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.danger-alert .alert-icon[b-bkcl5lkbu2] {
+    color: #F06C79;
+
+    background:
+        rgba(240, 108, 121, .09);
+}
+
+
+.warning-alert .alert-icon[b-bkcl5lkbu2] {
+    color: #EAB24A;
+
+    background:
+        rgba(234, 178, 74, .09);
+}
+
+
+.blue-alert .alert-icon[b-bkcl5lkbu2] {
+    color: #56CEFA;
+
+    background:
+        rgba(86, 206, 250, .09);
+}
+
+
+/* ============================================================
+   VACANTES
+   ============================================================ */
+
+.vacancy-list[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.vacancy-row[b-bkcl5lkbu2] {
+    min-height: 70px;
+
+    display: grid;
+
+    grid-template-columns:
+        60px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 12px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.vacancy-row:last-child[b-bkcl5lkbu2] {
+    border-bottom: 0;
+}
+
+
+.vacancy-date[b-bkcl5lkbu2] {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.vacancy-date span[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.vacancy-date strong[b-bkcl5lkbu2] {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+.vacancy-info[b-bkcl5lkbu2] {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.vacancy-info strong[b-bkcl5lkbu2] {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.vacancy-info span[b-bkcl5lkbu2] {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.notify-button[b-bkcl5lkbu2] {
+    min-height: 34px;
+
+    padding:
+        0
+        11px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 20%,
+            transparent
+        );
+
+    border-radius: 8px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 7%,
+            transparent
+        );
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   CAJA
+   ============================================================ */
+
+.cash-status[b-bkcl5lkbu2] {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    color: #42CE8C;
+
+    background:
+        rgba(66, 206, 140, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.cash-total[b-bkcl5lkbu2] {
+    padding:
+        8px
+        0
+        17px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.cash-total span[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.cash-total strong[b-bkcl5lkbu2] {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 30px;
+    font-weight: 700;
+}
+
+
+.cash-details[b-bkcl5lkbu2] {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+}
+
+
+.cash-details > div[b-bkcl5lkbu2] {
+    padding: 11px;
+
+    border-radius: 10px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 4%,
+            transparent
+        );
+}
+
+
+.cash-details span[b-bkcl5lkbu2] {
+    display: block;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 10px;
+}
+
+
+.cash-details strong[b-bkcl5lkbu2] {
+    display: block;
+
+    margin-top: 5px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.card-bottom-action[b-bkcl5lkbu2] {
+    width: 100%;
+
+    margin-top: 14px;
+
+    padding: 11px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    border: 0;
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 8%,
+            transparent
+        );
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   ATTENDANCE CHART
+   ============================================================ */
+
+.attendance-value[b-bkcl5lkbu2] {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 24px;
+    font-weight: 700;
+}
+
+
+.chart-bars[b-bkcl5lkbu2] {
+    height: 145px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 12px;
+}
+
+
+.chart-column[b-bkcl5lkbu2] {
+    flex: 1;
+
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: flex-end;
+}
+
+
+.chart-track[b-bkcl5lkbu2] {
+    width: 100%;
+    height: 110px;
+
+    display: flex;
+    align-items: flex-end;
+
+    overflow: hidden;
+
+    border-radius:
+        8px
+        8px
+        3px
+        3px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 5%,
+            transparent
+        );
+}
+
+
+.chart-bar[b-bkcl5lkbu2] {
+    width: 100%;
+
+    border-radius:
+        8px
+        8px
+        3px
+        3px;
+
+    background:
+        linear-gradient(
+            to top,
+            var(--mud-palette-primary),
+            var(--mud-palette-secondary)
+        );
+
+    opacity: .80;
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
+}
+
+
+.chart-column:hover .chart-bar[b-bkcl5lkbu2] {
+    opacity: 1;
+
+    transform:
+        scaleX(.92);
+}
+
+
+.chart-column > span[b-bkcl5lkbu2] {
+    margin-top: 7px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+
+.quick-grid[b-bkcl5lkbu2] {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 10px;
+}
+
+
+.quick-grid button[b-bkcl5lkbu2] {
+    min-height: 74px;
+
+    padding: 12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 12px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 96%,
+            var(--mud-palette-primary) 4%
+        );
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        background .2s ease;
+}
+
+
+.quick-grid button:hover[b-bkcl5lkbu2] {
+    transform:
+        translateY(-2px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 25%,
+            var(--mud-palette-divider)
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 92%,
+            var(--mud-palette-primary) 8%
+        );
+}
+
+
+.quick-icon[b-bkcl5lkbu2] {
+    width: 35px;
+    height: 35px;
+
+    flex:
+        0
+        0
+        35px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 10px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 9%,
+            transparent
+        );
+}
+
+
+.quick-icon[b-bkcl5lkbu2]  svg {
+    width: 18px !important;
+    height: 18px !important;
+
+    color: inherit !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1300px) {
+
+    .kpi-grid[b-bkcl5lkbu2] {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+}
+
+
+@media (max-width: 1050px) {
+
+    .dashboard-grid[b-bkcl5lkbu2] {
+        grid-template-columns: 1fr;
+    }
+
+
+    .kpi-grid[b-bkcl5lkbu2] {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+
+    .student-list[b-bkcl5lkbu2] {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 900px) {
+
+    .birthday-list[b-bkcl5lkbu2] {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .dashboard-header[b-bkcl5lkbu2] {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .dashboard-header h1[b-bkcl5lkbu2] {
+        font-size: 29px;
+    }
+
+
+    .kpi-grid[b-bkcl5lkbu2] {
+        grid-template-columns: 1fr;
+    }
+
+
+    .current-class-header[b-bkcl5lkbu2] {
+        flex-direction: column;
+    }
+
+
+    .current-class-clock[b-bkcl5lkbu2] {
+        align-items: flex-start;
+    }
+
+
+    .attendance-summary[b-bkcl5lkbu2] {
+        flex-wrap: wrap;
+    }
+
+
+    .student-row[b-bkcl5lkbu2] {
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto;
+    }
+
+
+    .student-status[b-bkcl5lkbu2] {
+        display: none;
+    }
+
+
+    .current-class-footer[b-bkcl5lkbu2] {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .attendance-progress[b-bkcl5lkbu2] {
+        width: 100%;
+    }
+
+
+    .open-attendance-button[b-bkcl5lkbu2] {
+        justify-content: center;
+    }
+
+
+    .cash-details[b-bkcl5lkbu2] {
+        grid-template-columns: 1fr;
+    }
+
+
+    .quick-grid[b-bkcl5lkbu2] {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 550px) {
+
+    .birthday-row[b-bkcl5lkbu2] {
+        grid-template-columns:
+            42px
+            34px
+            minmax(0, 1fr);
+    }
+
+
+    .birthday-days[b-bkcl5lkbu2],
+    .birthday-today-badge[b-bkcl5lkbu2] {
+        grid-column: 3;
+
+        width: fit-content;
+    }
+
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .live-dot[b-bkcl5lkbu2] {
+        animation: none;
+    }
+
+
+    .kpi-card[b-bkcl5lkbu2],
+    .student-row[b-bkcl5lkbu2],
+    .birthday-row[b-bkcl5lkbu2],
+    .quick-grid button[b-bkcl5lkbu2],
+    .attendance-button[b-bkcl5lkbu2],
+    .quick-primary[b-bkcl5lkbu2],
+    .open-attendance-button[b-bkcl5lkbu2] {
+        transition: none;
+    }
+
+}

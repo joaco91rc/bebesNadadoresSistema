@@ -1,0 +1,1036 @@
+@page "/niveles"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.Niveles
+@using BebesNadadores.Application.Niveles.Dtos
+
+@inject INivelService NivelService
+@inject NavigationManager Navigation
+
+<PageTitle>Niveles | Bebés Nadadores</PageTitle>
+
+
+<div class="niveles-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="niveles-header">
+
+        <div>
+
+            <button type="button"
+                    class="back-button"
+                    @onclick="VolverTurnera">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Turnera
+
+            </button>
+
+
+            <span class="niveles-eyebrow">
+                CONFIGURACIÓN ACADÉMICA
+            </span>
+
+            <h1>
+                Niveles
+            </h1>
+
+            <p>
+                Definí edades, duración, cupos y cantidad
+                de profesores para cada grupo.
+            </p>
+
+        </div>
+
+
+        <button type="button"
+                class="primary-action"
+                @onclick="NuevoNivel">
+
+            <MudIcon Icon="@Icons.Material.Filled.Add"
+                     Size="Size.Small" />
+
+            Nuevo nivel
+
+        </button>
+
+    </section>
+
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            @_mensaje
+
+        </div>
+    }
+
+
+    @* =========================================================
+       RESUMEN
+       ========================================================= *@
+
+    <section class="nivel-stats">
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Layers" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Niveles
+                </span>
+
+                <strong>
+                    @_niveles.Count
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Activos
+                </span>
+
+                <strong>
+                    @_niveles.Count(x => x.Activo)
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Turnos activos
+                </span>
+
+                <strong>
+                    @_niveles.Sum(x => x.TurnosActivos)
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    @* =========================================================
+       LISTADO
+       ========================================================= *@
+
+    @if (_cargando)
+    {
+        <div class="loading-panel">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando niveles...
+            </span>
+
+        </div>
+    }
+    else if (_niveles.Count == 0)
+    {
+        <section class="empty-panel">
+
+            <div class="empty-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Pool" />
+
+            </div>
+
+            <h3>
+                Todavía no hay niveles
+            </h3>
+
+            <p>
+                Creá el primer nivel para empezar a configurar
+                la grilla semanal del natatorio.
+            </p>
+
+            <button type="button"
+                    class="primary-action"
+                    @onclick="NuevoNivel">
+
+                <MudIcon Icon="@Icons.Material.Filled.Add"
+                         Size="Size.Small" />
+
+                Crear primer nivel
+
+            </button>
+
+        </section>
+    }
+    else
+    {
+        <section class="niveles-grid">
+
+            @foreach (var nivel in _niveles)
+            {
+                <article class="nivel-card @(!nivel.Activo ? "inactive" : "")">
+
+                    <div class="nivel-card-top">
+
+                        <div class="nivel-order">
+                            @nivel.Orden
+                        </div>
+
+
+                        <div class="nivel-card-title">
+
+                            <div class="nivel-name-row">
+
+                                <h3>
+                                    @nivel.Nombre
+                                </h3>
+
+                                <span class="status-badge @(nivel.Activo ? "active" : "disabled")">
+
+                                    @(nivel.Activo
+                                        ? "ACTIVO"
+                                        : "INACTIVO")
+
+                                </span>
+
+                            </div>
+
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                nivel.Descripcion))
+                            {
+                                <p>
+                                    @nivel.Descripcion
+                                </p>
+                            }
+
+                        </div>
+
+
+                        <button type="button"
+                                class="edit-button"
+                                title="Editar"
+                                @onclick="() => EditarNivel(nivel)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                     Size="Size.Small" />
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="nivel-metrics">
+
+                        <div>
+
+                            <span>
+                                EDAD
+                            </span>
+
+                            <strong>
+                                @FormatearEdad(
+                                    nivel.EdadMinMeses,
+                                    nivel.EdadMaxMeses)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                DURACIÓN
+                            </span>
+
+                            <strong>
+                                @nivel.DuracionMinutos min
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                CUPO
+                            </span>
+
+                            <strong>
+                                @nivel.CupoPredeterminado
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                PROFESORES
+                            </span>
+
+                            <strong>
+                                @nivel.ProfesoresMinimos
+                                —
+                                @nivel.ProfesoresMaximos
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <footer class="nivel-card-footer">
+
+                        <span>
+
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
+                                     Size="Size.Small" />
+
+                            @nivel.TurnosActivos
+                            @(nivel.TurnosActivos == 1
+                                ? "turno activo"
+                                : "turnos activos")
+
+                        </span>
+
+
+                        <button type="button"
+                                class="toggle-status @(nivel.Activo ? "disable" : "enable")"
+                                @onclick="() => CambiarEstado(nivel)">
+
+                            <MudIcon Icon="@(nivel.Activo
+                                ? Icons.Material.Filled.VisibilityOff
+                                : Icons.Material.Filled.Visibility)"
+                                     Size="Size.Small" />
+
+                            @(nivel.Activo
+                                ? "Desactivar"
+                                : "Activar")
+
+                        </button>
+
+                    </footer>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL
+   ============================================================= *@
+
+@if (_mostrarFormulario)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarFormulario">
+
+        <div class="nivel-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        @(_editandoId.HasValue
+                            ? "EDITAR CONFIGURACIÓN"
+                            : "NUEVO NIVEL")
+                    </span>
+
+                    <h2>
+                        @(_editandoId.HasValue
+                            ? "Editar nivel"
+                            : "Crear nivel")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarFormulario">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="nivel-form">
+
+                <div class="form-field full">
+
+                    <label>
+                        Nombre
+                    </label>
+
+                    <input type="text"
+                           maxlength="150"
+                           placeholder="Ej. 2 años"
+                           @bind="_form.Nombre" />
+
+                </div>
+
+
+                <div class="form-field full">
+
+                    <label>
+                        Descripción
+                    </label>
+
+                    <textarea rows="3"
+                              maxlength="500"
+                              placeholder="Descripción opcional del nivel..."
+                              @bind="_form.Descripcion">
+                    </textarea>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Orden
+                    </label>
+
+                    <input type="number"
+                           min="0"
+                           @bind="_form.Orden" />
+
+                    <small>
+                        Define cómo se muestra en los combos.
+                    </small>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Duración predeterminada
+                    </label>
+
+                    <div class="input-suffix">
+
+                        <input type="number"
+                               min="1"
+                               max="120"
+                               @bind="_form.DuracionMinutos" />
+
+                        <span>
+                            min
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-section-title full">
+
+                    <span>
+                        RANGO DE EDAD
+                    </span>
+
+                    <strong>
+                        @FormatearEdad(
+                            _form.EdadMinMeses,
+                            _form.EdadMaxMeses)
+                    </strong>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Edad mínima
+                    </label>
+
+                    <div class="input-suffix">
+
+                        <input type="number"
+                               min="0"
+                               max="84"
+                               @bind="_form.EdadMinMeses" />
+
+                        <span>
+                            meses
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Edad máxima
+                    </label>
+
+                    <div class="input-suffix">
+
+                        <input type="number"
+                               min="0"
+                               max="84"
+                               @bind="_form.EdadMaxMeses" />
+
+                        <span>
+                            meses
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-section-title full">
+
+                    <span>
+                        CLASE
+                    </span>
+
+                </div>
+
+
+               <div class="class-config-grid">
+
+    <div class="form-field">
+
+        <label>
+            Cupo predeterminado
+        </label>
+
+        <input type="number"
+               min="1"
+               max="100"
+               @bind="_form.CupoPredeterminado" />
+
+    </div>
+
+
+    <div class="form-field">
+
+        <label>
+            Profesores mínimos
+        </label>
+
+        <input type="number"
+               min="1"
+               max="10"
+               @bind="_form.ProfesoresMinimos" />
+
+    </div>
+
+
+    <div class="form-field">
+
+        <label>
+            Profesores máximos
+        </label>
+
+        <input type="number"
+               min="1"
+               max="10"
+               @bind="_form.ProfesoresMaximos" />
+
+    </div>
+
+</div>
+
+
+                <label class="active-option full">
+
+                    <input type="checkbox"
+                           @bind="_form.Activo" />
+
+                    <span class="switch-control"></span>
+
+                    <div>
+
+                        <strong>
+                            Nivel activo
+                        </strong>
+
+                        <small>
+                            Los niveles inactivos no aparecen
+                            al crear nuevos turnos.
+                        </small>
+
+                    </div>
+
+                </label>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _errorFormulario))
+                {
+                    <div class="form-error full">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                                 Size="Size.Small" />
+
+                        @_errorFormulario
+
+                    </div>
+                }
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="CerrarFormulario">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="Guardar">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+
+                    @(_editandoId.HasValue
+                        ? "Guardar cambios"
+                        : "Crear nivel")
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@code
+{
+    private List<NivelDto> _niveles =
+        [];
+
+    private bool _cargando =
+        true;
+
+    private bool _guardando;
+
+    private bool _mostrarFormulario;
+
+    private Guid? _editandoId;
+
+    private string? _error;
+
+    private string? _mensaje;
+
+    private string? _errorFormulario;
+
+    private NivelFormModel _form =
+        new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _cargando =
+                true;
+
+            _error =
+                null;
+
+            _niveles =
+                (await NivelService.ListarAsync())
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private void NuevoNivel()
+    {
+        _editandoId =
+            null;
+
+        _errorFormulario =
+            null;
+
+        var siguienteOrden =
+            _niveles.Count == 0
+                ? 1
+                : _niveles.Max(x => x.Orden) + 1;
+
+        _form =
+            new NivelFormModel
+            {
+                Orden =
+                    siguienteOrden,
+
+                EdadMinMeses =
+                    0,
+
+                EdadMaxMeses =
+                    11,
+
+                DuracionMinutos =
+                    30,
+
+                CupoPredeterminado =
+                    8,
+
+                ProfesoresMinimos =
+                    1,
+
+                ProfesoresMaximos =
+                    2,
+
+                Activo =
+                    true
+            };
+
+        _mostrarFormulario =
+            true;
+    }
+
+
+    private void EditarNivel(
+        NivelDto nivel)
+    {
+        _editandoId =
+            nivel.Id;
+
+        _errorFormulario =
+            null;
+
+        _form =
+            new NivelFormModel
+            {
+                Nombre =
+                    nivel.Nombre,
+
+                Descripcion =
+                    nivel.Descripcion,
+
+                Orden =
+                    nivel.Orden,
+
+                EdadMinMeses =
+                    nivel.EdadMinMeses,
+
+                EdadMaxMeses =
+                    nivel.EdadMaxMeses,
+
+                DuracionMinutos =
+                    nivel.DuracionMinutos,
+
+                CupoPredeterminado =
+                    nivel.CupoPredeterminado,
+
+                ProfesoresMinimos =
+                    nivel.ProfesoresMinimos,
+
+                ProfesoresMaximos =
+                    nivel.ProfesoresMaximos,
+
+                Activo =
+                    nivel.Activo
+            };
+
+        _mostrarFormulario =
+            true;
+    }
+
+
+    private async Task Guardar()
+    {
+        _errorFormulario =
+            null;
+
+        _mensaje =
+            null;
+
+        try
+        {
+            _guardando =
+                true;
+
+            var dto =
+                new GuardarNivelDto
+                {
+                    Nombre =
+                        _form.Nombre,
+
+                    Descripcion =
+                        _form.Descripcion,
+
+                    Orden =
+                        _form.Orden,
+
+                    EdadMinMeses =
+                        _form.EdadMinMeses,
+
+                    EdadMaxMeses =
+                        _form.EdadMaxMeses,
+
+                    DuracionMinutos =
+                        _form.DuracionMinutos,
+
+                    CupoPredeterminado =
+                        _form.CupoPredeterminado,
+
+                    ProfesoresMinimos =
+                        _form.ProfesoresMinimos,
+
+                    ProfesoresMaximos =
+                        _form.ProfesoresMaximos,
+
+                    Activo =
+                        _form.Activo
+                };
+
+
+            if (_editandoId.HasValue)
+            {
+                await NivelService.ActualizarAsync(
+                    _editandoId.Value,
+                    dto);
+
+                _mensaje =
+                    "Nivel actualizado correctamente.";
+            }
+            else
+            {
+                await NivelService.CrearAsync(
+                    dto);
+
+                _mensaje =
+                    "Nivel creado correctamente.";
+            }
+
+
+            CerrarFormulario();
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorFormulario =
+                ex.Message;
+        }
+        finally
+        {
+            _guardando =
+                false;
+        }
+    }
+
+
+    private async Task CambiarEstado(
+        NivelDto nivel)
+    {
+        try
+        {
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+            await NivelService.CambiarEstadoAsync(
+                nivel.Id,
+                !nivel.Activo);
+
+            _mensaje =
+                nivel.Activo
+                    ? "Nivel desactivado."
+                    : "Nivel activado.";
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private void CerrarFormulario()
+    {
+        _mostrarFormulario =
+            false;
+
+        _errorFormulario =
+            null;
+    }
+
+
+    private void VolverTurnera()
+    {
+        Navigation.NavigateTo(
+            "/turnos");
+    }
+
+
+    private static string FormatearEdad(
+        int minimo,
+        int maximo)
+    {
+        return
+            $"{FormatearMeses(minimo)} — {FormatearMeses(maximo)}";
+    }
+
+
+    private static string FormatearMeses(
+        int meses)
+    {
+        if (meses < 12)
+        {
+            return meses == 1
+                ? "1 mes"
+                : $"{meses} meses";
+        }
+
+        var anios =
+            meses / 12;
+
+        var resto =
+            meses % 12;
+
+        if (resto == 0)
+        {
+            return anios == 1
+                ? "1 año"
+                : $"{anios} años";
+        }
+
+        return
+            $"{anios}a {resto}m";
+    }
+
+
+    private sealed class NivelFormModel
+    {
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string? Descripcion { get; set; }
+
+        public int Orden { get; set; }
+
+        public int EdadMinMeses { get; set; }
+
+        public int EdadMaxMeses { get; set; }
+
+        public int DuracionMinutos { get; set; }
+
+        public int CupoPredeterminado { get; set; }
+
+        public int ProfesoresMinimos { get; set; }
+
+        public int ProfesoresMaximos { get; set; }
+
+        public bool Activo { get; set; }
+            = true;
+    }
+}

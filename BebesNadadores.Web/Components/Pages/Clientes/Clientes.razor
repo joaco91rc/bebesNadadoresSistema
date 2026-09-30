@@ -1,0 +1,1373 @@
+@page "/clientes"
+@page "/bebes"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.Bebes
+@using BebesNadadores.Application.Bebes.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject IBebeService BebeService
+@inject NavigationManager Navigation
+
+
+<PageTitle>
+    Bebés y familias | Bebés Nadadores
+</PageTitle>
+
+
+<div class="babies-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="babies-header">
+
+        <div>
+
+            <span class="babies-eyebrow">
+                COMUNIDAD
+            </span>
+
+            <h1>
+                Bebés y familias
+            </h1>
+
+            <p>
+                Administrá los bebés, sus responsables
+                y la información principal de cada familia.
+            </p>
+
+        </div>
+
+
+        <button type="button"
+                class="primary-action"
+                @onclick="NuevoBebe">
+
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
+                     Size="Size.Small" />
+
+            Inscribir bebé
+
+        </button>
+
+    </section>
+
+
+    @* =========================================================
+       MENSAJES
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+            <button type="button"
+                    @onclick="() => _mensaje = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       ESTADÍSTICAS
+       ========================================================= *@
+
+    <section class="babies-stats">
+
+        <article>
+
+            <div class="stat-icon blue">
+
+                <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Bebés activos
+                </span>
+
+                <strong>
+                    @CantidadActivos
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon cyan">
+
+                <MudIcon Icon="@Icons.Material.Filled.Cake" />
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Cumpleaños este mes
+                </span>
+
+                <strong>
+                    @CantidadCumpleaniosMes
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon warning">
+
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Próximos a 7 años
+                </span>
+
+                <strong>
+                    @CantidadProximosEdadMaxima
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon muted">
+
+                <MudIcon Icon="@Icons.Material.Filled.PersonOff" />
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    De baja
+                </span>
+
+                <strong>
+                    @CantidadBajas
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    @* =========================================================
+       TOOLBAR
+       ========================================================= *@
+
+    <section class="babies-toolbar">
+
+        <div class="search-box">
+
+            <MudIcon Icon="@Icons.Material.Filled.Search"
+                     Size="Size.Small" />
+
+            <input type="text"
+                   placeholder="Buscar bebé, DNI, responsable, teléfono, WhatsApp o email..."
+                   @bind="_busqueda"
+                   @bind:event="oninput" />
+
+        </div>
+
+
+        <label class="show-disabled">
+
+            <input type="checkbox"
+                   @bind="_mostrarBajas"
+                   @bind:after="RecargarAsync" />
+
+            <span>
+                Mostrar bajas
+            </span>
+
+        </label>
+
+    </section>
+
+
+    @* =========================================================
+       CONTENIDO
+       ========================================================= *@
+
+    @if (_cargando)
+    {
+        <section class="loading-panel">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando bebés...
+            </span>
+
+        </section>
+    }
+    else if (!BebesFiltrados.Any())
+    {
+        <section class="empty-panel">
+
+            <div class="empty-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
+
+            </div>
+
+
+            <h3>
+                No encontramos bebés
+            </h3>
+
+
+            <p>
+                Modificá la búsqueda o registrá un nuevo bebé.
+            </p>
+
+
+            <button type="button"
+                    class="primary-action"
+                    @onclick="NuevoBebe">
+
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
+                         Size="Size.Small" />
+
+                Inscribir bebé
+
+            </button>
+
+        </section>
+    }
+    else
+    {
+        <section class="babies-grid">
+
+            @foreach (var bebe in BebesFiltrados)
+            {
+                var responsable =
+                    ObtenerResponsablePrincipal(
+                        bebe);
+
+
+                <article class="baby-card
+                                @(bebe.Estado == EstadoBebe.Baja
+                                    ? "inactive"
+                                    : "")">
+
+                    @* =========================================
+                       HEADER
+                       ========================================= *@
+
+                    <div class="baby-card-header">
+
+                        <div class="baby-avatar">
+
+                            @ObtenerIniciales(
+                                bebe.NombreCompleto)
+
+                        </div>
+
+
+                        <div class="baby-identity">
+
+                            <div class="baby-name">
+
+                                <h3>
+                                    @bebe.NombreCompleto
+                                </h3>
+
+
+                                @if (bebe.Estado ==
+                                    EstadoBebe.Activo)
+                                {
+                                    <span class="status-badge active">
+                                        ACTIVO
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge disabled">
+                                        BAJA
+                                    </span>
+                                }
+
+                            </div>
+
+
+                            <span>
+
+                                @ObtenerEdadTexto(bebe)
+
+                                ·
+
+                                @(string.IsNullOrWhiteSpace(
+                                    bebe.NivelActual)
+                                    ? "Sin nivel asignado"
+                                    : bebe.NivelActual)
+
+                            </span>
+
+                        </div>
+
+
+                        <button type="button"
+                                class="edit-button"
+                                title="Editar bebé"
+                                @onclick="() => EditarBebe(bebe.Id)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                     Size="Size.Small" />
+
+                        </button>
+
+                    </div>
+
+
+                    @* =========================================
+                       DATOS
+                       ========================================= *@
+
+                    <div class="baby-data-grid">
+
+                        <div>
+
+                            <div class="info-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Cake"
+                                         Size="Size.Small" />
+
+                            </div>
+
+
+                            <div>
+
+                                <small>
+                                    NACIMIENTO
+                                </small>
+
+                                <strong>
+                                    @bebe.FechaNacimiento.ToString(
+                                        "dd/MM/yyyy")
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="info-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Badge"
+                                         Size="Size.Small" />
+
+                            </div>
+
+
+                            <div>
+
+                                <small>
+                                    DNI
+                                </small>
+
+                                <strong>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        bebe.Dni)
+                                        ? "No informado"
+                                        : bebe.Dni)
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="info-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Pool"
+                                         Size="Size.Small" />
+
+                            </div>
+
+
+                            <div>
+
+                                <small>
+                                    NIVEL
+                                </small>
+
+                                <strong>
+
+                                    @(bebe.NivelActual
+                                        ?? "Sin asignar")
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="info-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
+                                         Size="Size.Small" />
+
+                            </div>
+
+
+                            <div>
+
+                                <small>
+                                    ALTA
+                                </small>
+
+                                <strong>
+                                    @bebe.FechaAlta.ToString(
+                                        "dd/MM/yyyy")
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @* =========================================
+                       RESPONSABLE PRINCIPAL
+                       ========================================= *@
+
+                    <div class="responsible-preview">
+
+                        <div class="responsible-preview-title">
+
+                            <span>
+                                CONTACTO PRINCIPAL
+                            </span>
+
+
+                            @if (bebe.Responsables.Count > 1)
+                            {
+                                <small>
+
+                                    +@(bebe.Responsables.Count - 1)
+                                    responsable(s)
+
+                                </small>
+                            }
+
+                        </div>
+
+
+                        @if (responsable is null)
+                        {
+                            <div class="no-responsible">
+
+                                <MudIcon Icon="@Icons.Material.Filled.PersonOff"
+                                         Size="Size.Small" />
+
+                                Sin responsable principal
+
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="responsible-person">
+
+                                <div class="responsible-avatar">
+
+                                    @ObtenerIniciales(
+                                        responsable.NombreCompleto)
+
+                                </div>
+
+
+                                <div>
+
+                                    <strong>
+                                        @responsable.NombreCompleto
+                                    </strong>
+
+                                    <span>
+                                        @ObtenerRelacionTexto(
+                                            responsable.Relacion)
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="contact-lines">
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    responsable.WhatsApp))
+                                {
+                                    <span>
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Chat"
+                                                 Size="Size.Small" />
+
+                                        @responsable.WhatsApp
+
+                                    </span>
+                                }
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    responsable.Email))
+                                {
+                                    <span>
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Email"
+                                                 Size="Size.Small" />
+
+                                        @responsable.Email
+
+                                    </span>
+                                }
+
+                            </div>
+                        }
+
+                    </div>
+
+
+                    @* =========================================
+                       AVISO EDAD MÁXIMA
+                       ========================================= *@
+
+                    @if (bebe.AlcanzoEdadMaxima)
+                    {
+                        <div class="age-warning">
+
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber"
+                                     Size="Size.Small" />
+
+                            <span>
+                                Alcanzó la edad máxima de 7 años.
+                            </span>
+
+                        </div>
+                    }
+
+
+                    @* =========================================
+                       MOTIVO BAJA
+                       ========================================= *@
+
+                    @if (
+                        bebe.Estado ==
+                            EstadoBebe.Baja
+                        &&
+                        !string.IsNullOrWhiteSpace(
+                            bebe.MotivoBaja))
+                    {
+                        <div class="inactive-reason">
+
+                            <span>
+                                Motivo de baja
+                            </span>
+
+                            <strong>
+                                @bebe.MotivoBaja
+                            </strong>
+
+                        </div>
+                    }
+
+
+                    @* =========================================
+                       FOOTER
+                       ========================================= *@
+
+                    <div class="baby-card-footer">
+
+                        <button type="button"
+                                class="profile-button"
+                                @onclick="() => AbrirFicha(bebe.Id)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Description"
+                                     Size="Size.Small" />
+
+                            Ver ficha
+
+                        </button>
+
+
+                        @if (bebe.Estado ==
+                            EstadoBebe.Activo)
+                        {
+                            <button type="button"
+                                    class="toggle-status disable"
+                                    @onclick="() => AbrirBaja(bebe)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.PersonOff"
+                                         Size="Size.Small" />
+
+                                Dar de baja
+
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="toggle-status enable"
+                                    @onclick="() => ReactivarAsync(bebe)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Restore"
+                                         Size="Size.Small" />
+
+                                Reactivar
+
+                            </button>
+                        }
+
+                    </div>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL BAJA
+
+   Este modal SÍ lo conservamos porque es una operación corta.
+   ============================================================= *@
+
+@if (_bebeBaja is not null)
+{
+    <div class="modal-backdrop">
+
+        <section class="low-modal">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow danger">
+                        BAJA
+                    </span>
+
+                    <h2>
+                        Dar de baja
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarBaja">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </header>
+
+
+            <div class="low-content">
+
+                <div class="low-person">
+
+                    <div class="baby-avatar">
+
+                        @ObtenerIniciales(
+                            _bebeBaja.NombreCompleto)
+
+                    </div>
+
+
+                    <div>
+
+                        <strong>
+                            @_bebeBaja.NombreCompleto
+                        </strong>
+
+                        <span>
+                            @ObtenerEdadTexto(
+                                _bebeBaja)
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <p>
+                    La baja conserva todo el historial del bebé.
+                    Podrá reactivarse posteriormente.
+                </p>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Fecha de baja
+                    </label>
+
+                    <input type="date"
+                           @bind="_fechaBaja" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Motivo *
+                    </label>
+
+                    <textarea rows="4"
+                              maxlength="300"
+                              placeholder="Indicá el motivo de la baja..."
+                              @bind="_motivoBaja">
+                    </textarea>
+
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _errorBaja))
+                {
+                    <div class="modal-error">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                                 Size="Size.Small" />
+
+                        @_errorBaja
+
+                    </div>
+                }
+
+            </div>
+
+
+            <footer class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        disabled="@_guardando"
+                        @onclick="CerrarBaja">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="danger-action"
+                        disabled="@_guardando"
+                        @onclick="ConfirmarBajaAsync">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOff"
+                                 Size="Size.Small" />
+                    }
+
+                    Confirmar baja
+
+                </button>
+
+            </footer>
+
+        </section>
+
+    </div>
+}
+
+
+@code {
+
+    // =========================================================
+    // ESTADO
+    // =========================================================
+
+    private readonly List<BebeDto> _bebes = [];
+
+
+    private BebeDto? _bebeBaja;
+
+
+    private bool _cargando =
+        true;
+
+
+    private bool _guardando;
+
+
+    private bool _mostrarBajas;
+
+
+    private string _busqueda =
+        string.Empty;
+
+
+    private string _motivoBaja =
+        string.Empty;
+
+
+    private DateOnly _fechaBaja =
+        DateOnly.FromDateTime(
+            DateTime.Today);
+
+
+    private string? _error;
+
+    private string? _mensaje;
+
+    private string? _errorBaja;
+
+
+    // =========================================================
+    // FILTRADO
+    // =========================================================
+
+    private IEnumerable<BebeDto> BebesFiltrados
+    {
+        get
+        {
+            IEnumerable<BebeDto> query =
+                _bebes;
+
+
+            if (string.IsNullOrWhiteSpace(
+                _busqueda))
+            {
+                return query;
+            }
+
+
+            var buscar =
+                _busqueda.Trim();
+
+
+            return query.Where(bebe =>
+
+                Contiene(
+                    bebe.NombreCompleto,
+                    buscar)
+
+                ||
+
+                Contiene(
+                    bebe.Dni,
+                    buscar)
+
+                ||
+
+                Contiene(
+                    bebe.NivelActual,
+                    buscar)
+
+                ||
+
+                bebe.Responsables.Any(r =>
+
+                    Contiene(
+                        r.NombreCompleto,
+                        buscar)
+
+                    ||
+
+                    Contiene(
+                        r.Dni,
+                        buscar)
+
+                    ||
+
+                    Contiene(
+                        r.Telefono,
+                        buscar)
+
+                    ||
+
+                    Contiene(
+                        r.WhatsApp,
+                        buscar)
+
+                    ||
+
+                    Contiene(
+                        r.Email,
+                        buscar)));
+        }
+    }
+
+
+    // =========================================================
+    // ESTADÍSTICAS
+    // =========================================================
+
+    private int CantidadActivos =>
+        _bebes.Count(x =>
+            x.Estado ==
+                EstadoBebe.Activo);
+
+
+    private int CantidadBajas =>
+        _bebes.Count(x =>
+            x.Estado ==
+                EstadoBebe.Baja);
+
+
+    private int CantidadCumpleaniosMes =>
+        _bebes.Count(x =>
+            x.Estado ==
+                EstadoBebe.Activo
+            &&
+            x.FechaNacimiento.Month ==
+                DateTime.Today.Month);
+
+
+    private int CantidadProximosEdadMaxima
+    {
+        get
+        {
+            return _bebes.Count(x =>
+                x.Estado ==
+                    EstadoBebe.Activo
+                &&
+                x.EdadMeses >= 72
+                &&
+                x.EdadMeses < 84);
+        }
+    }
+
+
+    // =========================================================
+    // INICIALIZACIÓN
+    // =========================================================
+
+    protected override async Task OnInitializedAsync()
+    {
+        await InicializarAsync();
+    }
+
+
+    private async Task InicializarAsync()
+    {
+        try
+        {
+            _cargando =
+                true;
+
+            _error =
+                null;
+
+
+            await CargarBebesAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private async Task CargarBebesAsync()
+    {
+        var datos =
+            await BebeService
+                .ListarAsync(
+                    _mostrarBajas);
+
+
+        _bebes.Clear();
+
+
+        _bebes.AddRange(
+            datos);
+    }
+
+
+    private async Task RecargarAsync()
+    {
+        try
+        {
+            _error =
+                null;
+
+
+            await CargarBebesAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    // =========================================================
+    // NUEVO
+    // =========================================================
+
+    private void NuevoBebe()
+    {
+        Navigation.NavigateTo(
+            "/clientes/nuevo");
+    }
+
+
+    // =========================================================
+    // EDITAR
+    // =========================================================
+
+    private void EditarBebe(
+        Guid bebeId)
+    {
+        Navigation.NavigateTo(
+            $"/clientes/{bebeId}/editar");
+    }
+
+
+    // =========================================================
+    // FICHA
+    // =========================================================
+
+    private void AbrirFicha(
+        Guid bebeId)
+    {
+        Navigation.NavigateTo(
+            $"/clientes/{bebeId}");
+    }
+
+
+    // =========================================================
+    // BAJA
+    // =========================================================
+
+    private void AbrirBaja(
+        BebeDto bebe)
+    {
+        _bebeBaja =
+            bebe;
+
+
+        _fechaBaja =
+            DateOnly.FromDateTime(
+                DateTime.Today);
+
+
+        _motivoBaja =
+            string.Empty;
+
+
+        _errorBaja =
+            null;
+    }
+
+
+    private void CerrarBaja()
+    {
+        if (_guardando)
+            return;
+
+
+        _bebeBaja =
+            null;
+
+
+        _motivoBaja =
+            string.Empty;
+
+
+        _errorBaja =
+            null;
+    }
+
+
+    private async Task ConfirmarBajaAsync()
+    {
+        if (_bebeBaja is null)
+            return;
+
+
+        if (string.IsNullOrWhiteSpace(
+            _motivoBaja))
+        {
+            _errorBaja =
+                "Debe indicar el motivo de la baja.";
+
+            return;
+        }
+
+
+        try
+        {
+            _guardando =
+                true;
+
+
+            _errorBaja =
+                null;
+
+
+            var bebe =
+                _bebeBaja;
+
+
+            await BebeService
+                .DarDeBajaAsync(
+                    bebe.Id,
+                    new DarDeBajaBebeDto
+                    {
+                        Fecha =
+                            _fechaBaja,
+
+                        Motivo =
+                            _motivoBaja
+                    });
+
+
+            _mensaje =
+                $"{bebe.NombreCompleto} fue dado de baja.";
+
+
+            /*
+             * No llamamos CerrarBaja() acá porque mientras
+             * _guardando == true ese método no cierra.
+             */
+            _bebeBaja =
+                null;
+
+            _motivoBaja =
+                string.Empty;
+
+            _errorBaja =
+                null;
+
+
+            await CargarBebesAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorBaja =
+                ex.Message;
+        }
+        finally
+        {
+            _guardando =
+                false;
+        }
+    }
+
+
+    // =========================================================
+    // REACTIVAR
+    // =========================================================
+
+    private async Task ReactivarAsync(
+        BebeDto bebe)
+    {
+        try
+        {
+            _error =
+                null;
+
+
+            await BebeService
+                .ReactivarAsync(
+                    bebe.Id);
+
+
+            _mensaje =
+                $"{bebe.NombreCompleto} fue reactivado.";
+
+
+            await CargarBebesAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    private static ResponsableBebeDto?
+        ObtenerResponsablePrincipal(
+            BebeDto bebe)
+    {
+        return bebe.Responsables
+            .FirstOrDefault(x =>
+                x.EsContactoPrincipal)
+            ??
+            bebe.Responsables
+                .FirstOrDefault();
+    }
+
+
+    private static string ObtenerEdadTexto(
+        BebeDto bebe)
+    {
+        if (bebe.EdadMeses < 12)
+        {
+            return bebe.EdadMeses == 1
+                ? "1 mes"
+                : $"{bebe.EdadMeses} meses";
+        }
+
+
+        var anios =
+            bebe.EdadMeses / 12;
+
+
+        var meses =
+            bebe.EdadMeses % 12;
+
+
+        if (meses == 0)
+        {
+            return anios == 1
+                ? "1 año"
+                : $"{anios} años";
+        }
+
+
+        return $"{anios} a {meses} m";
+    }
+
+
+    private static string ObtenerIniciales(
+        string nombre)
+    {
+        var partes =
+            nombre.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+
+        if (partes.Length == 0)
+        {
+            return "?";
+        }
+
+
+        if (partes.Length == 1)
+        {
+            return partes[0][0]
+                .ToString()
+                .ToUpperInvariant();
+        }
+
+
+        return string.Concat(
+                partes[0][0],
+                partes[^1][0])
+            .ToUpperInvariant();
+    }
+
+
+    private static bool Contiene(
+        string? texto,
+        string buscar)
+    {
+        return
+            !string.IsNullOrWhiteSpace(
+                texto)
+            &&
+            texto.Contains(
+                buscar,
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private static string ObtenerRelacionTexto(
+        RelacionResponsable relacion)
+    {
+        return relacion
+            .ToString()
+            .Replace(
+                "_",
+                " ");
+    }
+}

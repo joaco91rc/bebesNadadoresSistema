@@ -1,0 +1,1530 @@
+@page "/profesores"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.Profesores
+@using BebesNadadores.Application.Profesores.Dtos
+@using BebesNadadores.Application.Niveles
+@using BebesNadadores.Application.Niveles.Dtos
+@using BebesNadadores.Domain.Enums;
+
+@inject INivelService NivelService
+
+@inject IProfesorService ProfesorService
+@inject NavigationManager Navigation
+
+<PageTitle>Profesores | Bebés Nadadores</PageTitle>
+
+
+<div class="profesores-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="profesores-header">
+
+        <div>
+
+            <button type="button"
+                    class="back-button"
+                    @onclick="VolverTurnera">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Turnera
+
+            </button>
+
+
+            <span class="profesores-eyebrow">
+                EQUIPO DEL NATATORIO
+            </span>
+
+            <h1>
+                Profesores
+            </h1>
+
+            <p>
+                Administrá el equipo docente y su disponibilidad
+                para la grilla semanal.
+            </p>
+
+        </div>
+
+
+       <div class="header-actions">
+
+    <button type="button"
+            class="secondary-action"
+            @onclick="AbrirConsultaHorarios">
+
+        <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                 Size="Size.Small" />
+
+        Consultar horarios
+
+    </button>
+
+
+    <button type="button"
+            class="primary-action"
+            @onclick="NuevoProfesor">
+
+        <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
+                 Size="Size.Small" />
+
+        Nuevo profesor
+
+    </button>
+
+</div>
+
+    </section>
+
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       ESTADÍSTICAS
+       ========================================================= *@
+
+    <section class="profesor-stats">
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Groups" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Profesores
+                </span>
+
+                <strong>
+                    @_profesores.Count
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Activos
+                </span>
+
+                <strong>
+                    @_profesores.Count(x => x.Activo)
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Asignaciones activas
+                </span>
+
+                <strong>
+                    @_profesores.Sum(x => x.TurnosActivos)
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    @* =========================================================
+       BUSCADOR
+       ========================================================= *@
+
+    <section class="profesor-toolbar">
+
+        <div class="search-box">
+
+            <MudIcon Icon="@Icons.Material.Filled.Search"
+                     Size="Size.Small" />
+
+            <input type="text"
+                   placeholder="Buscar profesor..."
+                   @bind="_busqueda"
+                   @bind:event="oninput" />
+
+        </div>
+
+
+        <label class="show-disabled">
+
+            <input type="checkbox"
+                   @bind="_mostrarInactivos" />
+
+            Mostrar inactivos
+
+        </label>
+
+    </section>
+
+
+    @* =========================================================
+       LISTADO
+       ========================================================= *@
+
+    @if (_cargando)
+    {
+        <div class="loading-panel">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando profesores...
+            </span>
+
+        </div>
+    }
+    else if (!ProfesoresFiltrados.Any())
+    {
+        <section class="empty-panel">
+
+            <div class="empty-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Sports" />
+
+            </div>
+
+            <h3>
+                No hay profesores
+            </h3>
+
+            <p>
+                Agregá profesores para poder asignarlos
+                a los horarios de la grilla semanal.
+            </p>
+
+            <button type="button"
+                    class="primary-action"
+                    @onclick="NuevoProfesor">
+
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
+                         Size="Size.Small" />
+
+                Agregar profesor
+
+            </button>
+
+        </section>
+    }
+    else
+    {
+        <section class="profesores-grid">
+
+            @foreach (var profesor in ProfesoresFiltrados)
+            {
+                <article class="profesor-card @(!profesor.Activo ? "inactive" : "")">
+
+                    <header class="profesor-card-header">
+
+                        <div class="profesor-avatar">
+                            @ObtenerIniciales(
+                                profesor.NombreCompleto)
+                        </div>
+
+
+                        <div class="profesor-identity">
+
+                            <div class="profesor-name">
+
+                                <h3>
+                                    @profesor.NombreCompleto
+                                </h3>
+
+                                <span class="status-badge @(profesor.Activo ? "active" : "disabled")">
+
+                                    @(profesor.Activo
+                                        ? "ACTIVO"
+                                        : "INACTIVO")
+
+                                </span>
+
+                            </div>
+
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                profesor.Email))
+                            {
+                                <span>
+                                    @profesor.Email
+                                </span>
+                            }
+
+                        </div>
+
+
+                        <button type="button"
+                                class="edit-button"
+                                title="Editar profesor"
+                                @onclick="() => EditarProfesor(profesor)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                     Size="Size.Small" />
+
+                        </button>
+
+                    </header>
+
+
+                    <div class="profesor-info">
+
+                        <div>
+
+                            <span class="info-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Phone"
+                                         Size="Size.Small" />
+
+                            </span>
+
+                            <div>
+
+                                <small>
+                                    TELÉFONO
+                                </small>
+
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(
+                                        profesor.Telefono)
+                                        ? "Sin teléfono"
+                                        : profesor.Telefono)
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <span class="info-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
+                                         Size="Size.Small" />
+
+                            </span>
+
+                            <div>
+
+                                <small>
+                                    TURNOS
+                                </small>
+
+                                <strong>
+                                    @profesor.TurnosActivos
+                                    @(profesor.TurnosActivos == 1
+                                        ? "asignado"
+                                        : "asignados")
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        profesor.Observaciones))
+                    {
+                        <div class="profesor-notes">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Notes"
+                                     Size="Size.Small" />
+
+                            <span>
+                                @profesor.Observaciones
+                            </span>
+
+                        </div>
+                    }
+
+
+                    <footer class="profesor-card-footer">
+
+                        <div class="user-link-status">
+
+                            <MudIcon Icon="@(profesor.UsuarioId.HasValue
+                                ? Icons.Material.Filled.VerifiedUser
+                                : Icons.Material.Filled.PersonOutline)"
+                                     Size="Size.Small" />
+
+                            @(profesor.UsuarioId.HasValue
+                                ? "Usuario vinculado"
+                                : "Sin acceso al sistema")
+
+                        </div>
+
+<button type="button"
+        class="schedule-button"
+        @onclick="() => AbrirHorariosProfesor(profesor)">
+
+    <MudIcon Icon="@Icons.Material.Filled.Schedule"
+             Size="Size.Small" />
+
+    Ver horarios
+
+</button>
+                        <button type="button"
+                                class="toggle-status @(profesor.Activo ? "disable" : "enable")"
+                                @onclick="() => CambiarEstado(profesor)">
+
+                            <MudIcon Icon="@(profesor.Activo
+                                ? Icons.Material.Filled.VisibilityOff
+                                : Icons.Material.Filled.Visibility)"
+                                     Size="Size.Small" />
+
+                            @(profesor.Activo
+                                ? "Desactivar"
+                                : "Activar")
+
+                        </button>
+
+                    </footer>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL ALTA / EDICIÓN
+   ============================================================= *@
+
+@if (_mostrarFormulario)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarFormulario">
+
+        <div class="profesor-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        @(_editandoId.HasValue
+                            ? "EDITAR PROFESOR"
+                            : "NUEVO PROFESOR")
+                    </span>
+
+                    <h2>
+                        @(_editandoId.HasValue
+                            ? "Editar profesor"
+                            : "Agregar profesor")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarFormulario">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="profesor-form">
+
+                <div class="form-field">
+
+                    <label>
+                        Nombre
+                    </label>
+
+                    <input type="text"
+                           maxlength="100"
+                           placeholder="Ej. Laura"
+                           @bind="_form.Nombre" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Apellido
+                    </label>
+
+                    <input type="text"
+                           maxlength="100"
+                           placeholder="Ej. Fernández"
+                           @bind="_form.Apellido" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Teléfono
+                    </label>
+
+                    <input type="tel"
+                           maxlength="50"
+                           placeholder="Ej. 221 555-1234"
+                           @bind="_form.Telefono" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Email
+                    </label>
+
+                    <input type="email"
+                           maxlength="200"
+                           placeholder="profesor@email.com"
+                           @bind="_form.Email" />
+
+                </div>
+
+
+                <div class="form-field full">
+
+                    <label>
+                        Observaciones
+                    </label>
+
+                    <textarea rows="4"
+                              maxlength="1000"
+                              placeholder="Información interna sobre el profesor..."
+                              @bind="_form.Observaciones">
+                    </textarea>
+
+                </div>
+
+
+                <label class="active-option full">
+
+                    <input type="checkbox"
+                           @bind="_form.Activo" />
+
+                    <span class="switch-control"></span>
+
+                    <div>
+
+                        <strong>
+                            Profesor activo
+                        </strong>
+
+                        <small>
+                            Los profesores inactivos no podrán asignarse
+                            a nuevos turnos.
+                        </small>
+
+                    </div>
+
+                </label>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _errorFormulario))
+                {
+                    <div class="form-error full">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                                 Size="Size.Small" />
+
+                        @_errorFormulario
+
+                    </div>
+                }
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="CerrarFormulario">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="Guardar">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+
+                    @(_editandoId.HasValue
+                        ? "Guardar cambios"
+                        : "Agregar profesor")
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@if (_mostrarHorarios)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarHorarios">
+
+        <div class="horarios-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        CONSULTA RÁPIDA
+                    </span>
+
+                    <h2>
+                        Horarios de profesores
+                    </h2>
+
+                    <p class="modal-description">
+                        Consultá qué días, horarios y niveles
+                        tiene asignado cada profesor.
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarHorarios">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="schedule-filters">
+
+                <div class="form-field">
+
+                    <label>
+                        Profesor
+                    </label>
+
+                    <select value="@_profesorHorarioId"
+                            @onchange="CambiarProfesorHorario">
+
+                        <option value="">
+                            Seleccionar profesor
+                        </option>
+
+                        @foreach (var profesor in _profesores
+                            .Where(x => x.Activo)
+                            .OrderBy(x => x.Apellido)
+                            .ThenBy(x => x.Nombre))
+                        {
+                            <option value="@profesor.Id">
+                                @profesor.NombreCompleto
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Nivel
+                    </label>
+
+                    <select value="@_nivelHorarioId"
+                            @onchange="CambiarNivelHorario">
+
+                        <option value="">
+                            Todos los niveles
+                        </option>
+
+                        @foreach (var nivel in _niveles
+                            .OrderBy(x => x.Orden))
+                        {
+                            <option value="@nivel.Id">
+                                @nivel.Nombre
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                _errorHorarios))
+            {
+                <div class="form-error schedule-error">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                             Size="Size.Small" />
+
+                    @_errorHorarios
+
+                </div>
+            }
+
+
+            @if (_cargandoHorarios)
+            {
+                <div class="schedule-loading">
+
+                    <MudProgressCircular Indeterminate="true"
+                                         Size="Size.Large" />
+
+                    Buscando horarios...
+
+                </div>
+            }
+            else if (!_profesorHorarioId.HasValue)
+            {
+                <div class="schedule-empty">
+
+                    <MudIcon Icon="@Icons.Material.Filled.PersonSearch" />
+
+                    <strong>
+                        Seleccioná un profesor
+                    </strong>
+
+                    <span>
+                        Vas a ver sus días, horarios
+                        y niveles asignados.
+                    </span>
+
+                </div>
+            }
+            else if (_horariosProfesor.Count == 0)
+            {
+                <div class="schedule-empty">
+
+                    <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+                    <strong>
+                        Sin horarios
+                    </strong>
+
+                    <span>
+                        No hay turnos activos para
+                        la combinación seleccionada.
+                    </span>
+
+                </div>
+            }
+            else
+            {
+                <div class="professor-schedule">
+
+                   <div class="schedule-summary">
+
+    <div>
+
+        <span>
+            PROFESOR
+        </span>
+
+        <strong>
+            @(_horariosProfesor
+                .First()
+                .Profesor)
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span>
+            TURNOS
+        </span>
+
+        <strong>
+            @_horariosProfesor.Count
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span>
+            NIVELES
+        </span>
+
+        <strong>
+            @(_horariosProfesor
+                .Select(x => x.NivelId)
+                .Distinct()
+                .Count())
+        </strong>
+
+    </div>
+
+</div>
+
+
+                    @foreach (var grupo in _horariosProfesor
+                        .GroupBy(x => x.DiaSemana)
+                        .OrderBy(x => x.Key))
+                    {
+                        <section class="schedule-day">
+
+                           <header>
+
+    <span>
+        @ObtenerNombreDia(grupo.Key)
+    </span>
+
+    <strong>
+        @(grupo.Count())
+        @(grupo.Count() == 1
+            ? "turno"
+            : "turnos")
+    </strong>
+
+</header>
+
+
+                            <div class="schedule-day-items">
+
+                                @foreach (var horario in grupo
+                                    .OrderBy(x => x.HoraInicio))
+                                {
+                                    <article class="schedule-item">
+
+                                       <div class="schedule-time">
+
+    <strong>
+        @(horario.HoraInicio.ToString("HH:mm"))
+    </strong>
+
+    <span>
+        —
+        @(horario.HoraFin.ToString("HH:mm"))
+    </span>
+
+</div>
+
+
+<div class="schedule-level">
+
+    <span>
+        NIVEL
+    </span>
+
+    <strong>
+        @horario.Nivel
+    </strong>
+
+</div>
+
+
+                                        <div class="schedule-level">
+
+                                            <span>
+                                                NIVEL
+                                            </span>
+
+                                            <strong>
+                                                @horario.Nivel
+                                            </strong>
+
+                                        </div>
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            horario.Sector))
+                                        {
+                                            <div class="schedule-sector">
+
+                                                <MudIcon Icon="@Icons.Material.Filled.Pool"
+                                                         Size="Size.Small" />
+
+                                                @horario.Sector
+
+                                            </div>
+                                        }
+
+
+                                        @if (horario.EsPrincipal)
+                                        {
+                                            <span class="main-teacher-badge">
+
+                                                <MudIcon Icon="@Icons.Material.Filled.Star"
+                                                         Size="Size.Small" />
+
+                                                Principal
+
+                                            </span>
+                                        }
+
+                                    </article>
+                                }
+
+                            </div>
+
+                        </section>
+                    }
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    private bool _mostrarHorarios;
+
+private bool _cargandoHorarios;
+
+private Guid? _profesorHorarioId;
+
+private Guid? _nivelHorarioId;
+
+private string? _errorHorarios;
+
+private List<NivelDto> _niveles =
+    [];
+
+private List<HorarioProfesorDto> _horariosProfesor =
+    [];
+    private List<ProfesorDto> _profesores =
+        [];
+
+    private bool _cargando =
+        true;
+
+    private bool _guardando;
+
+    private bool _mostrarFormulario;
+
+    private bool _mostrarInactivos =
+        true;
+
+    private Guid? _editandoId;
+
+    private string _busqueda =
+        string.Empty;
+
+    private string? _error;
+
+    private string? _mensaje;
+
+    private string? _errorFormulario;
+
+    private ProfesorFormModel _form =
+        new();
+
+
+    private IEnumerable<ProfesorDto> ProfesoresFiltrados
+    {
+        get
+        {
+            IEnumerable<ProfesorDto> query =
+                _profesores;
+
+
+            if (!_mostrarInactivos)
+            {
+                query =
+                    query.Where(x =>
+                        x.Activo);
+            }
+
+
+            if (!string.IsNullOrWhiteSpace(
+                _busqueda))
+            {
+                var buscar =
+                    _busqueda.Trim();
+
+
+                query =
+                    query.Where(x =>
+                        x.NombreCompleto.Contains(
+                            buscar,
+                            StringComparison.OrdinalIgnoreCase)
+                        ||
+                        (
+                            x.Email?.Contains(
+                                buscar,
+                                StringComparison.OrdinalIgnoreCase)
+                            ?? false
+                        )
+                        ||
+                        (
+                            x.Telefono?.Contains(
+                                buscar,
+                                StringComparison.OrdinalIgnoreCase)
+                            ?? false
+                        ));
+            }
+
+
+            return query;
+        }
+    }
+
+
+  protected override async Task OnInitializedAsync()
+{
+    await Task.WhenAll(
+        CargarAsync(),
+        CargarNivelesAsync());
+}
+
+private async Task CargarNivelesAsync()
+{
+    try
+    {
+        _niveles =
+            (await NivelService
+                .ListarAsync(
+                    incluirInactivos: false))
+            .ToList();
+    }
+    catch (Exception ex)
+    {
+        _error =
+            ex.Message;
+    }
+}
+
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _cargando =
+                true;
+
+            _error =
+                null;
+
+
+            _profesores =
+                (await ProfesorService.ListarAsync())
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private void NuevoProfesor()
+    {
+        _editandoId =
+            null;
+
+        _errorFormulario =
+            null;
+
+
+        _form =
+            new ProfesorFormModel
+            {
+                Activo =
+                    true
+            };
+
+
+        _mostrarFormulario =
+            true;
+    }
+
+
+    private void EditarProfesor(
+        ProfesorDto profesor)
+    {
+        _editandoId =
+            profesor.Id;
+
+        _errorFormulario =
+            null;
+
+
+        _form =
+            new ProfesorFormModel
+            {
+                Nombre =
+                    profesor.Nombre,
+
+                Apellido =
+                    profesor.Apellido,
+
+                Telefono =
+                    profesor.Telefono,
+
+                Email =
+                    profesor.Email,
+
+                Observaciones =
+                    profesor.Observaciones,
+
+                Activo =
+                    profesor.Activo
+            };
+
+
+        _mostrarFormulario =
+            true;
+    }
+
+
+    private async Task Guardar()
+    {
+        _errorFormulario =
+            null;
+
+        _mensaje =
+            null;
+
+
+        try
+        {
+            _guardando =
+                true;
+
+
+            var dto =
+                new GuardarProfesorDto
+                {
+                    Nombre =
+                        _form.Nombre,
+
+                    Apellido =
+                        _form.Apellido,
+
+                    Telefono =
+                        _form.Telefono,
+
+                    Email =
+                        _form.Email,
+
+                    Observaciones =
+                        _form.Observaciones,
+
+                    Activo =
+                        _form.Activo
+                };
+
+
+            if (_editandoId.HasValue)
+            {
+                await ProfesorService
+                    .ActualizarAsync(
+                        _editandoId.Value,
+                        dto);
+
+
+                _mensaje =
+                    "Profesor actualizado correctamente.";
+            }
+            else
+            {
+                await ProfesorService
+                    .CrearAsync(dto);
+
+
+                _mensaje =
+                    "Profesor agregado correctamente.";
+            }
+
+
+            CerrarFormulario();
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorFormulario =
+                ex.Message;
+        }
+        finally
+        {
+            _guardando =
+                false;
+        }
+    }
+
+
+    private async Task CambiarEstado(
+        ProfesorDto profesor)
+    {
+        try
+        {
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+
+            await ProfesorService
+                .CambiarEstadoAsync(
+                    profesor.Id,
+                    !profesor.Activo);
+
+
+            _mensaje =
+                profesor.Activo
+                    ? "Profesor desactivado."
+                    : "Profesor activado.";
+
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private void CerrarFormulario()
+    {
+        _mostrarFormulario =
+            false;
+
+        _errorFormulario =
+            null;
+    }
+
+
+    private void VolverTurnera()
+    {
+        Navigation.NavigateTo(
+            "/turnos");
+    }
+
+
+    private static string ObtenerIniciales(
+        string nombre)
+    {
+        var partes =
+            nombre.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+
+        if (partes.Length == 0)
+            return "?";
+
+
+        if (partes.Length == 1)
+        {
+            return partes[0][0]
+                .ToString()
+                .ToUpperInvariant();
+        }
+
+
+        return string.Concat(
+                partes[0][0],
+                partes[^1][0])
+            .ToUpperInvariant();
+    }
+
+
+    private sealed class ProfesorFormModel
+    {
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string Apellido { get; set; }
+            = string.Empty;
+
+        public string? Telefono { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? Observaciones { get; set; }
+
+        public bool Activo { get; set; }
+            = true;
+    }
+    private void AbrirConsultaHorarios()
+{
+    _mostrarHorarios =
+        true;
+
+    _profesorHorarioId =
+        null;
+
+    _nivelHorarioId =
+        null;
+
+    _horariosProfesor =
+        [];
+
+    _errorHorarios =
+        null;
+}
+
+
+private async Task AbrirHorariosProfesor(
+    ProfesorDto profesor)
+{
+    _mostrarHorarios =
+        true;
+
+    _profesorHorarioId =
+        profesor.Id;
+
+    _nivelHorarioId =
+        null;
+
+    _errorHorarios =
+        null;
+
+    await ConsultarHorariosAsync();
+}
+
+
+private void CerrarHorarios()
+{
+    _mostrarHorarios =
+        false;
+
+    _errorHorarios =
+        null;
+}
+
+
+private async Task CambiarProfesorHorario(
+    ChangeEventArgs e)
+{
+    if (!Guid.TryParse(
+        e.Value?.ToString(),
+        out var profesorId))
+    {
+        _profesorHorarioId =
+            null;
+
+        _horariosProfesor =
+            [];
+
+        return;
+    }
+
+
+    _profesorHorarioId =
+        profesorId;
+
+    await ConsultarHorariosAsync();
+}
+
+
+private async Task CambiarNivelHorario(
+    ChangeEventArgs e)
+{
+    if (Guid.TryParse(
+        e.Value?.ToString(),
+        out var nivelId))
+    {
+        _nivelHorarioId =
+            nivelId;
+    }
+    else
+    {
+        _nivelHorarioId =
+            null;
+    }
+
+
+    if (_profesorHorarioId.HasValue)
+    {
+        await ConsultarHorariosAsync();
+    }
+}
+
+
+private async Task ConsultarHorariosAsync()
+{
+    if (!_profesorHorarioId.HasValue)
+    {
+        _horariosProfesor =
+            [];
+
+        return;
+    }
+
+
+    try
+    {
+        _cargandoHorarios =
+            true;
+
+        _errorHorarios =
+            null;
+
+
+        _horariosProfesor =
+            (await ProfesorService
+                .ConsultarHorariosAsync(
+                    _profesorHorarioId.Value,
+                    _nivelHorarioId))
+            .ToList();
+    }
+    catch (Exception ex)
+    {
+        _errorHorarios =
+            ex.Message;
+
+        _horariosProfesor =
+            [];
+    }
+    finally
+    {
+        _cargandoHorarios =
+            false;
+    }
+}
+
+
+private static string ObtenerNombreDia(
+    DiaSemana dia)
+{
+    return dia switch
+    {
+        DiaSemana.Lunes =>
+            "Lunes",
+
+        DiaSemana.Martes =>
+            "Martes",
+
+        DiaSemana.Miercoles =>
+            "Miércoles",
+
+        DiaSemana.Jueves =>
+            "Jueves",
+
+        DiaSemana.Viernes =>
+            "Viernes",
+
+        DiaSemana.Sabado =>
+            "Sábado",
+
+        DiaSemana.Domingo =>
+            "Domingo",
+
+        _ =>
+            dia.ToString()
+    };
+}
+}

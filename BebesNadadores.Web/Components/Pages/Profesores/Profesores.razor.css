@@ -1,0 +1,2294 @@
+/* ============================================================
+   BEBÉS NADADORES
+   PROFESORES
+   ============================================================ */
+
+.profesores-page {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 5px 2px 40px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.profesores-header {
+    margin-bottom: 22px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.back-button {
+    margin-bottom: 13px;
+
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    border: 0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background: transparent;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        color .18s ease,
+        transform .18s ease;
+}
+
+
+.back-button:hover {
+    color:
+        var(--mud-palette-primary);
+
+    transform:
+        translateX(-2px);
+}
+
+
+.profesores-eyebrow,
+.modal-eyebrow {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 1.5px;
+
+    text-transform: uppercase;
+}
+
+
+.profesores-header h1 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.7px;
+
+    line-height: 1.18;
+}
+
+
+.profesores-header p {
+    margin:
+        7px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+
+.header-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.primary-action,
+.secondary-action {
+    min-height: 40px;
+
+    padding:
+        0
+        15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    border-radius: 10px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.primary-action {
+    border: none;
+
+    color: #fff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #159ddd,
+            #31c4ed
+        );
+
+    box-shadow:
+        0 7px 20px
+        rgba(22, 157, 221, .20);
+}
+
+
+.primary-action:hover {
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 9px 25px
+        rgba(22, 157, 221, .28);
+}
+
+
+.secondary-action {
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.secondary-action:hover {
+    border-color:
+        rgba(49, 198, 235, .30);
+
+    color:
+        var(--mud-palette-primary);
+}
+
+
+/* ============================================================
+   STATS
+   ============================================================ */
+
+.profesor-stats {
+    margin-bottom: 13px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+}
+
+
+.profesor-stats article {
+    min-height: 86px;
+
+    padding:
+        14px
+        16px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 14px;
+
+    background:
+        var(--mud-palette-surface);
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease;
+}
+
+
+.profesor-stats article:hover {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        rgba(49, 198, 235, .20);
+}
+
+
+.stat-icon {
+    width: 42px;
+    height: 42px;
+
+    flex:
+        0
+        0
+        42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 11px;
+
+    color: #47cfed;
+
+    background:
+        rgba(45, 194, 233, .08);
+}
+
+
+.profesor-stats article > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.profesor-stats span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.profesor-stats strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   TOOLBAR
+   ============================================================ */
+
+.profesor-toolbar {
+    margin-bottom: 13px;
+
+    padding: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 12px;
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.search-box {
+    width:
+        min(
+            440px,
+            100%
+        );
+
+    min-height: 40px;
+
+    padding:
+        0
+        12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 96%,
+            var(--mud-palette-primary) 4%
+        );
+
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.search-box:focus-within {
+    border-color:
+        rgba(46, 195, 235, .42);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(46, 195, 235, .06);
+}
+
+
+.search-box input {
+    min-width: 0;
+
+    flex: 1;
+
+    border: 0;
+    outline: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background: transparent;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+}
+
+
+.search-box input::placeholder {
+    color:
+        var(--mud-palette-text-secondary);
+
+    opacity: .7;
+}
+
+
+.show-disabled {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.show-disabled input {
+    accent-color:
+        var(--mud-palette-primary);
+}
+
+
+/* ============================================================
+   GRID PROFESORES
+   ============================================================ */
+
+.profesores-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+
+.profesor-card {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 15px;
+
+    background:
+        var(--mud-palette-surface);
+
+    transition: .2s ease;
+}
+
+
+.profesor-card:hover {
+    transform:
+        translateY(-2px);
+
+    border-color:
+        rgba(49, 198, 235, .24);
+
+    box-shadow:
+        0 10px 28px
+        rgba(0, 0, 0, .08);
+}
+
+
+.profesor-card.inactive {
+    opacity: .58;
+}
+
+
+/* ============================================================
+   CARD HEADER
+   ============================================================ */
+
+.profesor-card-header {
+    padding: 15px;
+
+    display: grid;
+
+    grid-template-columns:
+        46px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 11px;
+}
+
+
+.profesor-avatar {
+    width: 46px;
+    height: 46px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 13px;
+
+    color: #51d6ef;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(37, 181, 225, .12),
+            rgba(62, 212, 236, .05)
+        );
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
+.profesor-identity {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.profesor-name {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+.profesor-name h3 {
+    margin: 0;
+
+    min-width: 0;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 15px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.profesor-identity > span {
+    margin-top: 4px;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.status-badge {
+    flex-shrink: 0;
+
+    padding:
+        4px
+        6px;
+
+    border-radius: 5px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+.status-badge.active {
+    color: #54dca6;
+
+    background:
+        rgba(75, 210, 155, .08);
+}
+
+
+.status-badge.disabled {
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        rgba(130, 140, 150, .08);
+}
+
+
+.edit-button {
+    width: 34px;
+    height: 34px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 8px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background: transparent;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.edit-button:hover {
+    color:
+        var(--mud-palette-primary);
+
+    border-color:
+        rgba(49, 198, 235, .28);
+
+    background:
+        rgba(49, 198, 235, .04);
+}
+
+
+/* ============================================================
+   PROFESOR INFO
+   ============================================================ */
+
+.profesor-info {
+    padding:
+        0
+        15px
+        14px;
+
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        1fr;
+
+    gap: 8px;
+}
+
+
+.profesor-info > div {
+    min-height: 61px;
+
+    padding: 9px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 98%,
+            var(--mud-palette-primary) 2%
+        );
+}
+
+
+.info-icon {
+    width: 32px;
+    height: 32px;
+
+    flex:
+        0
+        0
+        32px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 8px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(40, 192, 231, .06);
+}
+
+
+.profesor-info div > div {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.profesor-info small {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: .35px;
+}
+
+
+.profesor-info strong {
+    margin-top: 3px;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.profesor-notes {
+    margin:
+        0
+        15px
+        14px;
+
+    padding:
+        10px
+        11px;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 7px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 8px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        rgba(100, 130, 150, .025);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   CARD FOOTER
+   ============================================================ */
+
+.profesor-card-footer {
+    min-height: 57px;
+
+    padding:
+        10px
+        14px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.user-link-status {
+    margin-right: auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 10px;
+}
+
+
+.schedule-button {
+    min-height: 32px;
+
+    padding:
+        0
+        9px;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 4px;
+
+    border:
+        1px solid
+        rgba(46, 195, 235, .16);
+
+    border-radius: 7px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(42, 189, 229, .04);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.schedule-button:hover {
+    border-color:
+        rgba(46, 195, 235, .32);
+
+    background:
+        rgba(42, 189, 229, .08);
+}
+
+
+.toggle-status {
+    min-height: 32px;
+
+    padding:
+        0
+        9px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 4px;
+
+    border-radius: 7px;
+
+    background: transparent;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.toggle-status.disable {
+    color: #ef8992;
+
+    border:
+        1px solid
+        rgba(240, 104, 115, .16);
+}
+
+
+.toggle-status.enable {
+    color: #55dba5;
+
+    border:
+        1px solid
+        rgba(77, 211, 157, .16);
+}
+
+
+/* ============================================================
+   EMPTY / LOADING
+   ============================================================ */
+
+.loading-panel,
+.empty-panel {
+    min-height: 350px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    text-align: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 15px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.empty-icon {
+    width: 58px;
+    height: 58px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 15px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(44, 196, 233, .07);
+}
+
+
+.empty-panel h3 {
+    margin:
+        7px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+
+.empty-panel p {
+    max-width: 390px;
+
+    margin:
+        0
+        0
+        8px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+
+    line-height: 1.55;
+}
+
+
+/* ============================================================
+   MODAL BASE
+   ============================================================ */
+
+.modal-backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1200;
+
+    padding: 20px;
+
+    display: grid;
+    place-items: center;
+
+    background:
+        rgba(2, 17, 29, .72);
+
+    backdrop-filter:
+        blur(5px);
+}
+
+
+.profesor-modal,
+.horarios-modal {
+    max-height: 92vh;
+
+    overflow-y: auto;
+
+    border:
+        1px solid
+        rgba(65, 198, 237, .18);
+
+    border-radius: 19px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 25px 80px
+        rgba(0, 0, 0, .30);
+}
+
+
+.profesor-modal {
+    width:
+        min(
+            680px,
+            96vw
+        );
+}
+
+
+.horarios-modal {
+    width:
+        min(
+            850px,
+            96vw
+        );
+}
+
+
+.modal-header {
+    padding:
+        20px
+        22px;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.modal-header h2 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+
+.modal-description {
+    margin:
+        5px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+
+    flex:
+        0
+        0
+        36px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+
+.modal-close:hover {
+    color:
+        var(--mud-palette-primary);
+
+    border-color:
+        rgba(49, 198, 235, .30);
+}
+
+
+/* ============================================================
+   FORM PROFESOR
+   ============================================================ */
+
+.profesor-form {
+    padding:
+        20px
+        22px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 14px;
+}
+
+
+.full {
+    grid-column:
+        1 / -1;
+}
+
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+.form-field label {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding:
+        9px
+        11px;
+
+    outline: none;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%
+        );
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+}
+
+
+.form-field select {
+    padding:
+        0
+        10px;
+}
+
+
+.form-field textarea {
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+    border-color:
+        rgba(46, 195, 235, .45);
+}
+
+
+/* ============================================================
+   SWITCH
+   ============================================================ */
+
+.active-option {
+    min-height: 55px;
+
+    padding:
+        10px
+        11px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 10px;
+
+    cursor: pointer;
+}
+
+
+.active-option input {
+    display: none;
+}
+
+
+.switch-control {
+    position: relative;
+
+    width: 31px;
+    height: 17px;
+
+    flex:
+        0
+        0
+        31px;
+
+    border-radius: 20px;
+
+    background:
+        rgba(120, 135, 150, .18);
+
+    transition: .2s ease;
+}
+
+
+.switch-control::after {
+    content: "";
+
+    position: absolute;
+
+    left: 2px;
+    top: 2px;
+
+    width: 13px;
+    height: 13px;
+
+    border-radius: 50%;
+
+    background: #96a2ac;
+
+    transition: .2s ease;
+}
+
+
+.active-option input:checked
++ .switch-control {
+    background:
+        rgba(30, 190, 230, .30);
+}
+
+
+.active-option input:checked
++ .switch-control::after {
+    left: 16px;
+
+    background: #47d5ef;
+}
+
+
+.active-option > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.active-option strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.active-option small {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   MODAL ACTIONS
+   ============================================================ */
+
+.modal-actions {
+    padding:
+        14px
+        22px
+        20px;
+
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 8px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+/* ============================================================
+   MESSAGES
+   ============================================================ */
+
+.form-error,
+.message-box {
+    padding:
+        11px
+        12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    border-radius: 9px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.form-error {
+    color: #ff9299;
+
+    border:
+        1px solid
+        rgba(255, 86, 97, .18);
+
+    background:
+        rgba(255, 65, 80, .05);
+}
+
+
+.message-box {
+    margin-bottom: 12px;
+}
+
+
+.message-box span {
+    flex: 1;
+}
+
+
+.message-box button {
+    border: none;
+
+    color: inherit;
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+
+.message-error {
+    color: #ff959d;
+
+    border:
+        1px solid
+        rgba(255, 85, 98, .18);
+
+    background:
+        rgba(255, 70, 84, .05);
+}
+
+
+.message-success {
+    color: #58dca6;
+
+    border:
+        1px solid
+        rgba(72, 210, 153, .18);
+
+    background:
+        rgba(72, 210, 153, .05);
+}
+
+
+/* ============================================================
+   CONSULTA HORARIOS - FILTROS
+   ============================================================ */
+
+.schedule-filters {
+    padding:
+        18px
+        22px;
+
+    display: grid;
+
+    grid-template-columns:
+        1fr
+        1fr;
+
+    gap: 13px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.schedule-filters select {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding:
+        0
+        11px;
+
+    outline: none;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%
+        );
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   CONSULTA HORARIOS - EMPTY / LOADING
+   ============================================================ */
+
+.schedule-loading,
+.schedule-empty {
+    min-height: 300px;
+
+    padding: 25px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    text-align: center;
+
+    color:
+        var(--mud-palette-text-secondary);
+}
+
+
+.schedule-empty strong {
+    margin-top: 6px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+.schedule-empty span {
+    max-width: 330px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   CONSULTA HORARIOS - RESULTADOS
+   ============================================================ */
+
+.professor-schedule {
+    padding:
+        18px
+        22px
+        22px;
+}
+
+
+.schedule-summary {
+    margin-bottom: 14px;
+
+    display: grid;
+
+    grid-template-columns:
+        2fr
+        1fr
+        1fr;
+
+    gap: 8px;
+}
+
+
+.schedule-summary > div {
+    min-height: 62px;
+
+    padding:
+        10px
+        12px;
+
+    display: flex;
+    flex-direction: column;
+
+    justify-content: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 98%,
+            var(--mud-palette-primary) 2%
+        );
+}
+
+
+.schedule-summary span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.schedule-summary strong {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   CONSULTA HORARIOS - DÍA
+   ============================================================ */
+
+.schedule-day {
+    margin-top: 12px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+}
+
+
+.schedule-day > header {
+    min-height: 47px;
+
+    padding:
+        0
+        13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background:
+        rgba(42, 190, 229, .035);
+}
+
+
+.schedule-day > header span {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.schedule-day > header strong {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+    font-weight: 500;
+}
+
+
+.schedule-day-items {
+    padding: 8px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+/* ============================================================
+   CONSULTA HORARIOS - TURNO
+   ============================================================ */
+
+.schedule-item {
+    min-height: 67px;
+
+    padding:
+        10px
+        11px;
+
+    display: grid;
+
+    grid-template-columns:
+        125px
+        minmax(140px, 1fr)
+        minmax(110px, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 11px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 98%,
+            var(--mud-palette-primary) 2%
+        );
+}
+
+
+.schedule-time {
+    display: flex;
+    align-items: baseline;
+
+    gap: 4px;
+}
+
+
+.schedule-time strong {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.schedule-time span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 11px;
+}
+
+
+.schedule-level {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.schedule-level span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+.schedule-level strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.schedule-sector {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.main-teacher-badge {
+    padding:
+        4px
+        7px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 4px;
+
+    border-radius: 6px;
+
+    color: #f2b84f;
+
+    background:
+        rgba(242, 184, 79, .08);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+
+    white-space: nowrap;
+}
+
+
+.schedule-error {
+    margin:
+        13px
+        22px
+        0;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1050px) {
+
+    .profesores-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 800px) {
+
+    .profesores-header {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .header-actions {
+        width: 100%;
+
+        justify-content: flex-start;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .header-actions {
+        width: 100%;
+    }
+
+
+    .header-actions button {
+        flex: 1;
+    }
+
+
+    .profesor-stats,
+    .profesores-grid,
+    .profesor-form {
+        grid-template-columns: 1fr;
+    }
+
+
+    .full {
+        grid-column: 1;
+    }
+
+
+    .profesor-toolbar {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .search-box {
+        width: 100%;
+    }
+
+
+    .schedule-filters,
+    .schedule-summary {
+        grid-template-columns: 1fr;
+    }
+
+
+    .schedule-item {
+        grid-template-columns:
+            1fr
+            1fr;
+    }
+
+
+    .profesor-card-footer {
+        flex-wrap: wrap;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .profesores-header h1 {
+        font-size: 29px;
+    }
+
+
+    .header-actions {
+        flex-direction: column;
+    }
+
+
+    .header-actions button {
+        width: 100%;
+    }
+
+
+    .profesor-info {
+        grid-template-columns: 1fr;
+    }
+
+
+    .schedule-item {
+        grid-template-columns: 1fr;
+    }
+
+
+    .modal-backdrop {
+        padding: 9px;
+    }
+
+
+    .profesor-card-footer {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .user-link-status {
+        margin-right: 0;
+    }
+
+
+    .schedule-button,
+    .toggle-status {
+        justify-content: center;
+
+        width: 100%;
+    }
+
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .profesor-card,
+    .primary-action,
+    .secondary-action,
+    .edit-button,
+    .schedule-button,
+    .back-button {
+        transition: none;
+    }
+
+}

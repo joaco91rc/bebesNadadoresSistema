@@ -1,0 +1,1910 @@
+/* ============================================================
+   BEBÉS NADADORES
+   FORMULARIO DE BEBÉ / INSCRIPCIÓN
+   ============================================================ */
+
+.enrollment-page,
+.enrollment-page * {
+    box-sizing: border-box;
+}
+
+
+.enrollment-page {
+    width: 100%;
+    max-width: 1500px;
+
+    margin: 0 auto;
+
+    padding:
+        14px
+        20px
+        110px;
+
+    font-family:
+        var(--bn-font-body);
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.enrollment-header {
+    margin-bottom: 22px;
+}
+
+
+.enrollment-header-left {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 14px;
+}
+
+
+.back-button {
+    width: 42px;
+    height: 42px;
+
+    flex:
+        0
+        0
+        42px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.back-button:hover {
+    transform:
+        translateX(-2px);
+
+    color:
+        var(--mud-palette-primary);
+
+    border-color:
+        rgba(47, 196, 234, .32);
+
+    background:
+        rgba(40, 190, 230, .04);
+}
+
+
+.page-eyebrow {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.3px;
+}
+
+
+.enrollment-header h1 {
+    margin:
+        0
+        0
+        4px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.7px;
+}
+
+
+.enrollment-header p {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.page-loading {
+    min-height: 420px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 12px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.form-error {
+    margin-bottom: 16px;
+
+    padding:
+        11px
+        13px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border:
+        1px solid
+        rgba(255, 85, 98, .18);
+
+    border-radius: 10px;
+
+    color: #ff959d;
+
+    background:
+        rgba(255, 70, 84, .05);
+
+    font-size: 12px;
+}
+
+
+.form-error > span {
+    flex: 1;
+}
+
+
+.form-error > button {
+    width: 30px;
+    height: 30px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border: 0;
+
+    color: inherit;
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   LAYOUT PRINCIPAL
+   ============================================================ */
+
+.enrollment-layout {
+    display: flex;
+    flex-direction: column;
+
+    gap: 18px;
+}
+
+
+.enrollment-layout > .workspace-card {
+    width: 100%;
+}
+
+
+.workspace-card {
+    width: 100%;
+    min-width: 0;
+
+    padding: 20px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 16px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 5px 22px
+        rgba(0, 0, 0, .035);
+}
+
+
+/* ============================================================
+   CABECERA DE SECCIÓN
+   ============================================================ */
+
+.section-heading {
+    margin-bottom: 18px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.section-heading-actions {
+    justify-content: space-between;
+}
+
+
+.heading-left {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.section-number {
+    width: 32px;
+    height: 32px;
+
+    flex:
+        0
+        0
+        32px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(42, 191, 230, .08);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.section-heading > div,
+.heading-left > div {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.section-heading strong,
+.heading-left strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 15px;
+    font-weight: 750;
+}
+
+
+.section-heading small,
+.heading-left small {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 11px;
+
+    line-height: 1.35;
+}
+
+
+/* ============================================================
+   BOTÓN AGREGAR RESPONSABLE
+   ============================================================ */
+
+.add-responsible {
+    min-height: 36px;
+
+    padding:
+        0
+        11px;
+
+    flex-shrink: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    border:
+        1px solid
+        rgba(48, 196, 234, .18);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(40, 190, 230, .04);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.add-responsible:hover {
+    border-color:
+        rgba(48, 196, 234, .35);
+
+    background:
+        rgba(40, 190, 230, .08);
+}
+
+
+/* ============================================================
+   DATOS DEL BEBÉ
+   ============================================================ */
+
+.form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 13px;
+}
+
+
+/* ============================================================
+   CAMPOS
+   ============================================================ */
+
+.form-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+}
+
+
+.form-field.full {
+    grid-column:
+        1 / -1;
+}
+
+
+.form-field label {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding:
+        9px
+        11px;
+
+    outline: 0;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%);
+
+    font-family:
+        var(--bn-font-body);
+
+    font-size: 13px;
+
+    transition: .16s ease;
+}
+
+
+.form-field select {
+    padding:
+        0
+        10px;
+
+    cursor: pointer;
+}
+
+
+.form-field textarea {
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+    color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-text-secondary) 65%,
+            transparent);
+}
+
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    border-color:
+        rgba(46, 195, 235, .46);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(46, 195, 235, .055);
+}
+
+
+/* ============================================================
+   RESPONSABLES
+   ============================================================ */
+
+.responsibles-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(
+                min(520px, 100%),
+                1fr));
+
+    gap: 14px;
+}
+
+
+.responsible-card {
+    min-width: 0;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 12px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 98%,
+            var(--mud-palette-primary) 2%);
+}
+
+
+.responsible-card > header {
+    min-height: 54px;
+
+    padding:
+        10px
+        12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.responsible-card > header > div {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.responsible-card > header span {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: .6px;
+}
+
+
+.responsible-card > header strong {
+    margin-top: 2px;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 12px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.responsible-card > header button {
+    width: 32px;
+    height: 32px;
+
+    flex:
+        0
+        0
+        32px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        rgba(239, 105, 116, .16);
+
+    border-radius: 8px;
+
+    color: #ef8992;
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+
+.responsible-card > header button:hover {
+    background:
+        rgba(239, 105, 116, .07);
+}
+
+
+.responsible-fields {
+    padding: 13px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 13px;
+}
+
+
+/* ============================================================
+   OPCIONES RESPONSABLE
+   ============================================================ */
+
+.responsible-options {
+    padding:
+        0
+        13px
+        13px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+}
+
+
+.responsible-options label {
+    min-height: 46px;
+
+    padding:
+        9px
+        10px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        rgba(100, 130, 150, .02);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 10px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.responsible-options input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+
+    flex:
+        0
+        0
+        16px;
+
+    accent-color:
+        var(--mud-palette-primary);
+}
+
+
+/* ============================================================
+   INSCRIPCIÓN
+   ============================================================ */
+
+.enrollment-section {
+    position: relative;
+
+    margin-top: 18px;
+}
+
+
+.enrollment-data-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 13px;
+}
+
+
+.field-helper {
+    min-height: 16px;
+
+    margin-top: 1px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   PLAN ÚNICO
+   ============================================================ */
+
+.single-plan-card {
+    min-height: 74px;
+
+    padding:
+        12px
+        14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    border:
+        1px solid
+        rgba(46, 195, 235, .24);
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(30, 177, 220, .07),
+            rgba(30, 177, 220, .025));
+}
+
+
+.single-plan-main {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+}
+
+
+.single-plan-icon {
+    width: 38px;
+    height: 38px;
+
+    flex:
+        0
+        0
+        38px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 10px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(42, 191, 230, .09);
+}
+
+
+.single-plan-text {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.single-plan-text strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 13px;
+    font-weight: 750;
+}
+
+
+.single-plan-text span {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 10px;
+}
+
+
+.single-plan-price {
+    flex-shrink: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+}
+
+
+.single-plan-price strong {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 14px;
+    font-weight: 800;
+}
+
+
+.single-plan-price span {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+}
+
+
+.plan-unavailable-card {
+    min-height: 70px;
+
+    padding:
+        12px
+        14px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    border:
+        1px solid
+        rgba(239, 184, 79, .20);
+
+    border-radius: 10px;
+
+    color: #efb84f;
+
+    background:
+        rgba(239, 184, 79, .04);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   SELECTOR HORARIOS
+   ============================================================ */
+
+.schedule-picker {
+    margin-top: 20px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 14px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 98%,
+            var(--mud-palette-primary) 2%);
+}
+
+
+.schedule-picker-header {
+    min-height: 82px;
+
+    padding:
+        14px
+        16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.schedule-picker-header > div:first-child {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.schedule-eyebrow {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+
+.schedule-picker-header h3 {
+    margin:
+        3px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 17px;
+    font-weight: 750;
+}
+
+
+.schedule-picker-header p {
+    margin:
+        4px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 11px;
+}
+
+
+.schedule-picker-header p strong {
+    color:
+        var(--mud-palette-text-primary);
+}
+
+
+/* ============================================================
+   CONTADOR TURNOS
+   ============================================================ */
+
+.selected-counter {
+    min-width: 92px;
+
+    padding:
+        8px
+        12px;
+
+    display: grid;
+
+    grid-template-columns:
+        auto
+        auto;
+
+    align-items: baseline;
+    justify-content: center;
+
+    column-gap: 3px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 10px;
+
+    background:
+        rgba(130, 150, 165, .035);
+}
+
+
+.selected-counter strong {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 20px;
+}
+
+
+.selected-counter > span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+}
+
+
+.selected-counter small {
+    grid-column:
+        1 / -1;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+
+    text-align: center;
+}
+
+
+.selected-counter.complete {
+    border-color:
+        rgba(75, 210, 155, .25);
+
+    background:
+        rgba(75, 210, 155, .055);
+}
+
+
+.selected-counter.complete strong {
+    color: #55dca6;
+}
+
+
+/* ============================================================
+   DÍAS / HORARIOS
+   ============================================================ */
+
+.available-schedules {
+    padding: 15px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 17px;
+}
+
+
+.schedule-day-group {
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+
+.schedule-day-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+
+.schedule-day-title > span {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.schedule-day-title small {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+.schedule-options {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 8px;
+}
+
+
+/* ============================================================
+   TURNO
+   ============================================================ */
+
+.schedule-option {
+    min-width: 0;
+    min-height: 74px;
+
+    padding:
+        10px
+        11px;
+
+    display: grid;
+
+    grid-template-columns:
+        29px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 9px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 10px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.schedule-option:hover:not(:disabled) {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        rgba(42, 193, 231, .30);
+
+    background:
+        rgba(42, 193, 231, .035);
+}
+
+
+.schedule-option.selected {
+    border-color:
+        rgba(42, 193, 231, .48);
+
+    background:
+        rgba(42, 193, 231, .075);
+
+    box-shadow:
+        inset 3px 0 0
+        var(--mud-palette-primary);
+}
+
+
+.schedule-option.full {
+    opacity: .42;
+
+    cursor: not-allowed;
+}
+
+
+.schedule-option-check {
+    width: 29px;
+    height: 29px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 7px;
+
+    color: #fff;
+
+    background:
+        rgba(110, 135, 155, .025);
+}
+
+
+.schedule-option.selected
+.schedule-option-check {
+    border-color:
+        var(--mud-palette-primary);
+
+    background:
+        var(--mud-palette-primary);
+}
+
+
+.schedule-option-time {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.schedule-option-time strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 12px;
+}
+
+
+.schedule-option-time span {
+    margin-top: 3px;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.schedule-option-time small {
+    margin-top: 1px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+}
+
+
+.schedule-option-capacity {
+    min-width: 51px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+}
+
+
+.schedule-option-capacity strong {
+    color: #55dca6;
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 14px;
+}
+
+
+.schedule-option-capacity span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+
+    white-space: nowrap;
+}
+
+
+.schedule-option-capacity
+.no-capacity {
+    color: #ef8992;
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 8px;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   EMPTY / LOADING HORARIOS
+   ============================================================ */
+
+.schedule-empty,
+.schedule-loading {
+    min-height: 120px;
+
+    padding: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 11px;
+
+    color:
+        var(--mud-palette-text-secondary);
+}
+
+
+.schedule-empty > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.schedule-empty strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 12px;
+}
+
+
+.schedule-empty span,
+.schedule-loading span {
+    margin-top: 2px;
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+
+.primary-action,
+.secondary-action {
+    min-height: 40px;
+
+    padding:
+        0
+        15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    border-radius: 10px;
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.primary-action {
+    border: 0;
+
+    color: #fff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #159ddd,
+            #31c4ed);
+
+    box-shadow:
+        0 7px 20px
+        rgba(22, 157, 221, .20);
+}
+
+
+.secondary-action {
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.primary-action:disabled,
+.secondary-action:disabled {
+    opacity: .55;
+
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   FOOTER STICKY
+   ============================================================ */
+
+.page-actions {
+    position: sticky;
+
+    bottom: 12px;
+
+    z-index: 20;
+
+    margin-top: 20px;
+
+    padding:
+        12px
+        14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 9px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 14px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 92%,
+            transparent);
+
+    backdrop-filter:
+        blur(16px);
+
+    box-shadow:
+        0 12px 35px
+        rgba(0, 0, 0, .18);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .schedule-options {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 950px) {
+
+    .form-grid,
+    .enrollment-data-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+
+    .responsibles-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .schedule-options {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .enrollment-page {
+        padding:
+            10px
+            12px
+            100px;
+    }
+
+
+    .enrollment-header h1 {
+        font-size: 29px;
+    }
+
+
+    .form-grid,
+    .responsible-fields,
+    .responsible-options,
+    .enrollment-data-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .form-field.full {
+        grid-column: 1;
+    }
+
+
+    .schedule-picker-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .schedule-options {
+        grid-template-columns: 1fr;
+    }
+
+
+    .selected-counter {
+        width: 100%;
+    }
+
+
+    .single-plan-card {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .single-plan-price {
+        align-items: flex-start;
+    }
+
+
+    .page-actions {
+        flex-direction: column-reverse;
+    }
+
+
+    .page-actions button {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .section-heading-actions {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .add-responsible {
+        width: 100%;
+    }
+
+
+    .workspace-card {
+        padding: 15px;
+
+        border-radius: 13px;
+    }
+
+}
+
+/* ============================================================
+   DESCUENTO MANUAL
+   ============================================================ */
+
+.discount-box {
+    margin-top: 16px;
+
+    padding: 14px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 12px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 98%,
+            var(--mud-palette-primary) 2%);
+}
+
+
+.discount-toggle {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    cursor: pointer;
+
+    user-select: none;
+}
+
+
+.discount-toggle-input {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+
+.discount-switch {
+    position: relative;
+
+    width: 44px;
+    height: 24px;
+
+    flex:
+        0
+        0
+        44px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 999px;
+
+    background:
+        rgba(120, 145, 160, .16);
+
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.discount-switch-dot {
+    position: absolute;
+
+    top: 3px;
+    left: 3px;
+
+    width: 16px;
+    height: 16px;
+
+    border-radius: 50%;
+
+    background:
+        #8ea2b1;
+
+    box-shadow:
+        0 2px 6px
+        rgba(0, 0, 0, .20);
+
+    transition:
+        transform .22s ease,
+        background .22s ease;
+}
+
+
+.discount-toggle-input:checked
++ .discount-switch {
+    border-color:
+        rgba(43, 197, 235, .50);
+
+    background:
+        linear-gradient(
+            135deg,
+            #159ddd,
+            #31c4ed);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(43, 197, 235, .07);
+}
+
+
+.discount-toggle-input:checked
++ .discount-switch
+.discount-switch-dot {
+    transform:
+        translateX(20px);
+
+    background: #ffffff;
+}
+
+
+.discount-toggle-text {
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+
+.discount-toggle-text strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+.discount-toggle-text span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 10px;
+}
+
+
+.discount-toggle:hover
+.discount-switch {
+    border-color:
+        rgba(43, 197, 235, .38);
+}
+
+
+/* CAMPOS DEL DESCUENTO */
+
+.discount-fields {
+    margin-top: 14px;
+
+    padding-top: 14px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+/* RESUMEN */
+
+.discount-summary {
+    margin-top: 14px;
+
+    padding: 12px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 10px;
+
+    background:
+        rgba(50, 190, 230, .025);
+}
+
+
+.discount-summary > div {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+
+.discount-summary span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+.discount-summary strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 13px;
+}
+
+
+.discount-total {
+    padding-left: 12px;
+
+    border-left:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.discount-total strong {
+    color:
+        #55dca6;
+
+    font-size: 15px;
+}
+
+
+@media (max-width: 700px) {
+
+    .discount-fields,
+    .discount-summary {
+        grid-template-columns: 1fr;
+    }
+
+
+    .discount-total {
+        padding-left: 0;
+
+        padding-top: 10px;
+
+        border-left: 0;
+
+        border-top:
+            1px solid
+            var(--mud-palette-divider);
+    }
+
+}

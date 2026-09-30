@@ -1,0 +1,437 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@using MudBlazor
+
+<div class="side-menu @(Collapsed ? "collapsed" : "")">
+
+    @* =========================================================
+       BRAND
+       ========================================================= *@
+
+    <div class="sidebar-header">
+
+        <div class="brand">
+
+            <img src="/images/logoBebesTransparente.png"
+                 alt="Bebés Nadadores"
+                 class="brand-logo" />
+
+            @if (!Collapsed)
+            {
+                <div class="brand-text">
+
+                    <strong>
+                        Bebés
+                        <br />
+                        Nadadores
+                    </strong>
+
+                    <span>
+                        Gestión integral
+                    </span>
+
+                </div>
+            }
+
+        </div>
+
+
+        <button type="button"
+                class="collapse-button"
+                title="Contraer menú"
+                @onclick="ToggleAsync">
+
+            <MudIcon Icon="@(Collapsed
+                              ? Icons.Material.Filled.KeyboardDoubleArrowRight
+                              : Icons.Material.Filled.KeyboardDoubleArrowLeft)"
+                     Size="Size.Small" />
+
+        </button>
+
+    </div>
+
+
+    @* =========================================================
+       NAVEGACIÓN
+       ========================================================= *@
+
+    <nav class="menu-navigation">
+
+
+        @* -----------------------------------------------------
+           GENERAL
+           ----------------------------------------------------- *@
+
+        @if (!Collapsed)
+        {
+            <div class="menu-section-title">
+                PRINCIPAL
+            </div>
+        }
+
+
+        <NavLink href="/"
+                 Match="NavLinkMatch.All"
+                 class="menu-link"
+                 ActiveClass="active">
+
+            <span class="menu-icon">
+                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" />
+            </span>
+
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Dashboard
+                </span>
+            }
+
+        </NavLink>
+
+
+        @* =====================================================
+           ADMINISTRACIÓN / ADMIN
+           ===================================================== *@
+
+        <AuthorizeView Roles="Administrador,Administrativa,Profesor">
+
+            <Authorized>
+
+                <NavLink href="/turnos"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Turnos
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+
+        <AuthorizeView Roles="Administrador,Administrativa,Profesor">
+
+            <Authorized>
+
+                <NavLink href="/asistencia"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.TaskAlt" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Asistencia
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+
+        <AuthorizeView Roles="Administrador,Administrativa">
+
+            <Authorized>
+
+                <NavLink href="/recuperos"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Autorenew" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Recuperos
+                        </span>
+                    }
+
+                </NavLink>
+
+
+                <NavLink href="/lista-espera"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Groups" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Lista de espera
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+
+        @* -----------------------------------------------------
+           FINANZAS
+           ----------------------------------------------------- *@
+
+        <AuthorizeView Roles="Administrador,Administrativa">
+
+            <Authorized>
+
+                @if (!Collapsed)
+                {
+                    <div class="menu-section-title">
+                        GESTIÓN
+                    </div>
+                }
+
+
+                <NavLink href="/pagos"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Pagos
+                        </span>
+                    }
+
+                </NavLink>
+
+
+                <NavLink href="/caja"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Caja
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+
+        @* -----------------------------------------------------
+           PERSONAS
+           ----------------------------------------------------- *@
+
+        <AuthorizeView Roles="Administrador,Administrativa,Medica,SoloLectura">
+
+            <Authorized>
+
+                @if (!Collapsed)
+                {
+                    <div class="menu-section-title">
+                        PERSONAS
+                    </div>
+                }
+
+
+                <NavLink href="/clientes"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Bebés / Clientes
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+
+      
+
+
+      <AuthorizeView Roles="Administrador,Administrativa">
+
+    <Authorized>
+
+        @* =====================================================
+           PROFESORES
+           ===================================================== *@
+
+      <NavLink href="/profesores"
+         Match="NavLinkMatch.All"
+         class="menu-link"
+         ActiveClass="active">
+
+    <span class="menu-icon">
+        <MudIcon Icon="@Icons.Material.Filled.SupervisorAccount" />
+    </span>
+
+    @if (!Collapsed)
+    {
+        <span class="menu-text">
+            Profesores
+        </span>
+    }
+
+</NavLink>
+
+
+        @* =====================================================
+           CONTROL DOCENTE
+           ===================================================== *@
+
+        <NavLink href="/profesores/control-docente"
+                 class="menu-link"
+                 ActiveClass="active">
+
+            <span class="menu-icon">
+                <MudIcon Icon="@Icons.Material.Filled.FactCheck" />
+            </span>
+
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Control docente
+                </span>
+            }
+
+        </NavLink>
+
+    </Authorized>
+
+</AuthorizeView>
+
+
+        @* -----------------------------------------------------
+           REPORTES
+           ----------------------------------------------------- *@
+
+        <AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
+
+            <Authorized>
+
+                @if (!Collapsed)
+                {
+                    <div class="menu-section-title">
+                        ANÁLISIS
+                    </div>
+                }
+
+
+                <NavLink href="/reportes"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.BarChart" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Reportes
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+
+        @* -----------------------------------------------------
+           CONFIGURACIÓN
+           ----------------------------------------------------- *@
+
+        <AuthorizeView Roles="Administrador">
+
+            <Authorized>
+
+                <NavLink href="/configuracion"
+                         class="menu-link"
+                         ActiveClass="active">
+
+                    <span class="menu-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" />
+                    </span>
+
+                    @if (!Collapsed)
+                    {
+                        <span class="menu-text">
+                            Configuración
+                        </span>
+                    }
+
+                </NavLink>
+
+            </Authorized>
+
+        </AuthorizeView>
+
+    </nav>
+
+
+    @* =========================================================
+       FOOTER
+       ========================================================= *@
+
+    <div class="sidebar-footer">
+    <div class="wave wave-one"></div>
+    <div class="wave wave-two"></div>
+</div>
+
+</div>
+
+
+@code {
+
+    [Parameter]
+    public bool Collapsed { get; set; }
+
+
+    [Parameter]
+    public EventCallback OnToggle { get; set; }
+
+
+    private Task ToggleAsync()
+        => OnToggle.InvokeAsync();
+
+}

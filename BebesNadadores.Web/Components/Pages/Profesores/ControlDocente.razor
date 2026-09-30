@@ -1,0 +1,1359 @@
+@page "/profesores/control-docente"
+
+@attribute [Authorize(Roles = "Administrador,Administrativa")]
+
+@using Microsoft.AspNetCore.Authorization
+@using BebesNadadores.Application.ControlDocente
+@using BebesNadadores.Application.ControlDocente.Dtos
+@using BebesNadadores.Application.Turnera
+@using BebesNadadores.Application.Turnera.Dtos
+@using BebesNadadores.Domain.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@inject IControlDocenteService ControlDocenteService
+@inject ITurneraService TurneraService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>
+    Control docente | Bebés Nadadores
+</PageTitle>
+
+
+<div class="teacher-control-page">
+
+    <header class="teacher-control-header">
+
+        <div>
+
+            <button type="button"
+                    class="back-link"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Profesores
+
+            </button>
+
+
+            <span class="eyebrow">
+                CONTROL OPERATIVO
+            </span>
+
+            <h1>
+                Control docente
+            </h1>
+
+            <p>
+                Confirmá qué profesores dictaron cada clase.
+            </p>
+
+        </div>
+
+
+        <div class="header-actions">
+
+            <input type="date"
+                   value="@(_fecha.ToString("yyyy-MM-dd"))"
+                   @onchange="CambiarFecha" />
+
+
+            <button type="button"
+                    class="confirm-day-button"
+                    disabled="@(_confirmandoDia || !PuedeConfirmarDia)"
+                    @onclick="SolicitarConfirmarDia">
+
+                <MudIcon Icon="@Icons.Material.Filled.DoneAll"
+                         Size="Size.Small" />
+
+                Confirmar día completo
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    @if (!string.IsNullOrWhiteSpace(
+        _error))
+    {
+        <div class="control-message error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            @_error
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(
+        _mensaje))
+    {
+        <div class="control-message success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            @_mensaje
+
+        </div>
+    }
+
+
+    @if (_dia is not null)
+    {
+        <section class="control-stats">
+
+            <article>
+
+                <span>
+                    CLASES
+                </span>
+
+                <strong>
+                    @_dia.CantidadClases
+                </strong>
+
+            </article>
+
+
+            <article>
+
+                <span>
+                    ASIGNACIONES
+                </span>
+
+                <strong>
+                    @_dia.ProfesoresEsperados
+                </strong>
+
+            </article>
+
+
+            <article class="confirmed">
+
+                <span>
+                    CONFIRMADAS
+                </span>
+
+                <strong>
+                    @_dia.Confirmados
+                </strong>
+
+            </article>
+
+
+            <article class="@(_dia.Pendientes > 0 ? "pending" : "")">
+
+                <span>
+                    PENDIENTES
+                </span>
+
+                <strong>
+                    @_dia.Pendientes
+                </strong>
+
+            </article>
+
+        </section>
+    }
+
+
+    @if (_cargando)
+    {
+        <div class="control-loading">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            Cargando clases...
+
+        </div>
+    }
+    else if (_dia is null ||
+             _dia.Clases.Count == 0)
+    {
+        <div class="empty-control">
+
+            <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+            <h3>
+                Sin clases
+            </h3>
+
+            <p>
+                No hay clases programadas para este día.
+            </p>
+
+        </div>
+    }
+    else
+    {
+        <section class="classes-control-list">
+
+            @foreach (var clase in
+                _dia.Clases)
+            {
+                <article class="teacher-class-card @(clase.Estado == EstadoSesionClase.Cancelada ? "cancelled" : "")">
+
+                    <div class="class-time">
+
+                        <strong>
+                            @(clase.HoraInicio.ToString("HH:mm"))
+                        </strong>
+
+                        <span>
+                            @(clase.HoraFin.ToString("HH:mm"))
+                        </span>
+
+                    </div>
+
+
+                    <div class="class-main">
+
+                        <header>
+
+                            <div>
+
+                                <span class="class-level">
+                                    @clase.Nivel
+                                </span>
+
+                                <h3>
+                                    @clase.Turno
+                                </h3>
+
+                            </div>
+
+
+                            @if (clase.Estado ==
+                                EstadoSesionClase.Cancelada)
+                            {
+                                <span class="cancelled-badge">
+                                    CANCELADA
+                                </span>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="change-teachers-button"
+                                        @onclick="() => AbrirCambioProfesores(clase)">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.SwapHoriz"
+                                             Size="Size.Small" />
+
+                                    Cambiar profesores
+
+                                </button>
+                            }
+
+                        </header>
+
+
+                        @if (clase.Estado !=
+                            EstadoSesionClase.Cancelada)
+                        {
+                            <div class="class-teachers">
+
+                                @foreach (var profesor in
+                                    clase.Profesores)
+                                {
+                                    <div class="teacher-row">
+
+                                        <div class="teacher-data">
+
+                                            <div class="teacher-avatar">
+                                                @ObtenerIniciales(
+                                                    profesor.NombreCompleto)
+                                            </div>
+
+
+                                            <div>
+
+                                                <strong>
+                                                    @profesor.NombreCompleto
+                                                </strong>
+
+
+                                                <div class="teacher-badges">
+
+                                                    @if (profesor.EsPrincipal)
+                                                    {
+                                                        <span class="main-badge">
+                                                            PRINCIPAL
+                                                        </span>
+                                                    }
+
+
+                                                    @if (profesor.EsReemplazo)
+                                                    {
+                                                        <span class="replacement-badge">
+                                                            REEMPLAZO
+                                                        </span>
+                                                    }
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="teacher-attendance">
+
+                                            @if (profesor.ControlConfirmado)
+                                            {
+                                                <span class="control-state @(profesor.DictoClase ? "present" : "absent")">
+
+                                                    <MudIcon Icon="@(profesor.DictoClase
+                                                        ? Icons.Material.Filled.CheckCircle
+                                                        : Icons.Material.Filled.Cancel)"
+                                                             Size="Size.Small" />
+
+                                                    @(profesor.DictoClase
+                                                        ? "Dictó"
+                                                        : "No dictó")
+
+                                                </span>
+
+
+                                               @if (!profesor.EsReemplazo)
+                                                    {
+                                                        <button type="button"
+                                                                class="edit-control"
+                                                                @onclick="() => AbrirCorregirControl(
+                                                                    clase,
+                                                                    profesor)">
+
+                                                            Cambiar
+
+                                                        </button>
+                                                    }
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="teacher-present-button"
+                                                        @onclick="() => ConfirmarProfesor(
+                                                            clase,
+                                                            profesor,
+                                                            true)">
+
+                                                    <MudIcon Icon="@Icons.Material.Filled.Check"
+                                                             Size="Size.Small" />
+
+                                                    Dictó
+
+                                                </button>
+
+
+                                               <button type="button"
+                                                        class="teacher-absent-button"
+                                                        @onclick="() => AbrirReemplazo(
+                                                            clase,
+                                                            profesor)">
+
+                                                    No dictó
+
+                                                </button>
+                                            }
+
+                                        </div>
+
+                                    </div>
+                                }
+
+                            </div>
+
+
+                            @if (clase.Profesores.Count > 0 &&
+                                 clase.Profesores.Any(x =>
+                                     !x.ControlConfirmado))
+                            {
+                                <div class="class-footer">
+
+                                    <button type="button"
+                                            class="confirm-class-button"
+                                            @onclick="() => ConfirmarClase(clase)">
+
+                                        <MudIcon Icon="@Icons.Material.Filled.DoneAll"
+                                                 Size="Size.Small" />
+
+                                        Todos dictaron esta clase
+
+                                    </button>
+
+                                </div>
+                            }
+                        }
+
+                    </div>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@if (_confirmarDia)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarConfirmarDia">
+
+        <div class="confirm-day-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="confirm-icon">
+                <MudIcon Icon="@Icons.Material.Filled.DoneAll" />
+            </div>
+
+            <h2>
+                Confirmar día completo
+            </h2>
+
+            <p>
+                Se marcará que todos los profesores actualmente
+                asignados dictaron sus clases del
+                <strong>@(_fecha.ToString("dd/MM/yyyy"))</strong>.
+            </p>
+
+            <div class="day-warning">
+
+                <MudIcon Icon="@Icons.Material.Filled.Info"
+                         Size="Size.Small" />
+
+                Usá esta opción sólo si no hubo cambios,
+                ausencias ni reemplazos pendientes de cargar.
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="CerrarConfirmarDia">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="confirm-day-button"
+                        disabled="@_confirmandoDia"
+                        @onclick="ConfirmarDia">
+
+                    Confirmar todo
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@if (_mostrarReemplazo &&
+     _claseReemplazo is not null &&
+     _profesorAusente is not null)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarReemplazo">
+
+        <div class="replacement-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="replacement-header">
+
+                <div class="replacement-icon">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonOff" />
+                </div>
+
+
+                <div>
+
+                    <span>
+                        AUSENCIA DOCENTE
+                    </span>
+
+                    <h2>
+                        ¿Quién dictó la clase?
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="replacement-class">
+
+                <div>
+
+                    <span>
+                        CLASE
+                    </span>
+
+                    <strong>
+                        @_claseReemplazo.Turno
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        HORARIO
+                    </span>
+
+                    <strong>
+                        @(_claseReemplazo.HoraInicio.ToString("HH:mm"))
+                        —
+                        @(_claseReemplazo.HoraFin.ToString("HH:mm"))
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="absent-teacher">
+
+                <span>
+                    NO DICTÓ
+                </span>
+
+                <strong>
+                    @_profesorAusente.NombreCompleto
+                </strong>
+
+            </div>
+
+
+            <div class="replacement-field">
+
+                <label>
+                    Profesor que dictó en su lugar
+                </label>
+
+
+                <select value="@_profesorQueDictoId"
+                        @onchange="CambiarProfesorReemplazo">
+
+                    <option value="">
+                        Seleccionar profesor
+                    </option>
+
+
+                    @foreach (var profesor in
+                        _profesores
+                            .Where(x =>
+                                x.Id !=
+                                _profesorAusente.ProfesorId)
+                            .OrderBy(x =>
+                                x.NombreCompleto))
+                    {
+                        var yaAsignado =
+                            _claseReemplazo
+                                .Profesores
+                                .Any(x =>
+                                    x.ProfesorId ==
+                                        profesor.Id);
+
+
+                        <option value="@profesor.Id">
+
+                            @profesor.NombreCompleto
+
+                            @if (yaAsignado)
+                            {
+                                <text>
+                                    · ya asignado
+                                </text>
+                            }
+
+                        </option>
+                    }
+
+                </select>
+
+
+                <small>
+                    Si elegís un profesor que no estaba asignado,
+                    quedará registrado como reemplazo de esta clase.
+                </small>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                _errorReemplazo))
+            {
+                <div class="control-message error">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                             Size="Size.Small" />
+
+                    @_errorReemplazo
+
+                </div>
+            }
+
+
+            <div class="replacement-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        disabled="@_guardandoReemplazo"
+                        @onclick="CerrarReemplazo">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@(_guardandoReemplazo ||
+                                    !_profesorQueDictoId.HasValue)"
+                        @onclick="GuardarReemplazo">
+
+                    @if (_guardandoReemplazo)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.SwapHoriz"
+                                 Size="Size.Small" />
+                    }
+
+                    Registrar reemplazo
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@if (_mostrarCorregirControl &&
+     _claseCorreccion is not null &&
+     _profesorCorreccion is not null)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarCorregirControl">
+
+        <div class="correction-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="replacement-header">
+
+                <div class="replacement-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Edit" />
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        CORREGIR CONTROL
+                    </span>
+
+                    <h2>
+                        @_profesorCorreccion.NombreCompleto
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="correction-current">
+
+                <span>
+                    ESTADO ACTUAL
+                </span>
+
+                <strong class="@(_profesorCorreccion.DictoClase ? "did-teach" : "did-not-teach")">
+
+                    @(_profesorCorreccion.DictoClase
+                        ? "DICTÓ LA CLASE"
+                        : "NO DICTÓ LA CLASE")
+
+                </strong>
+
+            </div>
+
+
+            <p class="correction-question">
+                ¿Qué querés registrar?
+            </p>
+
+
+            <div class="correction-options">
+
+                <button type="button"
+                        class="correction-did"
+                        disabled="@_corrigiendoControl"
+                        @onclick="CorregirComoDicto">
+
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                             Size="Size.Small" />
+
+                    Sí, dictó la clase
+
+                </button>
+
+
+                <button type="button"
+                        class="correction-replacement"
+                        disabled="@_corrigiendoControl"
+                        @onclick="CorregirComoNoDicto">
+
+                    <MudIcon Icon="@Icons.Material.Filled.PersonOff"
+                             Size="Size.Small" />
+
+                    No dictó / elegir reemplazo
+
+                </button>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                _errorCorreccion))
+            {
+                <div class="control-message error">
+
+                    @_errorCorreccion
+
+                </div>
+            }
+
+
+            <div class="replacement-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="CerrarCorregirControl">
+
+                    Cancelar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@code
+{
+private Guid _usuarioId;
+    private IReadOnlyList<ProfesorDisponibleDto> _profesores =
+    Array.Empty<ProfesorDisponibleDto>();
+    private DateOnly _fecha =
+        DateOnly.FromDateTime(
+            DateTime.Today);
+
+    private ControlDocenteDiaDto? _dia;
+
+private bool _mostrarCorregirControl;
+
+private bool _corrigiendoControl;
+
+private ClaseControlDocenteDto? _claseCorreccion;
+
+private ProfesorControlDocenteDto? _profesorCorreccion;
+
+private string? _errorCorreccion;
+    private bool _cargando;
+
+    private bool _confirmarDia;
+
+    private bool _confirmandoDia;
+
+    private string? _error;
+
+    private string? _mensaje;
+
+    private bool _mostrarReemplazo;
+
+private bool _guardandoReemplazo;
+
+private string? _errorReemplazo;
+
+private ClaseControlDocenteDto? _claseReemplazo;
+
+private ProfesorControlDocenteDto? _profesorAusente;
+
+private Guid? _profesorQueDictoId;
+
+
+    private bool PuedeConfirmarDia =>
+        _fecha <=
+        DateOnly.FromDateTime(
+            DateTime.Today)
+        &&
+        _dia is not null
+        &&
+        _dia.ProfesoresEsperados > 0;
+
+
+protected override async Task OnInitializedAsync()
+{
+    try
+    {
+        // =====================================================
+        // USUARIO AUTENTICADO
+        // =====================================================
+
+        var authenticationState =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+
+        var user =
+            authenticationState.User;
+
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            throw new UnauthorizedAccessException(
+                "No hay un usuario autenticado.");
+        }
+
+
+        var usuarioIdTexto =
+            user.FindFirst(
+                ClaimTypes.NameIdentifier)
+            ?.Value;
+
+
+        if (!Guid.TryParse(
+            usuarioIdTexto,
+            out _usuarioId))
+        {
+            throw new UnauthorizedAccessException(
+                "No se pudo identificar al usuario autenticado.");
+        }
+
+
+        // =====================================================
+        // DATOS DE LA PÁGINA
+        // =====================================================
+
+        _profesores =
+            await TurneraService
+                .ListarProfesoresAsync();
+
+
+        await CargarAsync();
+    }
+    catch (Exception ex)
+    {
+        _error =
+            ex.Message;
+    }
+}
+
+private void AbrirReemplazo(
+    ClaseControlDocenteDto clase,
+    ProfesorControlDocenteDto profesor)
+{
+    _claseReemplazo =
+        clase;
+
+    _profesorAusente =
+        profesor;
+
+    _profesorQueDictoId =
+        null;
+
+    _errorReemplazo =
+        null;
+
+    _mostrarReemplazo =
+        true;
+}
+
+private void CerrarReemplazo()
+{
+    _mostrarReemplazo =
+        false;
+
+    _claseReemplazo =
+        null;
+
+    _profesorAusente =
+        null;
+
+    _profesorQueDictoId =
+        null;
+
+    _errorReemplazo =
+        null;
+}
+
+
+private void AbrirCorregirControl(
+    ClaseControlDocenteDto clase,
+    ProfesorControlDocenteDto profesor)
+{
+    _claseCorreccion =
+        clase;
+
+    _profesorCorreccion =
+        profesor;
+
+    _errorCorreccion =
+        null;
+
+    _mostrarCorregirControl =
+        true;
+}
+
+private void CerrarCorregirControl()
+{
+   
+
+    _mostrarCorregirControl =
+        false;
+
+    _claseCorreccion =
+        null;
+
+    _profesorCorreccion =
+        null;
+
+    _errorCorreccion =
+        null;
+}
+
+private void CorregirComoNoDicto()
+{
+    if (_claseCorreccion is null ||
+        _profesorCorreccion is null)
+    {
+        return;
+    }
+
+
+    var clase =
+        _claseCorreccion;
+
+    var profesor =
+        _profesorCorreccion;
+
+
+    _mostrarCorregirControl =
+        false;
+
+    _claseCorreccion =
+        null;
+
+    _profesorCorreccion =
+        null;
+
+
+    AbrirReemplazo(
+        clase,
+        profesor);
+}
+
+private async Task CorregirComoDicto()
+{
+    if (_claseCorreccion is null ||
+        _profesorCorreccion is null)
+    {
+        return;
+    }
+
+
+    try
+    {
+        _corrigiendoControl =
+            true;
+
+        _errorCorreccion =
+            null;
+
+
+        var nombre =
+            _profesorCorreccion
+                .NombreCompleto;
+
+
+        await ControlDocenteService
+            .CorregirProfesorComoDictoAsync(
+                _claseCorreccion
+                    .SesionClaseId,
+
+                _profesorCorreccion
+                    .ProfesorId,
+
+                usuarioId: _usuarioId);
+
+
+        _mostrarCorregirControl =
+            false;
+
+        _claseCorreccion =
+            null;
+
+        _profesorCorreccion =
+            null;
+
+
+        _mensaje =
+            $"{nombre} quedó confirmado como docente de la clase.";
+
+
+        await CargarAsync();
+    }
+    catch (Exception ex)
+    {
+        _errorCorreccion =
+            ex.Message;
+    }
+    finally
+    {
+        _corrigiendoControl =
+            false;
+    }
+}
+private void CambiarProfesorReemplazo(
+    ChangeEventArgs e)
+{
+    if (Guid.TryParse(
+        e.Value?.ToString(),
+        out var profesorId))
+    {
+        _profesorQueDictoId =
+            profesorId;
+    }
+    else
+    {
+        _profesorQueDictoId =
+            null;
+    }
+}
+
+private async Task GuardarReemplazo()
+{
+    if (_claseReemplazo is null ||
+        _profesorAusente is null)
+    {
+        return;
+    }
+
+
+    _errorReemplazo =
+        null;
+
+
+    try
+    {
+        _guardandoReemplazo =
+            true;
+
+
+        if (!_profesorQueDictoId.HasValue)
+        {
+            throw new InvalidOperationException(
+                "Seleccioná quién dictó la clase.");
+        }
+
+
+        var nombreAusente =
+            _profesorAusente.NombreCompleto;
+
+
+       await ControlDocenteService
+    .RegistrarReemplazoAsync(
+        new RegistrarReemplazoDocenteDto
+        {
+            SesionClaseId =
+                _claseReemplazo.SesionClaseId,
+
+            ProfesorAusenteId =
+                _profesorAusente.ProfesorId,
+
+            ProfesorQueDictoId =
+                _profesorQueDictoId.Value,
+
+            UsuarioId = _usuarioId
+                
+        });
+
+
+
+
+
+CerrarReemplazo();
+
+
+_mensaje =
+    $"Se registró el reemplazo de {nombreAusente}.";
+
+
+await CargarAsync();
+
+
+    }
+    catch (Exception ex)
+    {
+        _errorReemplazo =
+            ex.Message;
+    }
+    finally
+    {
+        _guardandoReemplazo =
+            false;
+    }
+}
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _cargando =
+                true;
+
+            _error =
+                null;
+
+
+            _dia =
+                await ControlDocenteService
+                    .ObtenerDiaAsync(
+                        _fecha);
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private async Task CambiarFecha(
+        ChangeEventArgs e)
+    {
+        if (!DateOnly.TryParse(
+            e.Value?.ToString(),
+            out var fecha))
+        {
+            return;
+        }
+
+
+        _fecha =
+            fecha;
+
+
+        await CargarAsync();
+    }
+
+
+    private void SolicitarConfirmarDia()
+    {
+        _confirmarDia =
+            true;
+    }
+
+
+    private void CerrarConfirmarDia()
+    {
+        if (_confirmandoDia)
+            return;
+
+
+        _confirmarDia =
+            false;
+    }
+
+
+    private async Task ConfirmarDia()
+    {
+        try
+        {
+            _confirmandoDia =
+                true;
+
+            _error =
+                null;
+
+
+          await ControlDocenteService
+    .ConfirmarDiaCompletoAsync(
+        _fecha,
+        _usuarioId);
+
+
+            _confirmarDia =
+                false;
+
+
+            _mensaje =
+                "Control docente del día confirmado correctamente.";
+
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _confirmandoDia =
+                false;
+        }
+    }
+
+
+    private async Task ConfirmarClase(
+        ClaseControlDocenteDto clase)
+    {
+        try
+        {
+            await ControlDocenteService
+    .ConfirmarClaseCompletaAsync(
+        clase.SesionClaseId,
+        _usuarioId);
+
+
+            _mensaje =
+                $"Clase de {clase.HoraInicio:HH\\:mm} confirmada.";
+
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private async Task ConfirmarProfesor(
+        ClaseControlDocenteDto clase,
+        ProfesorControlDocenteDto profesor,
+        bool dicto)
+    {
+        try
+        {
+            await ControlDocenteService
+                .ConfirmarProfesorAsync(
+                    new ConfirmarProfesorClaseDto
+                    {
+                        SesionClaseId =
+                            clase.SesionClaseId,
+
+                        ProfesorId =
+                            profesor.ProfesorId,
+
+                        DictoClase =
+                            dicto,
+
+                        UsuarioId = _usuarioId
+                            
+                    });
+
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private async Task CambiarEstadoProfesor(
+        ClaseControlDocenteDto clase,
+        ProfesorControlDocenteDto profesor)
+    {
+        await ConfirmarProfesor(
+            clase,
+            profesor,
+            !profesor.DictoClase);
+    }
+
+
+    private void AbrirCambioProfesores(
+        ClaseControlDocenteDto clase)
+    {
+        /*
+         * Por ahora reutilizamos Turnera:
+         * después podemos extraer el mismo modal a
+         * un componente compartido.
+         */
+        Navigation.NavigateTo(
+            $"/turnos?sesion={clase.SesionClaseId}");
+    }
+
+
+    private void Volver()
+    {
+        Navigation.NavigateTo(
+            "/profesores");
+    }
+
+
+    private static string ObtenerIniciales(
+        string nombre)
+    {
+        var partes =
+            nombre
+                .Split(
+                    ' ',
+                    StringSplitOptions
+                        .RemoveEmptyEntries);
+
+
+        if (partes.Length == 0)
+            return "?";
+
+
+        if (partes.Length == 1)
+        {
+            return partes[0][0]
+                .ToString()
+                .ToUpperInvariant();
+        }
+
+
+        return string.Concat(
+                partes[0][0],
+                partes[^1][0])
+            .ToUpperInvariant();
+    }
+}

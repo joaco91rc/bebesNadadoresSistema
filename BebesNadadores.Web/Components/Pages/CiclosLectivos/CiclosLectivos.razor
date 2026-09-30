@@ -1,0 +1,1066 @@
+@page "/ciclos-lectivos"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.CiclosLectivos
+@using BebesNadadores.Application.CiclosLectivos.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject ICicloLectivoService CicloLectivoService
+@inject NavigationManager Navigation
+
+<PageTitle>
+    Ciclos lectivos | Bebés Nadadores
+</PageTitle>
+
+
+<div class="cycles-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="cycles-header">
+
+        <div>
+
+            <button type="button"
+                    class="back-button"
+                    @onclick="VolverTurnera">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Turnera
+
+            </button>
+
+
+            <span class="page-eyebrow">
+                CONFIGURACIÓN
+            </span>
+
+            <h1>
+                Ciclos lectivos
+            </h1>
+
+            <p>
+                Definí las fechas de inicio y fin de cada ciclo
+                y luego configurá su grilla semanal.
+            </p>
+
+        </div>
+
+
+        <button type="button"
+                class="primary-action"
+                @onclick="NuevoCiclo">
+
+            <MudIcon Icon="@Icons.Material.Filled.Add"
+                     Size="Size.Small" />
+
+            Nuevo ciclo
+
+        </button>
+
+    </section>
+
+
+    @* =========================================================
+       MENSAJES
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       ESTADÍSTICAS
+       ========================================================= *@
+
+    <section class="cycle-stats">
+
+        <article>
+
+            <div class="stat-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    CICLOS
+                </span>
+
+                <strong>
+                    @_ciclos.Count
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon published">
+
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    PUBLICADOS
+                </span>
+
+                <strong>
+                    @_ciclos.Count(x =>
+                        x.Estado ==
+                        EstadoCicloLectivo.Publicado)
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <div class="stat-icon draft">
+
+                <MudIcon Icon="@Icons.Material.Filled.EditCalendar" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    BORRADORES
+                </span>
+
+                <strong>
+                    @_ciclos.Count(x =>
+                        x.Estado ==
+                        EstadoCicloLectivo.Borrador)
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    @* =========================================================
+       LISTADO
+       ========================================================= *@
+
+    @if (_cargando)
+    {
+        <div class="loading-panel">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando ciclos lectivos...
+            </span>
+
+        </div>
+    }
+    else if (_ciclos.Count == 0)
+    {
+        <section class="empty-panel">
+
+            <div class="empty-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+
+            </div>
+
+            <h3>
+                Todavía no hay ciclos lectivos
+            </h3>
+
+            <p>
+                Creá el primer ciclo para comenzar
+                a configurar la grilla semanal.
+            </p>
+
+            <button type="button"
+                    class="primary-action"
+                    @onclick="NuevoCiclo">
+
+                <MudIcon Icon="@Icons.Material.Filled.Add"
+                         Size="Size.Small" />
+
+                Crear ciclo lectivo
+
+            </button>
+
+        </section>
+    }
+    else
+    {
+        <section class="cycles-grid">
+
+            @foreach (var ciclo in
+                _ciclos
+                    .OrderByDescending(x => x.Anio))
+            {
+                <article class="cycle-card">
+
+                    <header class="cycle-card-header">
+
+                        <div class="cycle-year">
+
+                            <span>
+                                CICLO LECTIVO
+                            </span>
+
+                            <h2>
+                                @ciclo.Anio
+                            </h2>
+
+                        </div>
+
+
+                        <span class="cycle-status @ObtenerClaseEstado(ciclo.Estado)">
+
+                            @ObtenerTextoEstado(
+                                ciclo.Estado)
+
+                        </span>
+
+                    </header>
+
+
+                    <div class="cycle-period">
+
+                        <div>
+
+                            <small>
+                                INICIO
+                            </small>
+
+                            <strong>
+                                @(ciclo.FechaInicio.ToString("dd/MM/yyyy"))
+                            </strong>
+
+                        </div>
+
+
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                 Size="Size.Small" />
+
+
+                        <div>
+
+                            <small>
+                                FIN
+                            </small>
+
+                            <strong>
+                                @(ciclo.FechaFin.ToString("dd/MM/yyyy"))
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="cycle-metrics">
+
+                        <div>
+
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                     Size="Size.Small" />
+
+                            <span>
+
+                                <strong>
+                                    @ciclo.CantidadTurnos
+                                </strong>
+
+                                horarios
+
+                            </span>
+
+                        </div>
+
+
+                        <div>
+
+                            <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
+                                     Size="Size.Small" />
+
+                            <span>
+
+                                <strong>
+                                    @ciclo.CantidadSesiones
+                                </strong>
+
+                                clases
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        ciclo.Observaciones))
+                    {
+                        <div class="cycle-notes">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Notes"
+                                     Size="Size.Small" />
+
+                            <span>
+                                @ciclo.Observaciones
+                            </span>
+
+                        </div>
+                    }
+
+
+                    <footer class="cycle-actions">
+
+                        @if (ciclo.Estado ==
+                            EstadoCicloLectivo.Borrador)
+                        {
+                            <button type="button"
+                                    class="secondary-action"
+                                    @onclick="() => EditarCiclo(ciclo)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                         Size="Size.Small" />
+
+                                Editar
+
+                            </button>
+                        }
+
+
+                        @if (ciclo.Estado !=
+                            EstadoCicloLectivo.Cerrado)
+                        {
+                            <button type="button"
+                                    class="grid-action"
+                                    @onclick="() => IrAGrilla(ciclo)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.GridView"
+                                         Size="Size.Small" />
+
+                                Configurar grilla
+
+                            </button>
+
+
+                            <button type="button"
+                                    class="close-action"
+                                    @onclick="() => SolicitarCerrar(ciclo)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Lock"
+                                         Size="Size.Small" />
+
+                                Cerrar ciclo
+
+                            </button>
+                        }
+
+                    </footer>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL NUEVO / EDITAR
+   ============================================================= *@
+
+@if (_mostrarFormulario)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarFormulario">
+
+        <div class="cycle-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+
+                        @(_editandoId.HasValue
+                            ? "EDITAR CONFIGURACIÓN"
+                            : "NUEVO CICLO")
+
+                    </span>
+
+                    <h2>
+
+                        @(_editandoId.HasValue
+                            ? $"Editar ciclo {_form.Anio}"
+                            : "Crear ciclo lectivo")
+
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarFormulario">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="cycle-form">
+
+                <div class="form-field">
+
+                    <label>
+                        Año
+                    </label>
+
+                    <input type="number"
+                           min="2020"
+                           max="2100"
+                           @bind="_form.Anio" />
+
+                </div>
+
+
+                <div class="form-spacer">
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Fecha de inicio
+                    </label>
+
+                    <input type="date"
+                           value="@(_form.FechaInicio.ToString("yyyy-MM-dd"))"
+                           @onchange="CambiarFechaInicio" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Fecha de fin
+                    </label>
+
+                    <input type="date"
+                           value="@(_form.FechaFin.ToString("yyyy-MM-dd"))"
+                           @onchange="CambiarFechaFin" />
+
+                </div>
+
+
+                <div class="form-field full">
+
+                    <label>
+                        Observaciones
+                    </label>
+
+                    <textarea rows="4"
+                              maxlength="1000"
+                              placeholder="Información interna sobre el ciclo..."
+                              @bind="_form.Observaciones">
+                    </textarea>
+
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _errorFormulario))
+                {
+                    <div class="form-error full">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                                 Size="Size.Small" />
+
+                        @_errorFormulario
+
+                    </div>
+                }
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="CerrarFormulario">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="Guardar">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+
+                    @(_editandoId.HasValue
+                        ? "Guardar cambios"
+                        : "Crear ciclo")
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@* =============================================================
+   CONFIRMAR CIERRE
+   ============================================================= *@
+
+@if (_cicloACerrar is not null)
+{
+    <div class="modal-backdrop"
+         @onclick="CancelarCerrar">
+
+        <div class="confirm-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="confirm-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Lock" />
+
+            </div>
+
+
+            <h2>
+                Cerrar ciclo @_cicloACerrar.Anio
+            </h2>
+
+            <p>
+                El ciclo quedará disponible solamente
+                como histórico y ya no podrá modificarse.
+            </p>
+
+
+            <div class="confirm-period">
+
+                @(_cicloACerrar.FechaInicio.ToString("dd/MM/yyyy"))
+
+                <span>
+                    —
+                </span>
+
+                @(_cicloACerrar.FechaFin.ToString("dd/MM/yyyy"))
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        disabled="@_cerrando"
+                        @onclick="CancelarCerrar">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="danger-action"
+                        disabled="@_cerrando"
+                        @onclick="ConfirmarCerrar">
+
+                    @if (_cerrando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Lock"
+                                 Size="Size.Small" />
+                    }
+
+                    Cerrar ciclo
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@code
+{
+    private List<CicloLectivoDto> _ciclos =
+        [];
+
+    private bool _cargando =
+        true;
+
+    private bool _guardando;
+
+    private bool _cerrando;
+
+    private bool _mostrarFormulario;
+
+    private Guid? _editandoId;
+
+    private CicloLectivoDto? _cicloACerrar;
+
+    private string? _error;
+
+    private string? _mensaje;
+
+    private string? _errorFormulario;
+
+
+    private CicloFormModel _form =
+        new();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _cargando =
+                true;
+
+            _error =
+                null;
+
+
+            _ciclos =
+                (await CicloLectivoService
+                    .ListarAsync())
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private void NuevoCiclo()
+    {
+        _editandoId =
+            null;
+
+        _errorFormulario =
+            null;
+
+
+        var anio =
+            DateTime.Today.Year + 1;
+
+
+        /*
+         * Si ya existe el próximo año,
+         * buscamos el siguiente disponible.
+         */
+        while (_ciclos.Any(x =>
+            x.Anio == anio))
+        {
+            anio++;
+        }
+
+
+        _form =
+            new CicloFormModel
+            {
+                Anio =
+                    anio,
+
+                FechaInicio =
+                    new DateOnly(
+                        anio,
+                        2,
+                        1),
+
+                FechaFin =
+                    new DateOnly(
+                        anio,
+                        12,
+                        20)
+            };
+
+
+        _mostrarFormulario =
+            true;
+    }
+
+
+    private void EditarCiclo(
+        CicloLectivoDto ciclo)
+    {
+        if (ciclo.Estado !=
+            EstadoCicloLectivo.Borrador)
+        {
+            return;
+        }
+
+
+        _editandoId =
+            ciclo.Id;
+
+        _errorFormulario =
+            null;
+
+
+        _form =
+            new CicloFormModel
+            {
+                Anio =
+                    ciclo.Anio,
+
+                FechaInicio =
+                    ciclo.FechaInicio,
+
+                FechaFin =
+                    ciclo.FechaFin,
+
+                Observaciones =
+                    ciclo.Observaciones
+            };
+
+
+        _mostrarFormulario =
+            true;
+    }
+
+
+    private async Task Guardar()
+    {
+        _errorFormulario =
+            null;
+
+        _mensaje =
+            null;
+
+
+        try
+        {
+            _guardando =
+                true;
+
+
+            var dto =
+                new GuardarCicloLectivoDto
+                {
+                    Anio =
+                        _form.Anio,
+
+                    FechaInicio =
+                        _form.FechaInicio,
+
+                    FechaFin =
+                        _form.FechaFin,
+
+                    Observaciones =
+                        _form.Observaciones
+                };
+
+
+            if (_editandoId.HasValue)
+            {
+                await CicloLectivoService
+                    .ActualizarAsync(
+                        _editandoId.Value,
+                        dto);
+
+
+                _mensaje =
+                    "Ciclo lectivo actualizado correctamente.";
+            }
+            else
+            {
+                await CicloLectivoService
+                    .CrearAsync(dto);
+
+
+                _mensaje =
+                    "Ciclo lectivo creado correctamente.";
+            }
+
+
+            CerrarFormulario();
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorFormulario =
+                ex.Message;
+        }
+        finally
+        {
+            _guardando =
+                false;
+        }
+    }
+
+
+    private void CerrarFormulario()
+    {
+        if (_guardando)
+            return;
+
+
+        _mostrarFormulario =
+            false;
+
+        _errorFormulario =
+            null;
+    }
+
+
+    private void SolicitarCerrar(
+        CicloLectivoDto ciclo)
+    {
+        _cicloACerrar =
+            ciclo;
+    }
+
+
+    private void CancelarCerrar()
+    {
+        if (_cerrando)
+            return;
+
+
+        _cicloACerrar =
+            null;
+    }
+
+
+    private async Task ConfirmarCerrar()
+    {
+        if (_cicloACerrar is null)
+            return;
+
+
+        try
+        {
+            _cerrando =
+                true;
+
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+
+            var anio =
+                _cicloACerrar.Anio;
+
+
+            await CicloLectivoService
+                .CerrarAsync(
+                    _cicloACerrar.Id);
+
+
+            _cicloACerrar =
+                null;
+
+
+            _mensaje =
+                $"Ciclo {anio} cerrado correctamente.";
+
+
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cerrando =
+                false;
+        }
+    }
+
+
+    private void CambiarFechaInicio(
+        ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(
+            e.Value?.ToString(),
+            out var fecha))
+        {
+            _form.FechaInicio =
+                fecha;
+        }
+    }
+
+
+    private void CambiarFechaFin(
+        ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(
+            e.Value?.ToString(),
+            out var fecha))
+        {
+            _form.FechaFin =
+                fecha;
+        }
+    }
+
+
+ private void IrAGrilla(
+    CicloLectivoDto ciclo)
+{
+    Navigation.NavigateTo(
+        $"/turnos?grilla=true&ciclo={ciclo.Id}");
+}
+
+
+    private void VolverTurnera()
+    {
+        Navigation.NavigateTo(
+            "/turnos");
+    }
+
+
+    private static string ObtenerTextoEstado(
+        EstadoCicloLectivo estado)
+    {
+        return estado switch
+        {
+            EstadoCicloLectivo.Borrador =>
+                "BORRADOR",
+
+            EstadoCicloLectivo.Publicado =>
+                "PUBLICADO",
+
+            EstadoCicloLectivo.Cerrado =>
+                "CERRADO",
+
+            _ =>
+                estado.ToString()
+                    .ToUpperInvariant()
+        };
+    }
+
+
+    private static string ObtenerClaseEstado(
+        EstadoCicloLectivo estado)
+    {
+        return estado switch
+        {
+            EstadoCicloLectivo.Borrador =>
+                "draft",
+
+            EstadoCicloLectivo.Publicado =>
+                "published",
+
+            EstadoCicloLectivo.Cerrado =>
+                "closed",
+
+            _ =>
+                string.Empty
+        };
+    }
+
+
+    private sealed class CicloFormModel
+    {
+        public int Anio { get; set; }
+
+        public DateOnly FechaInicio { get; set; }
+
+        public DateOnly FechaFin { get; set; }
+
+        public string? Observaciones { get; set; }
+    }
+}

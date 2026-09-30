@@ -1,0 +1,1548 @@
+/* ============================================================
+   BEBÉS NADADORES
+   NIVELES
+   ============================================================ */
+
+.niveles-page {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 5px 2px 40px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.niveles-header {
+    margin-bottom: 22px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.back-button {
+    margin-bottom: 13px;
+
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    border: 0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background: transparent;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        color .18s ease,
+        transform .18s ease;
+}
+
+
+.back-button:hover {
+    color:
+        var(--mud-palette-primary);
+
+    transform:
+        translateX(-2px);
+}
+
+
+.niveles-eyebrow,
+.modal-eyebrow {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 1.5px;
+
+    text-transform: uppercase;
+}
+
+
+.niveles-header h1 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.7px;
+
+    line-height: 1.18;
+}
+
+
+.niveles-header p {
+    margin:
+        7px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.primary-action,
+.secondary-action {
+    min-height: 40px;
+
+    padding:
+        0
+        15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    border-radius: 10px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .18s ease;
+}
+
+
+.primary-action {
+    border: none;
+
+    color: #fff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #159ddd,
+            #31c4ed
+        );
+
+    box-shadow:
+        0 7px 20px
+        rgba(22, 157, 221, .20);
+}
+
+
+.primary-action:hover {
+    transform:
+        translateY(-1px);
+
+    box-shadow:
+        0 9px 25px
+        rgba(22, 157, 221, .28);
+}
+
+
+.secondary-action {
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.secondary-action:hover {
+    border-color:
+        rgba(49, 198, 235, .30);
+
+    color:
+        var(--mud-palette-primary);
+}
+
+
+/* ============================================================
+   STATS
+   ============================================================ */
+
+.nivel-stats {
+    margin-bottom: 17px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+}
+
+
+.nivel-stats article {
+    min-height: 86px;
+
+    padding:
+        14px
+        16px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 14px;
+
+    background:
+        var(--mud-palette-surface);
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease;
+}
+
+
+.nivel-stats article:hover {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        rgba(49, 198, 235, .20);
+}
+
+
+.stat-icon {
+    width: 42px;
+    height: 42px;
+
+    flex:
+        0
+        0
+        42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 11px;
+
+    color: #47cfed;
+
+    background:
+        rgba(45, 194, 233, .08);
+}
+
+
+.nivel-stats article > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.nivel-stats span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.nivel-stats strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   NIVEL GRID
+   ============================================================ */
+
+.niveles-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+
+.nivel-card {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 15px;
+
+    background:
+        var(--mud-palette-surface);
+
+    transition: .2s ease;
+}
+
+
+.nivel-card:hover {
+    transform:
+        translateY(-2px);
+
+    border-color:
+        rgba(50, 198, 235, .24);
+
+    box-shadow:
+        0 10px 28px
+        rgba(0, 0, 0, .08);
+}
+
+
+.nivel-card.inactive {
+    opacity: .58;
+}
+
+
+/* ============================================================
+   CARD TOP
+   ============================================================ */
+
+.nivel-card-top {
+    padding: 15px;
+
+    display: grid;
+
+    grid-template-columns:
+        42px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+
+.nivel-order {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 10px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(43, 195, 233, .08);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+
+.nivel-name-row {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+.nivel-name-row h3 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+.nivel-card-title p {
+    margin:
+        5px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.status-badge {
+    padding:
+        4px
+        6px;
+
+    border-radius: 5px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+.status-badge.active {
+    color: #54dca6;
+
+    background:
+        rgba(75, 210, 155, .08);
+}
+
+
+.status-badge.disabled {
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        rgba(130, 140, 150, .08);
+}
+
+
+.edit-button {
+    width: 34px;
+    height: 34px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 8px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background: transparent;
+
+    cursor: pointer;
+
+    transition:
+        .18s ease;
+}
+
+
+.edit-button:hover {
+    color:
+        var(--mud-palette-primary);
+
+    border-color:
+        rgba(49, 198, 235, .28);
+
+    background:
+        rgba(49, 198, 235, .04);
+}
+
+
+/* ============================================================
+   METRICS
+   ============================================================ */
+
+.nivel-metrics {
+    padding:
+        0
+        15px
+        15px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 8px;
+}
+
+
+.nivel-metrics > div {
+    min-height: 63px;
+
+    padding: 10px;
+
+    display: flex;
+    flex-direction: column;
+
+    justify-content: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 97%,
+            var(--mud-palette-primary) 3%
+        );
+}
+
+
+.nivel-metrics span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: .35px;
+}
+
+
+.nivel-metrics strong {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   FOOTER CARD
+   ============================================================ */
+
+.nivel-card-footer {
+    min-height: 57px;
+
+    padding:
+        10px
+        14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.nivel-card-footer > span {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.toggle-status {
+    min-height: 32px;
+
+    padding:
+        0
+        9px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 4px;
+
+    border-radius: 7px;
+
+    background: transparent;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.toggle-status.disable {
+    color: #ef8992;
+
+    border:
+        1px solid
+        rgba(240, 104, 115, .16);
+}
+
+
+.toggle-status.enable {
+    color: #55dba5;
+
+    border:
+        1px solid
+        rgba(77, 211, 157, .16);
+}
+
+
+/* ============================================================
+   EMPTY / LOADING
+   ============================================================ */
+
+.loading-panel,
+.empty-panel {
+    min-height: 350px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    text-align: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 15px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.empty-icon {
+    width: 58px;
+    height: 58px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 15px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(44, 196, 233, .07);
+}
+
+
+.empty-panel h3 {
+    margin:
+        7px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+
+.empty-panel p {
+    max-width: 390px;
+
+    margin:
+        0
+        0
+        8px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+
+    line-height: 1.55;
+}
+
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.modal-backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1200;
+
+    padding: 20px;
+
+    display: grid;
+    place-items: center;
+
+    background:
+        rgba(2, 17, 29, .72);
+
+    backdrop-filter:
+        blur(5px);
+}
+
+
+.nivel-modal {
+    width: min(860px, 96vw);
+
+    max-height: 92vh;
+
+    overflow-y: auto;
+
+    border:
+        1px solid
+        rgba(65, 198, 237, .18);
+
+    border-radius: 19px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 25px 80px
+        rgba(0, 0, 0, .30);
+}
+
+.class-config-grid {
+    grid-column:
+        1 / -1;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 13px;
+}
+
+.class-config-grid input {
+    height: 42px;
+}
+
+
+.modal-header {
+    padding:
+        20px
+        22px;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.modal-header h2 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+
+    flex:
+        0
+        0
+        36px;
+
+    padding: 0;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+
+.modal-close:hover {
+    color:
+        var(--mud-palette-primary);
+
+    border-color:
+        rgba(49, 198, 235, .30);
+}
+
+
+/* ============================================================
+   FORM
+   ============================================================ */
+
+.nivel-form {
+    padding:
+        19px
+        21px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        13px
+        16px;
+}
+
+
+.full {
+    grid-column:
+        1 / -1;
+}
+
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+.form-field label {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.form-field input,
+.form-field textarea {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding:
+        9px
+        11px;
+
+    outline: none;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%
+        );
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+}
+
+
+.form-field textarea {
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+.form-field input:focus,
+.form-field textarea:focus {
+    border-color:
+        rgba(46, 195, 235, .45);
+}
+
+
+.form-field small {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.input-suffix {
+    position: relative;
+}
+
+
+.input-suffix input {
+    padding-right: 60px;
+}
+
+
+.input-suffix span {
+    position: absolute;
+
+    right: 11px;
+    top: 50%;
+
+    transform:
+        translateY(-50%);
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   FORM SECTION
+   ============================================================ */
+
+.form-section-title {
+    margin-top: 7px;
+
+    padding-top: 14px;
+
+    display: flex;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.form-section-title span {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+
+.form-section-title strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   ACTIVE SWITCH
+   ============================================================ */
+
+.active-option {
+    min-height: 55px;
+
+    padding:
+        10px
+        11px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 10px;
+
+    cursor: pointer;
+}
+
+
+.active-option input {
+    display: none;
+}
+
+
+.switch-control {
+    position: relative;
+
+    width: 31px;
+    height: 17px;
+
+    flex:
+        0
+        0
+        31px;
+
+    border-radius: 20px;
+
+    background:
+        rgba(120, 135, 150, .18);
+
+    transition:
+        .2s ease;
+}
+
+
+.switch-control::after {
+    content: "";
+
+    position: absolute;
+
+    left: 2px;
+    top: 2px;
+
+    width: 13px;
+    height: 13px;
+
+    border-radius: 50%;
+
+    background: #96a2ac;
+
+    transition: .2s ease;
+}
+
+
+.active-option input:checked
++ .switch-control {
+    background:
+        rgba(30, 190, 230, .30);
+}
+
+
+.active-option input:checked
++ .switch-control::after {
+    left: 16px;
+
+    background: #47d5ef;
+}
+
+
+.active-option > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.active-option strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.active-option small {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   FOOTER MODAL
+   ============================================================ */
+
+.modal-actions {
+    padding:
+        14px
+        22px
+        20px;
+
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 8px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+/* ============================================================
+   ERRORS
+   ============================================================ */
+
+.form-error {
+    padding:
+        11px
+        12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    border:
+        1px solid
+        rgba(255, 86, 97, .18);
+
+    border-radius: 9px;
+
+    color: #ff9299;
+
+    background:
+        rgba(255, 65, 80, .05);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   MESSAGES
+   ============================================================ */
+
+.message-box {
+    margin-bottom: 12px;
+
+    padding:
+        11px
+        13px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border-radius: 10px;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.message-box span {
+    flex: 1;
+}
+
+
+.message-box button {
+    border: 0;
+
+    color: inherit;
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+
+.message-error {
+    color: #ff959d;
+
+    border:
+        1px solid
+        rgba(255, 85, 98, .18);
+
+    background:
+        rgba(255, 70, 84, .05);
+}
+
+
+.message-success {
+    color: #58dca6;
+
+    border:
+        1px solid
+        rgba(72, 210, 153, .18);
+
+    background:
+        rgba(72, 210, 153, .05);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1050px) {
+
+    .niveles-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .niveles-header {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .nivel-stats,
+    .niveles-grid,
+    .nivel-form {
+        grid-template-columns: 1fr;
+    }
+
+
+    .full {
+        grid-column: 1;
+    }
+
+
+      .class-config-grid {
+        grid-template-columns:
+            1fr;
+    }
+}
+
+
+@media (max-width: 480px) {
+
+    .niveles-header h1 {
+        font-size: 29px;
+    }
+
+
+    .nivel-card-footer {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .toggle-status {
+        justify-content: center;
+    }
+
+
+    .modal-backdrop {
+        padding: 9px;
+    }
+
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .nivel-card,
+    .primary-action,
+    .secondary-action,
+    .edit-button,
+    .back-button {
+        transition: none;
+    }
+
+}

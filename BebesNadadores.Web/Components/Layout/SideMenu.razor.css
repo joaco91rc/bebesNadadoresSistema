@@ -1,0 +1,778 @@
+/* ============================================================
+   BEBÉS NADADORES
+   SIDEBAR / SIDE MENU
+   ============================================================ */
+
+.side-menu {
+    position: relative;
+
+    width: 100%;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    color: #ffffff;
+
+    font-family:
+        "Montserrat",
+        "Segoe UI",
+        Arial,
+        sans-serif;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.sidebar-header {
+    height: 112px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding:
+        15px
+        13px
+        13px
+        12px;
+
+    overflow: visible;
+
+    border-bottom:
+        1px solid
+        rgba(255, 255, 255, .07);
+}
+
+
+.brand {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    overflow: visible;
+}
+
+
+/* ============================================================
+   LOGO
+   ============================================================ */
+
+.brand-logo {
+    width: 68px;
+    height: 68px;
+
+    flex:
+        0
+        0
+        68px;
+
+    object-fit: contain;
+
+    border-radius: 0;
+
+    overflow: visible;
+
+    filter:
+        drop-shadow(
+            0 8px 18px
+            rgba(0, 0, 0, .17)
+        );
+
+    transition:
+        transform .3s ease,
+        filter .3s ease;
+}
+
+
+.brand:hover .brand-logo {
+    transform:
+        translateY(-2px)
+        scale(1.035);
+
+    filter:
+        drop-shadow(
+            0 10px 22px
+            rgba(58, 204, 255, .20)
+        );
+}
+
+
+/* ============================================================
+   BRAND TEXT
+   ============================================================ */
+
+.brand-text {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    font-family:
+        "Montserrat",
+        "Segoe UI",
+        Arial,
+        sans-serif;
+}
+
+
+.brand-text strong {
+    color: #ffffff;
+
+    font-size: 19px;
+    font-weight: 800;
+
+    line-height: .98;
+
+    letter-spacing: -.45px;
+}
+
+
+.brand-text span {
+    margin-top: 8px;
+
+    color:
+        rgba(202, 237, 255, .70);
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 1.15px;
+
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   COLLAPSE BUTTON
+   ============================================================ */
+
+.collapse-button {
+    width: 31px;
+    height: 31px;
+
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border:
+        1px solid
+        rgba(122, 221, 255, .13);
+
+    border-radius: 9px;
+
+    background:
+        rgba(42, 173, 231, .08);
+
+    color: #A9E6FA;
+
+    cursor: pointer;
+
+    transition:
+        background .22s ease,
+        color .22s ease,
+        border-color .22s ease,
+        transform .22s ease,
+        box-shadow .22s ease;
+}
+
+
+.collapse-button:hover {
+    color: #ffffff;
+
+    background:
+        rgba(51, 200, 255, .16);
+
+    border-color:
+        rgba(91, 220, 255, .30);
+
+    box-shadow:
+        0 0 17px
+        rgba(39, 192, 246, .15);
+
+    transform:
+        scale(1.05);
+}
+
+
+.collapse-button ::deep .mud-icon-root,
+.collapse-button ::deep svg {
+    width: 17px !important;
+    height: 17px !important;
+
+    max-width: 17px !important;
+    max-height: 17px !important;
+
+    font-size: 17px !important;
+
+    color: inherit !important;
+
+    fill: currentColor !important;
+}
+
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+.menu-navigation {
+    flex: 1;
+
+    min-height: 0;
+
+    padding:
+        12px
+        11px
+        10px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        rgba(135, 222, 255, .16)
+        transparent;
+}
+
+
+.menu-navigation::-webkit-scrollbar {
+    width: 4px;
+}
+
+
+.menu-navigation::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+.menu-navigation::-webkit-scrollbar-thumb {
+    border-radius: 20px;
+
+    background:
+        rgba(135, 222, 255, .15);
+}
+
+
+.menu-navigation::-webkit-scrollbar-thumb:hover {
+    background:
+        rgba(135, 222, 255, .27);
+}
+
+
+/* ============================================================
+   SECTION TITLE
+   ============================================================ */
+
+.menu-section-title {
+    margin:
+        18px
+        13px
+        8px;
+
+    color:
+        rgba(182, 229, 250, .52);
+
+    font-family:
+        "Montserrat",
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.55px;
+
+    text-transform: uppercase;
+
+    user-select: none;
+}
+
+
+/* ============================================================
+   MENU ITEM
+   ============================================================ */
+
+::deep .menu-link {
+    position: relative;
+
+    min-height: 47px;
+
+    margin-bottom: 4px;
+
+    padding:
+        0
+        12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    overflow: hidden;
+
+    border-radius: 12px;
+
+    color:
+        rgba(225, 244, 253, .84);
+
+    text-decoration: none;
+
+    font-family:
+        "Montserrat",
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    letter-spacing: -.1px;
+
+    transition:
+        background .25s ease,
+        color .25s ease,
+        transform .25s ease,
+        box-shadow .25s ease;
+}
+
+
+/* ============================================================
+   BARRA LATERAL ACTIVA
+   ============================================================ */
+
+::deep .menu-link::before {
+    content: "";
+
+    position: absolute;
+
+    z-index: 3;
+
+    left: 0;
+    top: 50%;
+
+    width: 3px;
+    height: 0;
+
+    border-radius:
+        0
+        5px
+        5px
+        0;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #8BE9FF,
+            #20BAF5
+        );
+
+    box-shadow:
+        0 0 10px
+        rgba(80, 213, 255, .75),
+
+        0 0 20px
+        rgba(31, 167, 235, .35);
+
+    transform:
+        translateY(-50%);
+
+    transition:
+        height .25s ease;
+}
+
+
+/* ============================================================
+   HALO HOVER
+   ============================================================ */
+
+::deep .menu-link::after {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 0;
+
+    border-radius: inherit;
+
+    background:
+        radial-gradient(
+            circle at 13% 50%,
+            rgba(72, 211, 255, .16),
+            transparent 55%
+        );
+
+    opacity: 0;
+
+    transform:
+        scale(.94);
+
+    transition:
+        opacity .25s ease,
+        transform .25s ease;
+
+    pointer-events: none;
+}
+
+
+/* ============================================================
+   ICONOS
+   ============================================================ */
+
+.menu-icon {
+    position: relative;
+
+    z-index: 2;
+
+    width: 26px;
+    height: 34px;
+
+    flex:
+        0
+        0
+        26px;
+
+    display: grid;
+    place-items: center;
+
+    color: #A8DDF4;
+
+    background: transparent;
+
+    border-radius: 0;
+
+    box-shadow: none;
+
+    transition:
+        color .25s ease,
+        transform .25s ease,
+        filter .25s ease;
+}
+
+
+.menu-icon ::deep .mud-icon-root,
+.menu-icon ::deep svg {
+    width: 19px !important;
+    height: 19px !important;
+
+    max-width: 19px !important;
+    max-height: 19px !important;
+
+    font-size: 19px !important;
+
+    color: inherit !important;
+
+    fill: currentColor !important;
+}
+
+
+/* ============================================================
+   TEXT
+   ============================================================ */
+
+.menu-text {
+    position: relative;
+
+    z-index: 2;
+
+    min-width: 0;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    transition:
+        transform .25s ease,
+        color .25s ease;
+}
+
+
+/* ============================================================
+   HOVER PREMIUM
+   ============================================================ */
+
+::deep .menu-link:hover {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(47, 181, 239, .13),
+            rgba(75, 211, 255, .035)
+        );
+
+    box-shadow:
+        inset 0 0 0 1px
+        rgba(116, 221, 255, .06),
+
+        0 7px 22px
+        rgba(0, 49, 81, .10);
+
+    transform:
+        translateX(3px);
+}
+
+
+::deep .menu-link:hover::after {
+    opacity: 1;
+
+    transform:
+        scale(1);
+}
+
+
+::deep .menu-link:hover .menu-icon {
+    color: #82E7FF;
+
+    background: transparent;
+
+    box-shadow: none;
+
+    transform:
+        translateX(1px)
+        scale(1.08);
+
+    filter:
+        drop-shadow(
+            0 0 5px
+            rgba(79, 213, 255, .30)
+        );
+}
+
+
+::deep .menu-link:hover .menu-text {
+    transform:
+        translateX(1px);
+}
+
+
+/* ============================================================
+   ACTIVE
+   ============================================================ */
+
+::deep .menu-link.active {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(15, 151, 219, .44),
+            rgba(41, 188, 242, .15)
+        );
+
+    box-shadow:
+        inset 0 0 0 1px
+        rgba(112, 218, 255, .09),
+
+        0 8px 24px
+        rgba(0, 47, 79, .13);
+}
+
+
+::deep .menu-link.active::before {
+    height: 27px;
+}
+
+
+::deep .menu-link.active::after {
+    opacity: .58;
+
+    transform:
+        scale(1);
+}
+
+
+::deep .menu-link.active .menu-icon {
+    color: #5DDCFF;
+
+    background: transparent;
+
+    box-shadow: none;
+
+    filter:
+        drop-shadow(
+            0 0 6px
+            rgba(67, 212, 255, .38)
+        );
+}
+
+
+::deep .menu-link.active .menu-text {
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   FOOTER DECORATIVO
+   ============================================================ */
+
+.sidebar-footer {
+    position: relative;
+
+    height: 30px;
+
+    flex-shrink: 0;
+
+    overflow: hidden;
+
+    pointer-events: none;
+}
+
+
+.wave {
+    position: absolute;
+
+    width: 150%;
+    height: 70px;
+
+    left: -20%;
+
+    border-radius: 50%;
+}
+
+
+.wave-one {
+    bottom: -58px;
+
+    background:
+        rgba(25, 157, 221, .35);
+
+    transform:
+        rotate(-3deg);
+}
+
+
+.wave-two {
+    bottom: -65px;
+
+    background:
+        rgba(45, 191, 246, .20);
+
+    transform:
+        rotate(4deg);
+}
+
+
+/* ============================================================
+   COLLAPSED
+   ============================================================ */
+
+.side-menu.collapsed .sidebar-header {
+    justify-content: center;
+
+    flex-direction: column;
+
+    height: 118px;
+
+    padding:
+        12px
+        8px;
+
+    gap: 8px;
+}
+
+
+.side-menu.collapsed .brand {
+    justify-content: center;
+}
+
+
+.side-menu.collapsed .brand-logo {
+    width: 52px;
+    height: 52px;
+
+    flex:
+        0
+        0
+        52px;
+}
+
+
+.side-menu.collapsed .collapse-button {
+    width: 27px;
+    height: 27px;
+}
+
+
+.side-menu.collapsed .menu-navigation {
+    padding:
+        12px
+        9px
+        8px;
+}
+
+
+.side-menu.collapsed ::deep .menu-link {
+    width: 55px;
+    height: 48px;
+
+    margin-left: auto;
+    margin-right: auto;
+
+    justify-content: center;
+
+    padding: 0;
+
+    gap: 0;
+}
+
+
+.side-menu.collapsed ::deep .menu-link:hover {
+    transform:
+        scale(1.04);
+}
+
+
+.side-menu.collapsed .menu-icon {
+    width: 26px;
+    height: 34px;
+
+    flex:
+        0
+        0
+        26px;
+}
+
+
+.side-menu.collapsed ::deep .menu-link.active::before {
+    height: 25px;
+}
+
+
+.side-menu.collapsed .sidebar-footer {
+    height: 20px;
+}
+
+
+/* ============================================================
+   ACCESIBILIDAD
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    ::deep .menu-link,
+    .menu-icon,
+    .menu-text,
+    .collapse-button,
+    .brand-logo {
+        transition: none;
+    }
+
+}

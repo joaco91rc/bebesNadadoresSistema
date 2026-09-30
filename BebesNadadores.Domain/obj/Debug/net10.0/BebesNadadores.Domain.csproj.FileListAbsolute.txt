@@ -5,6 +5,7 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debu
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\BebesNadadores.Domain.AssemblyInfoInputs.cache
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\BebesNadadores.Domain.AssemblyInfo.cs
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\BebesNadadores.Domain.csproj.CoreCompileInputs.cache
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\BebesNadadores.Domain.sourcelink.json
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\BebesNadadores.Domain.dll
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\refint\BebesNadadores.Domain.dll
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Domain\obj\Debug\net10.0\BebesNadadores.Domain.pdb

@@ -1,0 +1,431 @@
+@using BebesNadadores.Infrastructure.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MudBlazor
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<AppUser> UserManager
+
+
+
+<header class="topbar">
+
+    @* =========================================================
+       IZQUIERDA
+       ========================================================= *@
+
+    <div class="topbar-left">
+
+        <button type="button"
+                class="mobile-menu-button"
+                title="Menú"
+                @onclick="ToggleMenuAsync">
+
+            <MudIcon Icon="@Icons.Material.Filled.Menu" />
+
+        </button>
+
+
+        <div class="global-search">
+
+            <span class="search-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Search"
+                         Size="Size.Small" />
+
+            </span>
+
+            <input type="search"
+                   placeholder="Buscar bebé, turno o comprobante..."
+                   aria-label="Buscar" />
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       DERECHA
+       ========================================================= *@
+
+    <div class="topbar-actions">
+
+
+        @* Tema *@
+
+        <button type="button"
+                class="topbar-icon-button"
+                title="@(IsDarkMode
+                          ? "Cambiar a modo claro"
+                          : "Cambiar a modo oscuro")"
+                @onclick="ToggleThemeAsync">
+
+            <MudIcon Icon="@(IsDarkMode
+                              ? Icons.Material.Filled.LightMode
+                              : Icons.Material.Filled.DarkMode)" />
+
+        </button>
+
+
+        @* Notificaciones *@
+
+        <button type="button"
+                class="topbar-icon-button notification-button"
+                title="Notificaciones">
+
+            <MudIcon Icon="@Icons.Material.Filled.NotificationsNone" />
+
+
+            @if (NotificationsCount > 0)
+            {
+                <span class="notification-count">
+
+                    @(NotificationsCount > 9
+                        ? "9+"
+                        : NotificationsCount.ToString())
+
+                </span>
+            }
+
+        </button>
+
+
+        <div class="topbar-separator"></div>
+
+
+        @* Usuario *@
+
+        <div class="user-area">
+
+            <button type="button"
+                    class="user-trigger"
+                    @onclick="ToggleUserMenu">
+
+                <div class="user-avatar">
+                    @Iniciales
+                </div>
+
+
+                <div class="user-info">
+
+                    <strong>
+                        @_nombreCompleto
+                    </strong>
+
+                    <span>
+                        @NombreRol
+                    </span>
+
+                </div>
+
+
+                <MudIcon Icon="@( _userMenuOpen
+                                  ? Icons.Material.Filled.KeyboardArrowUp
+                                  : Icons.Material.Filled.KeyboardArrowDown )"
+                         Size="Size.Small"
+                         Class="user-chevron" />
+
+            </button>
+
+
+            @if (_userMenuOpen)
+            {
+                <div class="user-dropdown">
+
+                    <div class="dropdown-user">
+
+                        <div class="dropdown-avatar">
+                            @Iniciales
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                @_nombreCompleto
+                            </strong>
+
+                            <span>
+                                @_email
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="dropdown-role">
+
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser"
+                                 Size="Size.Small" />
+
+                        <span>
+                            @NombreRol
+                        </span>
+
+                    </div>
+
+
+                    <div class="dropdown-divider"></div>
+
+
+                    <button type="button"
+                            class="dropdown-action danger"
+                           @onclick="AbrirLogoutModal">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Logout"
+                                 Size="Size.Small" />
+
+                        <span>
+                            Cerrar sesión
+                        </span>
+
+                    </button>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+@if (_logoutModalOpen)
+{
+    <div class="logout-overlay"
+         @onclick="CerrarLogoutModal">
+
+        <div class="logout-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="logout-modal__icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.Logout" />
+
+            </div>
+
+            <span class="logout-modal__eyebrow">
+                BEBÉS NADADORES
+            </span>
+
+            <h3>
+                ¿Cerrar sesión?
+            </h3>
+
+            <p>
+                Vas a salir del sistema.
+                Tendrás que volver a ingresar tus credenciales
+                para acceder nuevamente.
+            </p>
+
+
+            <form method="post"
+                  action="/Account/Logout"
+                  class="logout-modal__actions">
+
+                <AntiforgeryToken />
+
+
+                <button type="button"
+                        class="logout-cancel"
+                        @onclick="CerrarLogoutModal">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="submit"
+                        class="logout-confirm">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Logout"
+                             Size="Size.Small" />
+
+                    <span>
+                        Cerrar sesión
+                    </span>
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+}
+</header>
+
+
+@code {
+
+    [Parameter]
+    public bool IsDarkMode { get; set; }
+
+
+    [Parameter]
+    public EventCallback OnThemeChanged { get; set; }
+
+
+    [Parameter]
+    public EventCallback OnMenuToggle { get; set; }
+
+
+    [Parameter]
+    public int NotificationsCount { get; set; }
+
+
+    private string _nombreCompleto =
+        "Usuario";
+
+
+    private string _email =
+        "";
+
+
+    private string _rol =
+        "";
+
+
+    private bool _userMenuOpen;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+
+        var principal =
+            authenticationState.User;
+
+
+        if (principal.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+
+        var usuario =
+            await UserManager.GetUserAsync(principal);
+
+
+        if (usuario is null)
+        {
+            _nombreCompleto =
+                principal.Identity?.Name
+                ?? "Usuario";
+
+            return;
+        }
+
+
+        _nombreCompleto =
+            string.IsNullOrWhiteSpace(
+                usuario.NombreCompleto)
+                ? usuario.Email ?? "Usuario"
+                : usuario.NombreCompleto;
+
+
+        _email =
+            usuario.Email ?? "";
+
+
+        var roles =
+            await UserManager
+                .GetRolesAsync(usuario);
+
+
+        _rol =
+            roles.FirstOrDefault()
+            ?? "Usuario";
+    }
+
+
+    private string Iniciales
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(
+                _nombreCompleto))
+            {
+                return "U";
+            }
+
+
+            var partes =
+                _nombreCompleto
+                    .Split(
+                        ' ',
+                        StringSplitOptions
+                            .RemoveEmptyEntries);
+
+
+            if (partes.Length == 1)
+            {
+                return partes[0]
+                    .Substring(
+                        0,
+                        Math.Min(
+                            2,
+                            partes[0].Length))
+                    .ToUpperInvariant();
+            }
+
+
+            return string.Concat(
+                    partes.First()[0],
+                    partes.Last()[0])
+                .ToUpperInvariant();
+        }
+    }
+
+
+    private string NombreRol =>
+        _rol switch
+        {
+            RolesSistema.Medica =>
+                "Médica",
+
+            RolesSistema.Administrativa =>
+                "Administrativa",
+
+            RolesSistema.Administrador =>
+                "Administrador",
+
+            RolesSistema.Profesor =>
+                "Profesor",
+
+            RolesSistema.SoloLectura =>
+                "Solo lectura",
+
+            _ =>
+                _rol
+        };
+
+private bool _logoutModalOpen;
+    private Task ToggleThemeAsync()
+        => OnThemeChanged.InvokeAsync();
+
+
+    private Task ToggleMenuAsync()
+        => OnMenuToggle.InvokeAsync();
+
+
+    private void ToggleUserMenu()
+    {
+        _userMenuOpen =
+            !_userMenuOpen;
+    }
+
+
+   private void AbrirLogoutModal()
+{
+    _userMenuOpen = false;
+    _logoutModalOpen = true;
+}
+
+
+private void CerrarLogoutModal()
+{
+    _logoutModalOpen = false;
+}
+
+}

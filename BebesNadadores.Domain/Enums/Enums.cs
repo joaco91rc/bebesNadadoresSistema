@@ -55,13 +55,25 @@ public enum EstadoSesionClase
     Finalizada = 3
 }
 
+public enum TipoDiaNoLaborable
+{
+    Feriado = 1,
+    CierreNatatorio = 2,
+    Mantenimiento = 3,
+    EventoEspecial = 4
+}
+
 public enum EstadoAsistencia
 {
     Pendiente = 1,
     Presente = 2,
     AusenteConAviso = 3,
-    AusenteSinAviso = 4,
-    Recupero = 5
+    Ausente = 4
+}
+public enum TipoRecuperacion
+{
+    AusenciaConAviso = 1,
+    ClaseNoDictada = 2
 }
 
 public enum EstadoRecuperacion
@@ -151,4 +163,18 @@ public enum EstadoInvitacionVacante
     Rechazada = 4,
     Vencida = 5,
     SinCupo = 6
+}
+public enum TipoDescuento
+{
+    Porcentaje = 1,
+    MontoFijo = 2
+}
+
+
+
+public enum EstadoCicloLectivo
+{
+    Borrador = 1,
+    Publicado = 2,
+    Cerrado = 3
 }

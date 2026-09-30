@@ -2,6 +2,7 @@ using BebesNadadores.Infrastructure;
 using BebesNadadores.Infrastructure.Identity;
 using BebesNadadores.Web.Authorization;
 using BebesNadadores.Web.Components;
+using MudBlazor;
 using MudBlazor.Services;
 
 var builder =
@@ -17,11 +18,14 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(config =>
+{
+    config.PopoverOptions.OverflowBehavior =
+        OverflowBehavior.FlipNever;
+});
 
 
-builder.Services.AddInfrastructure(
-    builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
 
 
 builder.Services.AddAuthorization(options =>

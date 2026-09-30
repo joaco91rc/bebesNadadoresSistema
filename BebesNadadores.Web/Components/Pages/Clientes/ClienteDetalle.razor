@@ -1,0 +1,2047 @@
+@page "/clientes/{BebeId:guid}"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using System.Globalization
+@using BebesNadadores.Application.Bebes
+@using BebesNadadores.Application.Bebes.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject IBebeLegajoService LegajoService
+@inject NavigationManager Navigation
+
+<PageTitle>Legajo | Bebés Nadadores</PageTitle>
+
+
+@if (_cargando)
+{
+    <div class="legajo-loading">
+
+        <MudProgressCircular Indeterminate="true"
+                             Size="Size.Large" />
+
+        <span>
+            Cargando legajo...
+        </span>
+
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="legajo-error">
+
+        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" />
+
+        <h2>
+            No pudimos abrir el legajo
+        </h2>
+
+        <p>
+            @_error
+        </p>
+
+        <button type="button"
+                class="secondary-action"
+                @onclick="Volver">
+
+            Volver a bebés
+
+        </button>
+
+    </div>
+}
+else if (_legajo is not null)
+{
+    <div class="legajo-page">
+
+        @* =====================================================
+           HEADER
+           ===================================================== *@
+
+        <section class="profile-hero">
+
+            <div class="hero-glow"></div>
+
+
+            <div class="hero-top">
+
+                <button type="button"
+                        class="back-button"
+                        @onclick="Volver">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                             Size="Size.Small" />
+
+                    Bebés y familias
+
+                </button>
+
+
+                <div class="hero-actions">
+
+                    @if (_legajo.ResponsablePrincipal is not null
+                         &&
+                         !string.IsNullOrWhiteSpace(
+                             _legajo.ResponsablePrincipal.WhatsApp))
+                    {
+                        <button type="button"
+                                class="whatsapp-button"
+                                @onclick="AbrirWhatsApp">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Chat"
+                                     Size="Size.Small" />
+
+                            WhatsApp
+
+                        </button>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <div class="hero-profile">
+
+                <div class="hero-avatar">
+
+                    @ObtenerIniciales(
+                        _legajo.NombreCompleto)
+
+                </div>
+
+
+                <div class="hero-identity">
+
+                    <div class="hero-name-row">
+
+                        <h1>
+                            @_legajo.NombreCompleto
+                        </h1>
+
+
+                        @if (_legajo.Estado ==
+                             EstadoBebe.Activo)
+                        {
+                            <span class="profile-status active">
+                                ACTIVO
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="profile-status inactive">
+                                BAJA
+                            </span>
+                        }
+
+                    </div>
+
+
+                    <div class="hero-meta">
+
+                        <span>
+
+                            <MudIcon Icon="@Icons.Material.Filled.Cake"
+                                     Size="Size.Small" />
+
+                            @ObtenerEdadTexto()
+
+                        </span>
+
+
+                        <span>
+
+                            <MudIcon Icon="@Icons.Material.Filled.Pool"
+                                     Size="Size.Small" />
+
+                            @(_legajo.NivelActual
+                                ?? "Sin nivel asignado")
+
+                        </span>
+
+
+                        <span>
+
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
+                                     Size="Size.Small" />
+
+                            Alta
+                            @_legajo.FechaAlta.ToString("dd/MM/yyyy")
+
+                        </span>
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                            _legajo.Dni))
+                        {
+                            <span>
+
+                                <MudIcon Icon="@Icons.Material.Filled.Badge"
+                                         Size="Size.Small" />
+
+                                DNI @_legajo.Dni
+
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            @if (Alertas.Any())
+            {
+                <div class="hero-alerts">
+
+                    @foreach (var alerta in Alertas)
+                    {
+                        <div class="hero-alert @alerta.Css">
+
+                            <MudIcon Icon="@alerta.Icono"
+                                     Size="Size.Small" />
+
+                            <span>
+                                @alerta.Texto
+                            </span>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+
+        @* =====================================================
+           NAVEGACIÓN
+           ===================================================== *@
+
+        <nav class="profile-tabs">
+
+            <button class="@TabCss(TabLegajo.Resumen)"
+                    @onclick="() => _tab = TabLegajo.Resumen">
+
+                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard"
+                         Size="Size.Small" />
+
+                Resumen
+
+            </button>
+
+
+            <button class="@TabCss(TabLegajo.Responsables)"
+                    @onclick="() => _tab = TabLegajo.Responsables">
+
+                <MudIcon Icon="@Icons.Material.Filled.Groups"
+                         Size="Size.Small" />
+
+                Responsables
+
+                <span class="tab-count">
+                    @_legajo.Responsables.Count
+                </span>
+
+            </button>
+
+
+            <button class="@TabCss(TabLegajo.Inscripcion)"
+                    @onclick="() => _tab = TabLegajo.Inscripcion">
+
+                <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
+                         Size="Size.Small" />
+
+                Inscripción
+
+            </button>
+
+
+            <button class="@TabCss(TabLegajo.AptoMedico)"
+                    @onclick="() => _tab = TabLegajo.AptoMedico">
+
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
+                         Size="Size.Small" />
+
+                Apto médico
+
+            </button>
+
+
+            <button class="@TabCss(TabLegajo.Asistencia)"
+                    @onclick="() => _tab = TabLegajo.Asistencia">
+
+                <MudIcon Icon="@Icons.Material.Filled.FactCheck"
+                         Size="Size.Small" />
+
+                Asistencia
+
+            </button>
+
+
+            <button class="@TabCss(TabLegajo.Recuperos)"
+                    @onclick="() => _tab = TabLegajo.Recuperos">
+
+                <MudIcon Icon="@Icons.Material.Filled.Autorenew"
+                         Size="Size.Small" />
+
+                Recuperos
+
+                @if (RecuperosDisponibles > 0)
+                {
+                    <span class="tab-count accent">
+                        @RecuperosDisponibles
+                    </span>
+                }
+
+            </button>
+
+
+            <button class="@TabCss(TabLegajo.Pagos)"
+                    @onclick="() => _tab = TabLegajo.Pagos">
+
+                <MudIcon Icon="@Icons.Material.Filled.Payments"
+                         Size="Size.Small" />
+
+                Pagos
+
+            </button>
+
+        </nav>
+
+
+        @* =====================================================
+           RESUMEN
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.Resumen)
+        {
+            <section class="summary-grid">
+
+                <article class="summary-kpi">
+
+                    <div class="summary-kpi-icon blue">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+
+                    </div>
+
+                    <span>
+                        Próxima clase
+                    </span>
+
+
+                    @if (_legajo.ProximaClase is null)
+                    {
+                        <strong>
+                            Sin clase
+                        </strong>
+
+                        <small>
+                            No tiene turnos activos.
+                        </small>
+                    }
+                    else
+                    {
+                        <strong>
+                            @_legajo.ProximaClase.DiaSemana
+                            @_legajo.ProximaClase.HoraInicio.ToString("HH:mm")
+                        </strong>
+
+                        <small>
+                            @_legajo.ProximaClase.Fecha.ToString("dd/MM")
+                            ·
+                            @_legajo.ProximaClase.Nivel
+                        </small>
+                    }
+
+                </article>
+
+
+                <article class="summary-kpi">
+
+                    <div class="summary-kpi-icon medical">
+
+                        <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+
+                    </div>
+
+                    <span>
+                        Apto médico
+                    </span>
+
+                    @if (_legajo.AptoActual is null)
+                    {
+                        <strong class="warning-text">
+                            Sin apto
+                        </strong>
+
+                        <small>
+                            Requiere revisión.
+                        </small>
+                    }
+                    else if (_legajo.AptoActual.Vigente)
+                    {
+                        <strong class="success-text">
+                            Vigente
+                        </strong>
+
+                        <small>
+                            Hasta
+                            @_legajo.AptoActual.VigenciaHasta.ToString("dd/MM/yyyy")
+                        </small>
+                    }
+                    else
+                    {
+                        <strong class="danger-text">
+                            No vigente
+                        </strong>
+
+                        <small>
+                            Último:
+                            @_legajo.AptoActual.VigenciaHasta.ToString("dd/MM/yyyy")
+                        </small>
+                    }
+
+                </article>
+
+
+                <article class="summary-kpi">
+
+                    <div class="summary-kpi-icon recovery">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Autorenew" />
+
+                    </div>
+
+                    <span>
+                        Recuperos disponibles
+                    </span>
+
+                    <strong>
+                        @RecuperosDisponibles
+                    </strong>
+
+                    <small>
+                        @RecuperosPorVencer próximos a vencer
+                    </small>
+
+                </article>
+
+
+                <article class="summary-kpi">
+
+                    <div class="summary-kpi-icon payment">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" />
+
+                    </div>
+
+                    <span>
+                        Pagado este mes
+                    </span>
+
+                    <strong>
+                        @FormatearDinero(
+                            _legajo.PagadoMesActual)
+                    </strong>
+
+                    <small>
+                        @_legajo.Pagos.Count movimientos registrados
+                    </small>
+
+                </article>
+
+            </section>
+
+
+            <section class="overview-layout">
+
+                <div class="overview-main">
+
+                    @* PRÓXIMA CLASE *@
+
+                    <article class="content-card">
+
+                        <div class="content-card-header">
+
+                            <div>
+
+                                <span class="section-eyebrow">
+                                    AGENDA
+                                </span>
+
+                                <h2>
+                                    Próxima clase
+                                </h2>
+
+                            </div>
+
+                            <MudIcon Icon="@Icons.Material.Filled.Pool"
+                                     Class="header-icon" />
+
+                        </div>
+
+
+                        @if (_legajo.ProximaClase is null)
+                        {
+                            <div class="empty-inline">
+
+                                No hay una próxima clase configurada.
+
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="next-class">
+
+                                <div class="next-class-date">
+
+                                    <span>
+    @(_legajo.ProximaClase.Fecha
+        .ToString("ddd", Cultura)
+        .TrimEnd('.')
+        .ToUpperInvariant())
+</span>
+
+                                    <strong>
+                                        @_legajo.ProximaClase.Fecha.Day
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="next-class-info">
+
+                                    <strong>
+                                        @_legajo.ProximaClase.Nivel
+                                    </strong>
+
+                                    <span>
+                                        @_legajo.ProximaClase.HoraInicio.ToString("HH:mm")
+                                        —
+                                        @_legajo.ProximaClase.HoraFin.ToString("HH:mm")
+                                    </span>
+
+                                    <span>
+                                        @ProfesoresTexto(
+                                            _legajo.ProximaClase.Profesores)
+                                    </span>
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </article>
+
+
+                    @* ASISTENCIA *@
+
+                    <article class="content-card">
+
+                        <div class="content-card-header">
+
+                            <div>
+
+                                <span class="section-eyebrow">
+                                    ÚLTIMOS 90 DÍAS
+                                </span>
+
+                                <h2>
+                                    Asistencia
+                                </h2>
+
+                            </div>
+
+
+                            <strong class="attendance-percentage">
+                                @_legajo.AsistenciaResumen.PorcentajeAsistencia%
+                            </strong>
+
+                        </div>
+
+
+                        <div class="mini-stats">
+
+                            <div>
+                                <span class="dot present"></span>
+                                <strong>
+                                    @_legajo.AsistenciaResumen.Presentes
+                                </strong>
+                                <small>Presentes</small>
+                            </div>
+
+                            <div>
+                                <span class="dot notified"></span>
+                                <strong>
+                                    @_legajo.AsistenciaResumen.AusentesConAviso
+                                </strong>
+                                <small>Con aviso</small>
+                            </div>
+
+                            <div>
+                                <span class="dot absent"></span>
+                                <strong>
+                                    @_legajo.AsistenciaResumen.Ausentes
+                                </strong>
+                                <small>Ausentes</small>
+                            </div>
+
+                        </div>
+
+
+                        <button type="button"
+                                class="card-link"
+                                @onclick="() => _tab = TabLegajo.Asistencia">
+
+                            Ver historial completo
+
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                     Size="Size.Small" />
+
+                        </button>
+
+                    </article>
+
+                </div>
+
+
+                <aside class="overview-side">
+
+                    @* RESPONSABLE *@
+
+                    <article class="content-card">
+
+                        <div class="content-card-header">
+
+                            <div>
+
+                                <span class="section-eyebrow">
+                                    FAMILIA
+                                </span>
+
+                                <h2>
+                                    Contacto principal
+                                </h2>
+
+                            </div>
+
+                        </div>
+
+
+                        @if (_legajo.ResponsablePrincipal is null)
+                        {
+                            <div class="empty-inline">
+                                No tiene responsable principal.
+                            </div>
+                        }
+                        else
+                        {
+                            var responsable =
+                                _legajo.ResponsablePrincipal;
+
+                            <div class="main-responsible">
+
+                                <div class="responsible-avatar">
+
+                                    @ObtenerIniciales(
+                                        responsable.NombreCompleto)
+
+                                </div>
+
+
+                                <div>
+
+                                    <strong>
+                                        @responsable.NombreCompleto
+                                    </strong>
+
+                                    <span>
+                                        @responsable.Relacion
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="responsible-contact">
+
+                                <span>
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Phone"
+                                             Size="Size.Small" />
+
+                                    @responsable.Telefono
+
+                                </span>
+
+                                <span>
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Chat"
+                                             Size="Size.Small" />
+
+                                    @responsable.WhatsApp
+
+                                </span>
+
+                                <span>
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Email"
+                                             Size="Size.Small" />
+
+                                    @responsable.Email
+
+                                </span>
+
+                            </div>
+                        }
+
+                    </article>
+
+
+                    @* INSCRIPCIÓN *@
+
+                    <article class="content-card">
+
+                        <div class="content-card-header">
+
+                            <div>
+
+                                <span class="section-eyebrow">
+                                    PLAN
+                                </span>
+
+                                <h2>
+                                    Inscripción
+                                </h2>
+
+                            </div>
+
+                        </div>
+
+
+                        @if (_legajo.InscripcionActual is null)
+                        {
+                            <div class="empty-inline">
+                                No tiene una inscripción activa.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="plan-summary">
+
+                                <strong>
+                                    @_legajo.InscripcionActual.Plan
+                                </strong>
+
+                                <span>
+                                    @_legajo.InscripcionActual.VecesPorSemana
+                                    @( _legajo.InscripcionActual.VecesPorSemana == 1
+                                        ? "vez"
+                                        : "veces")
+                                    por semana
+                                </span>
+
+
+                                @if (_legajo.InscripcionActual.TarifaMensual.HasValue)
+                                {
+                                    <div class="plan-price">
+
+                                        <span>
+                                            Tarifa actual
+                                        </span>
+
+                                        <strong>
+                                            @FormatearDinero(
+                                                _legajo.InscripcionActual.TarifaMensual.Value)
+                                        </strong>
+
+                                    </div>
+                                }
+
+                            </div>
+
+
+                            <button type="button"
+                                    class="card-link"
+                                    @onclick="() => _tab = TabLegajo.Inscripcion">
+
+                                Ver inscripción
+
+                                <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                         Size="Size.Small" />
+
+                            </button>
+                        }
+
+                    </article>
+
+                </aside>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           RESPONSABLES
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.Responsables)
+        {
+            <section class="tab-section">
+
+                <div class="tab-heading">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            FAMILIA
+                        </span>
+
+                        <h2>
+                            Responsables
+                        </h2>
+
+                        <p>
+                            Personas vinculadas y autorizadas
+                            para recibir comunicaciones.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="responsibles-grid">
+
+                    @foreach (var responsable in
+                        _legajo.Responsables)
+                    {
+                        <article class="responsible-card
+                                        @(responsable.EsContactoPrincipal
+                                            ? "principal"
+                                            : "")">
+
+                            <div class="responsible-card-header">
+
+                                <div class="responsible-avatar large">
+
+                                    @ObtenerIniciales(
+                                        responsable.NombreCompleto)
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="responsible-name">
+
+                                        <h3>
+                                            @responsable.NombreCompleto
+                                        </h3>
+
+                                        @if (responsable.EsContactoPrincipal)
+                                        {
+                                            <span class="principal-badge">
+                                                PRINCIPAL
+                                            </span>
+                                        }
+
+                                    </div>
+
+                                    <span>
+                                        @responsable.Relacion
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="detail-lines">
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    responsable.Dni))
+                                {
+                                    <div>
+                                        <span>DNI</span>
+                                        <strong>@responsable.Dni</strong>
+                                    </div>
+                                }
+
+                                <div>
+                                    <span>Teléfono</span>
+                                    <strong>@responsable.Telefono</strong>
+                                </div>
+
+                                <div>
+                                    <span>WhatsApp</span>
+                                    <strong>@responsable.WhatsApp</strong>
+                                </div>
+
+                                <div>
+                                    <span>Email</span>
+                                    <strong>@responsable.Email</strong>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    responsable.Domicilio))
+                                {
+                                    <div>
+                                        <span>Domicilio</span>
+                                        <strong>@responsable.Domicilio</strong>
+                                    </div>
+                                }
+
+                            </div>
+
+
+                            <div class="communication-status
+                                        @(responsable.AutorizaComunicaciones
+                                            ? "allowed"
+                                            : "disabled")">
+
+                                <MudIcon Icon="@(responsable.AutorizaComunicaciones
+                                    ? Icons.Material.Filled.CheckCircle
+                                    : Icons.Material.Filled.Block)"
+                                         Size="Size.Small" />
+
+                                @(responsable.AutorizaComunicaciones
+                                    ? "Autoriza comunicaciones"
+                                    : "No autoriza comunicaciones")
+
+                            </div>
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           INSCRIPCIÓN
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.Inscripcion)
+        {
+            <section class="tab-section">
+
+               <div class="tab-heading tab-heading-actions">
+
+    <div>
+
+        <span class="section-eyebrow">
+            ACTIVIDAD
+        </span>
+
+        <h2>
+            Inscripción y turnos
+        </h2>
+
+        <p>
+            Plan, nivel y horarios semanales asignados.
+        </p>
+
+    </div>
+
+
+    @if (_legajo.InscripcionActual is not null)
+    {
+        <button type="button"
+                class="manage-enrollment-button"
+                @onclick="GestionarInscripcion">
+
+            <MudIcon Icon="@Icons.Material.Filled.EditCalendar"
+                     Size="Size.Small" />
+
+            Gestionar inscripción
+
+        </button>
+    }
+
+</div>
+
+
+               @if (_legajo.InscripcionActual is null)
+{
+    <div class="large-empty">
+
+        <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+        <h3>
+            Sin inscripción activa
+        </h3>
+
+        <p>
+            Actualmente no tiene un plan ni horario semanal asignado.
+        </p>
+
+
+        <button type="button"
+                class="create-enrollment-button"
+                @onclick="GestionarInscripcion">
+
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
+                     Size="Size.Small" />
+
+            Crear inscripción
+
+        </button>
+
+    </div>
+}
+                else
+                {
+                    <div class="subscription-card">
+
+                        <div>
+
+                            <span>PLAN ACTUAL</span>
+
+                            <h3>
+                                @_legajo.InscripcionActual.Plan
+                            </h3>
+
+                            <p>
+                                @_legajo.InscripcionActual.VecesPorSemana
+                                veces por semana
+                            </p>
+
+                        </div>
+
+
+                        <div class="subscription-data">
+
+                            <div>
+                                <span>Inicio</span>
+                                <strong>
+    @(_legajo.InscripcionActual.FechaInicio.ToString("dd/MM/yyyy"))
+</strong>
+                            </div>
+
+                            <div>
+                                <span>Medio preferido</span>
+                                <strong>
+                                    @_legajo.InscripcionActual.MedioPagoPreferido
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Tarifa</span>
+                                <strong>
+                                    @(_legajo.InscripcionActual.TarifaMensual.HasValue
+                                        ? FormatearDinero(
+                                            _legajo.InscripcionActual.TarifaMensual.Value)
+                                        : "Sin tarifa")
+                                </strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="schedule-section">
+
+                        <h3>
+                            Grilla semanal
+                        </h3>
+
+
+                        @if (_legajo.InscripcionActual.Turnos.Count == 0)
+                        {
+                            <div class="empty-inline">
+                                No tiene turnos vinculados.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="schedule-grid">
+
+                                @foreach (var turno in
+                                    _legajo.InscripcionActual.Turnos)
+                                {
+                                    <article class="schedule-card">
+
+                                        <div class="schedule-day">
+
+                                            <span>
+                                                @turno.DiaSemana
+                                            </span>
+
+                                            <strong>
+                                                @turno.HoraInicio.ToString("HH:mm")
+                                            </strong>
+
+                                            <small>
+                                                a @turno.HoraFin.ToString("HH:mm")
+                                            </small>
+
+                                        </div>
+
+
+                                        <div class="schedule-info">
+
+                                            <strong>
+                                                @turno.Nivel
+                                            </strong>
+
+                                            <span>
+                                                @ProfesoresTexto(
+                                                    turno.Profesores)
+                                            </span>
+
+                                            @if (!string.IsNullOrWhiteSpace(
+                                                turno.Sector))
+                                            {
+                                                <small>
+                                                    @turno.Sector
+                                                </small>
+                                            }
+
+                                        </div>
+
+                                    </article>
+                                }
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        @* =====================================================
+           APTO MÉDICO
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.AptoMedico)
+        {
+            <section class="tab-section">
+
+                <div class="tab-heading">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            SALUD
+                        </span>
+
+                        <h2>
+                            Apto médico
+                        </h2>
+
+                        <p>
+                            Historial de revisaciones médicas.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                @if (_legajo.AptoActual is not null)
+                {
+                    <article class="medical-current
+                                    @(_legajo.AptoActual.Vigente
+                                        ? "valid"
+                                        : "expired")">
+
+                        <div class="medical-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+
+                        </div>
+
+                        <div>
+
+                            <span>
+                                ESTADO ACTUAL
+                            </span>
+
+                            <strong>
+                                @(_legajo.AptoActual.Vigente
+                                    ? "APTO VIGENTE"
+                                    : _legajo.AptoActual.Resultado.ToString().ToUpperInvariant())
+                            </strong>
+
+                            <small>
+                                Revisión
+                                @_legajo.AptoActual.FechaRevision.ToString("dd/MM/yyyy")
+                                ·
+                                Vigencia hasta
+                                @_legajo.AptoActual.VigenciaHasta.ToString("dd/MM/yyyy")
+                            </small>
+
+                        </div>
+
+                    </article>
+                }
+
+
+                <div class="history-list">
+
+                    @foreach (var apto in
+                        _legajo.AptosMedicos)
+                    {
+                        <article class="history-row">
+
+                            <div class="history-date">
+
+                                <strong>
+                                    @apto.FechaRevision.Day.ToString("00")
+                                </strong>
+
+                                <span>
+    @(apto.FechaRevision
+        .ToString("MMM", Cultura)
+        .TrimEnd('.')
+        .ToUpperInvariant())
+</span>
+
+                            </div>
+
+
+                            <div class="history-main">
+
+                                <strong>
+                                    @apto.Resultado
+                                </strong>
+
+                                <span>
+                                    Vigencia hasta
+                                    @apto.VigenciaHasta.ToString("dd/MM/yyyy")
+                                </span>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    apto.Observaciones))
+                                {
+                                    <small>
+                                        @apto.Observaciones
+                                    </small>
+                                }
+
+                            </div>
+
+
+                            <span class="history-status
+                                        @(apto.Vigente
+                                            ? "valid"
+                                            : "expired")">
+
+                                @(apto.Vigente
+                                    ? "VIGENTE"
+                                    : "HISTÓRICO")
+
+                            </span>
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           ASISTENCIA
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.Asistencia)
+        {
+            <section class="tab-section">
+
+                <div class="tab-heading">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            ÚLTIMOS 90 DÍAS
+                        </span>
+
+                        <h2>
+                            Historial de asistencia
+                        </h2>
+                    </div>
+
+                </div>
+
+
+                <div class="attendance-summary-grid">
+
+                    <article>
+                        <span>Asistencia</span>
+                        <strong>
+                            @_legajo.AsistenciaResumen.PorcentajeAsistencia%
+                        </strong>
+                    </article>
+
+                    <article class="present">
+                        <span>Presentes</span>
+                        <strong>
+                            @_legajo.AsistenciaResumen.Presentes
+                        </strong>
+                    </article>
+
+                    <article class="notified">
+                        <span>Con aviso</span>
+                        <strong>
+                            @_legajo.AsistenciaResumen.AusentesConAviso
+                        </strong>
+                    </article>
+
+                    <article class="absent">
+                        <span>Ausentes</span>
+                        <strong>
+                            @_legajo.AsistenciaResumen.Ausentes
+                        </strong>
+                    </article>
+
+                </div>
+
+
+                <div class="history-list">
+
+                    @foreach (var asistencia in
+                        _legajo.Asistencias)
+                    {
+                        <article class="history-row clickable"
+                                 @onclick="() => AbrirAsistencia(
+                                     asistencia.SesionClaseId)">
+
+                            <div class="history-date">
+
+                                <strong>
+                                    @asistencia.Fecha.Day.ToString("00")
+                                </strong>
+
+                               <span>
+    @(asistencia.Fecha
+        .ToString("MMM", Cultura)
+        .TrimEnd('.')
+        .ToUpperInvariant())
+</span>
+
+                            </div>
+
+
+                            <div class="history-main">
+
+                                <strong>
+                                    @asistencia.Nivel
+                                </strong>
+
+                                <span>
+                                    @asistencia.HoraInicio.ToString("HH:mm")
+                                    @(asistencia.EsRecupero
+                                        ? " · Asistencia por recupero"
+                                        : "")
+                                </span>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    asistencia.Observaciones))
+                                {
+                                    <small>
+                                        @asistencia.Observaciones
+                                    </small>
+                                }
+
+                            </div>
+
+
+                            <span class="attendance-history-status
+                                        @EstadoAsistenciaCss(
+                                            asistencia.Estado)">
+
+                                @EstadoAsistenciaTexto(
+                                    asistencia.Estado)
+
+                            </span>
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           RECUPEROS
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.Recuperos)
+        {
+            <section class="tab-section">
+
+                <div class="tab-heading">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            RECUPERACIONES
+                        </span>
+
+                        <h2>
+                            Recuperos
+                        </h2>
+
+                        <p>
+                            Créditos generados por ausencias con aviso
+                            o clases no dictadas.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="recoveries-grid">
+
+                    @foreach (var recupero in
+                        _legajo.Recuperaciones)
+                    {
+                        <article class="recovery-card">
+
+                            <div class="recovery-header">
+
+                                <span class="recovery-status
+                                            @EstadoRecuperoCss(
+                                                recupero.Estado)">
+
+                                    @EstadoRecuperoTexto(
+                                        recupero.Estado)
+
+                                </span>
+
+                                <span class="recovery-type">
+                                    @TipoRecuperoTexto(
+                                        recupero.Tipo)
+                                </span>
+
+                            </div>
+
+
+                            <div class="recovery-origin">
+
+                                <span>
+                                    CLASE DE ORIGEN
+                                </span>
+
+                                <strong>
+                                    @recupero.FechaClaseOrigen.ToString("dd/MM/yyyy")
+                                    ·
+                                    @recupero.NivelOrigen
+                                </strong>
+
+                            </div>
+
+
+                            <div class="recovery-details">
+
+                                <div>
+
+                                    <span>
+                                        Generado
+                                    </span>
+
+                                    <strong>
+                                        @recupero.FechaGeneracion.ToString("dd/MM/yyyy")
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        Vencimiento
+                                    </span>
+
+                                    <strong>
+                                        @(recupero.SinVencimiento
+                                            ? "Sin vencimiento"
+                                            : recupero.FechaVencimiento?
+                                                .ToString("dd/MM/yyyy"))
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            @if (recupero.FechaUso.HasValue)
+                            {
+                                <div class="recovery-used">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                             Size="Size.Small" />
+
+                                    Utilizado el
+                                    @recupero.FechaUso.Value.ToString("dd/MM/yyyy")
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        recupero.NivelUso))
+                                    {
+                                        <span>
+                                            · @recupero.NivelUso
+                                        </span>
+                                    }
+
+                                </div>
+                            }
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           PAGOS
+           ===================================================== *@
+
+        @if (_tab == TabLegajo.Pagos)
+        {
+            <section class="tab-section">
+
+                <div class="tab-heading">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            FINANZAS
+                        </span>
+
+                        <h2>
+                            Pagos
+                        </h2>
+
+                        <p>
+                            Historial de pagos registrados
+                            para este bebé.
+                        </p>
+                    </div>
+
+
+                    <div class="month-payment">
+
+                        <span>
+                            PAGADO ESTE MES
+                        </span>
+
+                        <strong>
+                            @FormatearDinero(
+                                _legajo.PagadoMesActual)
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                @if (_legajo.Pagos.Count == 0)
+                {
+                    <div class="large-empty">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" />
+
+                        <h3>
+                            Sin pagos registrados
+                        </h3>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="payments-table">
+
+                        <div class="payments-header">
+
+                            <span>Fecha</span>
+                            <span>Medio</span>
+                            <span>Responsable</span>
+                            <span>Referencia</span>
+                            <span>Importe</span>
+
+                        </div>
+
+
+                        @foreach (var pago in _legajo.Pagos)
+                        {
+                            <div class="payment-row">
+
+                                <span>
+                                    @pago.FechaUtc
+                                        .ToLocalTime()
+                                        .ToString("dd/MM/yyyy")
+                                </span>
+
+                                <span>
+                                    @pago.MedioPago
+                                </span>
+
+                                <span>
+                                    @(pago.Responsable
+                                        ?? "—")
+                                </span>
+
+                                <span>
+                                    @(pago.ReferenciaExterna
+                                        ?? "—")
+                                </span>
+
+                                <strong>
+                                    @FormatearDinero(
+                                        pago.Importe)
+                                </strong>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    [Parameter]
+    public Guid BebeId { get; set; }
+
+
+    private static readonly CultureInfo Cultura =
+        CultureInfo.GetCultureInfo(
+            "es-AR");
+
+
+    private BebeLegajoDto? _legajo;
+
+    private bool _cargando = true;
+
+    private string? _error;
+
+    private TabLegajo _tab =
+        TabLegajo.Resumen;
+
+
+    private IEnumerable<AlertaLegajo> Alertas
+    {
+        get
+        {
+            if (_legajo is null)
+                return [];
+
+
+            var alertas =
+                new List<AlertaLegajo>();
+
+
+            if (_legajo.AlcanzoEdadMaxima)
+            {
+                alertas.Add(
+                    new AlertaLegajo(
+                        "Alcanzó la edad máxima de 7 años.",
+                        "warning",
+                        Icons.Material.Filled.WarningAmber));
+            }
+
+
+            if (_legajo.ResponsablePrincipal is null)
+            {
+                alertas.Add(
+                    new AlertaLegajo(
+                        "No tiene contacto principal.",
+                        "danger",
+                        Icons.Material.Filled.PersonOff));
+            }
+
+
+            if (_legajo.InscripcionActual is null)
+            {
+                alertas.Add(
+                    new AlertaLegajo(
+                        "No tiene inscripción activa.",
+                        "warning",
+                        Icons.Material.Filled.EventBusy));
+            }
+
+
+            if (_legajo.AptoActual is null)
+            {
+                alertas.Add(
+                    new AlertaLegajo(
+                        "No posee apto médico registrado.",
+                        "danger",
+                        Icons.Material.Filled.MedicalServices));
+            }
+            else if (!_legajo.AptoActual.Vigente)
+            {
+                alertas.Add(
+                    new AlertaLegajo(
+                        "El apto médico no está vigente.",
+                        "danger",
+                        Icons.Material.Filled.MedicalServices));
+            }
+
+
+            return alertas;
+        }
+    }
+
+
+    private int RecuperosDisponibles =>
+        _legajo?.Recuperaciones.Count(x =>
+            x.Estado ==
+                EstadoRecuperacion.Disponible)
+        ?? 0;
+
+
+    private int RecuperosPorVencer
+    {
+        get
+        {
+            if (_legajo is null)
+                return 0;
+
+
+            var hoy =
+                DateOnly.FromDateTime(
+                    DateTime.Today);
+
+
+            return _legajo.Recuperaciones
+                .Count(x =>
+                    x.Estado ==
+                        EstadoRecuperacion.Disponible
+                    &&
+                    x.FechaVencimiento.HasValue
+                    &&
+                    x.FechaVencimiento.Value >= hoy
+                    &&
+                    x.FechaVencimiento.Value <=
+                        hoy.AddDays(7));
+        }
+    }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarAsync();
+    }
+
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _cargando =
+                true;
+
+            _error =
+                null;
+
+
+            _legajo =
+                await LegajoService
+                    .ObtenerAsync(
+                        BebeId);
+
+
+            if (_legajo is null)
+            {
+                _error =
+                    "El bebé indicado no existe.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando =
+                false;
+        }
+    }
+
+
+    private string ObtenerEdadTexto()
+    {
+        if (_legajo is null)
+            return string.Empty;
+
+
+        if (_legajo.EdadMeses < 12)
+        {
+            return _legajo.EdadMeses == 1
+                ? "1 mes"
+                : $"{_legajo.EdadMeses} meses";
+        }
+
+
+        var anios =
+            _legajo.EdadMeses / 12;
+
+        var meses =
+            _legajo.EdadMeses % 12;
+
+
+        if (meses == 0)
+        {
+            return anios == 1
+                ? "1 año"
+                : $"{anios} años";
+        }
+
+
+        return $"{anios} años · {meses} meses";
+    }
+
+
+    private string TabCss(
+        TabLegajo tab)
+    {
+        return
+            $"profile-tab {(tab == _tab ? "active" : "")}";
+    }
+
+
+    private static string ProfesoresTexto(
+        IReadOnlyList<string> profesores)
+    {
+        return profesores.Count == 0
+            ? "Sin profesor asignado"
+            : string.Join(
+                " + ",
+                profesores);
+    }
+
+
+    private static string ObtenerIniciales(
+        string nombre)
+    {
+        var partes =
+            nombre.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+
+        if (partes.Length == 0)
+            return "?";
+
+
+        if (partes.Length == 1)
+        {
+            return partes[0][0]
+                .ToString()
+                .ToUpperInvariant();
+        }
+
+
+        return string.Concat(
+                partes[0][0],
+                partes[^1][0])
+            .ToUpperInvariant();
+    }
+
+
+    private static string FormatearDinero(
+        decimal importe)
+    {
+        return importe.ToString(
+            "C0",
+            Cultura);
+    }
+
+
+    private static string EstadoAsistenciaCss(
+        EstadoAsistencia estado)
+    {
+        return estado switch
+        {
+            EstadoAsistencia.Presente =>
+                "present",
+
+            EstadoAsistencia.AusenteConAviso =>
+                "notified",
+
+            EstadoAsistencia.Ausente =>
+                "absent",
+
+            _ =>
+                "pending"
+        };
+    }
+
+
+    private static string EstadoAsistenciaTexto(
+        EstadoAsistencia estado)
+    {
+        return estado switch
+        {
+            EstadoAsistencia.Presente =>
+                "PRESENTE",
+
+            EstadoAsistencia.AusenteConAviso =>
+                "CON AVISO",
+
+            EstadoAsistencia.Ausente =>
+                "AUSENTE",
+
+            _ =>
+                "PENDIENTE"
+        };
+    }
+
+
+    private static string EstadoRecuperoCss(
+        EstadoRecuperacion estado)
+    {
+        return estado switch
+        {
+            EstadoRecuperacion.Disponible =>
+                "available",
+
+            EstadoRecuperacion.Reservada =>
+                "reserved",
+
+            EstadoRecuperacion.Utilizada =>
+                "used",
+
+            EstadoRecuperacion.Vencida =>
+                "expired",
+
+            _ =>
+                "cancelled"
+        };
+    }
+
+
+    private static string EstadoRecuperoTexto(
+        EstadoRecuperacion estado)
+    {
+        return estado switch
+        {
+            EstadoRecuperacion.Disponible =>
+                "DISPONIBLE",
+
+            EstadoRecuperacion.Reservada =>
+                "RESERVADO",
+
+            EstadoRecuperacion.Utilizada =>
+                "UTILIZADO",
+
+            EstadoRecuperacion.Vencida =>
+                "VENCIDO",
+
+            EstadoRecuperacion.Anulada =>
+                "ANULADO",
+
+            _ =>
+                estado.ToString().ToUpperInvariant()
+        };
+    }
+
+
+    private static string TipoRecuperoTexto(
+        TipoRecuperacion tipo)
+    {
+        return tipo switch
+        {
+            TipoRecuperacion.AusenciaConAviso =>
+                "Ausencia con aviso",
+
+            TipoRecuperacion.ClaseNoDictada =>
+                "Clase no dictada",
+
+            _ =>
+                tipo.ToString()
+        };
+    }
+
+
+    private void AbrirAsistencia(
+        Guid sesionId)
+    {
+        Navigation.NavigateTo(
+            $"/asistencia?sesionId={sesionId}");
+    }
+
+private void GestionarInscripcion()
+{
+    Navigation.NavigateTo(
+        $"/clientes/{BebeId}/inscripcion/editar");
+}
+
+    private void AbrirWhatsApp()
+    {
+        var numero =
+            _legajo?
+                .ResponsablePrincipal?
+                .WhatsApp;
+
+
+        if (string.IsNullOrWhiteSpace(
+            numero))
+        {
+            return;
+        }
+
+
+        var limpio =
+            new string(
+                numero
+                    .Where(char.IsDigit)
+                    .ToArray());
+
+
+        if (string.IsNullOrWhiteSpace(
+            limpio))
+        {
+            return;
+        }
+
+
+        Navigation.NavigateTo(
+            $"https://wa.me/{limpio}",
+            forceLoad: true);
+    }
+
+
+    private void Volver()
+    {
+        Navigation.NavigateTo(
+            "/clientes");
+    }
+
+
+    private enum TabLegajo
+    {
+        Resumen,
+        Responsables,
+        Inscripcion,
+        AptoMedico,
+        Asistencia,
+        Recuperos,
+        Pagos
+    }
+
+
+    private sealed record AlertaLegajo(
+        string Texto,
+        string Css,
+        string Icono);
+}

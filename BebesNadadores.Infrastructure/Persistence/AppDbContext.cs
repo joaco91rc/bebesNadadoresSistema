@@ -28,7 +28,7 @@ public class AppDbContext
     public DbSet<Inscripcion> Inscripciones => Set<Inscripcion>();
     public DbSet<InscripcionTurno> InscripcionesTurnos => Set<InscripcionTurno>();
     public DbSet<SesionClase> SesionesClase => Set<SesionClase>();
-
+     public DbSet<DiaNoLaborable> DiasNoLaborables =>  Set<DiaNoLaborable>();
     public DbSet<Asistencia> Asistencias => Set<Asistencia>();
     public DbSet<Recuperacion> Recuperaciones => Set<Recuperacion>();
     public DbSet<PreferenciaRecuperacion> PreferenciasRecuperacion => Set<PreferenciaRecuperacion>();
@@ -42,7 +42,10 @@ public class AppDbContext
     public DbSet<ImputacionPago> ImputacionesPago => Set<ImputacionPago>();
     public DbSet<Caja> Cajas => Set<Caja>();
     public DbSet<MovimientoCaja> MovimientosCaja => Set<MovimientoCaja>();
+   
+    public DbSet<CicloLectivo> CiclosLectivos =>  Set<CicloLectivo>();
 
+    public DbSet<SesionClaseProfesor>   SesionesClaseProfesores =>      Set<SesionClaseProfesor>();
    protected override void OnModelCreating(ModelBuilder builder)
 {
     base.OnModelCreating(builder);

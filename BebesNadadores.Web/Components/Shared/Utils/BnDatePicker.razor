@@ -1,0 +1,89 @@
+@using System.Globalization
+
+<div class="bn-date-picker-shell">
+
+    <MudDatePicker Date="@FechaInterna"
+                   DateChanged="FechaCambiadaAsync"
+                   DateFormat="dd/MM/yyyy"
+                   Culture="@Cultura"
+                   Editable="false"
+                   ShowToolbar="true"
+                   Color="Color.Primary"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.None"
+                   Disabled="@Disabled"
+                   MinDate="@MinDateTime"
+                   MaxDate="@MaxDateTime"
+                   Placeholder="@Placeholder"
+                   Adornment="Adornment.End"
+                   AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                   AnchorOrigin="Origin.BottomLeft"
+                   TransformOrigin="Origin.TopLeft" />
+
+</div>
+
+
+@code {
+
+    [Parameter]
+    public DateOnly Value { get; set; }
+
+
+    [Parameter]
+    public EventCallback<DateOnly> ValueChanged { get; set; }
+
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+
+    [Parameter]
+    public DateOnly? MinDate { get; set; }
+
+
+    [Parameter]
+    public DateOnly? MaxDate { get; set; }
+
+
+    [Parameter]
+    public string Placeholder { get; set; }
+        = "Seleccionar fecha";
+
+
+    private static readonly CultureInfo Cultura =
+        CultureInfo.GetCultureInfo("es-AR");
+
+
+    private DateTime? FechaInterna =>
+        Value.ToDateTime(
+            TimeOnly.MinValue);
+
+
+    private DateTime? MinDateTime =>
+        MinDate?.ToDateTime(
+            TimeOnly.MinValue);
+
+
+    private DateTime? MaxDateTime =>
+        MaxDate?.ToDateTime(
+            TimeOnly.MinValue);
+
+
+    private async Task FechaCambiadaAsync(
+        DateTime? fecha)
+    {
+        if (!fecha.HasValue)
+        {
+            return;
+        }
+
+
+        Value =
+            DateOnly.FromDateTime(
+                fecha.Value);
+
+
+        await ValueChanged.InvokeAsync(
+            Value);
+    }
+}

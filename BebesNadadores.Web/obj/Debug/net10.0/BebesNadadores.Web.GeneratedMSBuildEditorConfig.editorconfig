@@ -46,10 +46,6 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Home.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
-build_metadata.AdditionalFiles.CssScope = 
-
 [C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/NotFound.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xOb3RGb3VuZC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
@@ -81,6 +77,70 @@ build_metadata.AdditionalFiles.CssScope = b-z3fl5et4ur
 [C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Layout/ReconnectModal.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcUmVjb25uZWN0TW9kYWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-dazj2efiv2
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Layout/SideMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcU2lkZU1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-ty7xj9k2bp
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Layout/TopBar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcVG9wQmFyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-qrcjmyu2j1
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Asistencia/Asistencia.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBc2lzdGVuY2lhXEFzaXN0ZW5jaWEucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-x1umm83n2h
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/CiclosLectivos/CiclosLectivos.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDaWNsb3NMZWN0aXZvc1xDaWNsb3NMZWN0aXZvcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-xtfwrndc0e
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Clientes/BebeFormulario.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDbGllbnRlc1xCZWJlRm9ybXVsYXJpby5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-3m0ut1x65e
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Clientes/ClienteDetalle.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDbGllbnRlc1xDbGllbnRlRGV0YWxsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-odfkzr5x68
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Clientes/Clientes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDbGllbnRlc1xDbGllbnRlcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-vef2drny17
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-bkcl5lkbu2
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Inscripciones/InscripcionEditar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xJbnNjcmlwY2lvbmVzXEluc2NyaXBjaW9uRWRpdGFyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-zxw0j1knem
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/ListaEspera/ListaEspera.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMaXN0YUVzcGVyYVxMaXN0YUVzcGVyYS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-ph2i6r6p3n
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Niveles/Niveles.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xOaXZlbGVzXE5pdmVsZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-fbnynd0234
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Profesores/ControlDocente.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9mZXNvcmVzXENvbnRyb2xEb2NlbnRlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-3gmw8akb9n
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Profesores/Profesores.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9mZXNvcmVzXFByb2Zlc29yZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-evljc1imzr
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Recuperos/Recuperos.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZWN1cGVyb3NcUmVjdXBlcm9zLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-qathvk4ofb
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Pages/Turnos/Turnos.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xUdXJub3NcVHVybm9zLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-gln493tt6d
+
+[C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Components/Shared/Utils/BnDatePicker.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xTaGFyZWRcVXRpbHNcQm5EYXRlUGlja2VyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-bsnutans98
 
 [C:/Users/jaalvarez/Documents/Joaco/BebesNadadores/BebesNadadores.Web/Pages/Account/AccesDenied.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudFxBY2Nlc0RlbmllZC5jc2h0bWw=

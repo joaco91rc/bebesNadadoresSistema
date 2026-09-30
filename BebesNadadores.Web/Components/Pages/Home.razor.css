@@ -1,0 +1,3184 @@
+/* ============================================================
+   BEBÉS NADADORES
+   HOME / DASHBOARD
+   ============================================================ */
+
+.dashboard {
+    width: 100%;
+    max-width: 1650px;
+    margin: 0 auto;
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.dashboard-header {
+    margin-bottom: 26px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.dashboard-eyebrow,
+.card-eyebrow {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+
+    letter-spacing: 1.7px;
+
+    text-transform: uppercase;
+}
+
+
+.dashboard-header h1 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.8px;
+    line-height: 1.18;
+}
+
+
+.dashboard-header p {
+    margin:
+        7px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 14px;
+
+    line-height: 1.55;
+}
+
+
+/* ============================================================
+   PRIMARY ACTION
+   ============================================================ */
+
+.quick-primary {
+    min-height: 44px;
+
+    padding:
+        0
+        18px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    border: 0;
+
+    border-radius: 11px;
+
+    background:
+        linear-gradient(
+            100deg,
+            #087EC8,
+            #18BDF5
+        );
+
+    color: white;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 9px 25px
+        rgba(7, 142, 207, .18);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.quick-primary:hover {
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 13px 30px
+        rgba(7, 142, 207, .27);
+}
+
+
+/* ============================================================
+   KPI
+   ============================================================ */
+
+.kpi-grid {
+    margin-bottom: 22px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+
+.kpi-card {
+    min-height: 124px;
+
+    padding: 18px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 17px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 7px 25px
+        rgba(0, 27, 47, .035);
+
+    transition:
+        transform .22s ease,
+        border-color .22s ease,
+        box-shadow .22s ease;
+}
+
+
+.kpi-card:hover {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 25%,
+            var(--mud-palette-divider)
+        );
+
+    box-shadow:
+        0 14px 35px
+        rgba(0, 45, 77, .07);
+}
+
+
+.kpi-icon {
+    width: 47px;
+    height: 47px;
+
+    flex:
+        0
+        0
+        47px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 13px;
+}
+
+
+.kpi-icon ::deep svg {
+    width: 22px !important;
+    height: 22px !important;
+
+    color: inherit !important;
+
+    fill: currentColor !important;
+}
+
+
+.kpi-icon.blue {
+    color: #56CEFA;
+
+    background:
+        rgba(41, 177, 236, .10);
+}
+
+
+.kpi-icon.cyan {
+    color: #67DFF1;
+
+    background:
+        rgba(64, 210, 231, .10);
+}
+
+
+.kpi-icon.warning {
+    color: #F2B749;
+
+    background:
+        rgba(242, 183, 73, .11);
+}
+
+
+.kpi-icon.danger {
+    color: #F06C79;
+
+    background:
+        rgba(240, 108, 121, .10);
+}
+
+
+.kpi-icon.success {
+    color: #45D294;
+
+    background:
+        rgba(69, 210, 148, .10);
+}
+
+
+.kpi-body {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.kpi-body > span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 13px;
+}
+
+
+.kpi-body strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 27px;
+    font-weight: 700;
+
+    line-height: 1.1;
+}
+
+
+.kpi-body small {
+    margin-top: 6px;
+
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.positive {
+    color: #45D294 !important;
+}
+
+
+.negative {
+    color: #F06C79 !important;
+}
+
+
+/* ============================================================
+   CLASE EN CURSO
+   ============================================================ */
+
+.current-class-card {
+    position: relative;
+
+    margin-bottom: 22px;
+
+    padding:
+        22px
+        22px
+        18px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 30%,
+            var(--mud-palette-divider)
+        );
+
+    border-radius: 19px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 10px 35px
+        rgba(0, 38, 65, .06);
+}
+
+
+.current-class-glow {
+    position: absolute;
+
+    width: 400px;
+    height: 400px;
+
+    top: -320px;
+    left: 25%;
+
+    border-radius: 50%;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 13%,
+            transparent
+        );
+
+    filter:
+        blur(30px);
+
+    pointer-events: none;
+}
+
+
+/* ============================================================
+   HEADER CLASE
+   ============================================================ */
+
+.current-class-header {
+    position: relative;
+
+    z-index: 2;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-bottom: 18px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.live-badge {
+    width: fit-content;
+
+    margin-bottom: 9px;
+
+    padding:
+        5px
+        10px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    border-radius: 20px;
+
+    color: #44D69B;
+
+    background:
+        rgba(68, 214, 155, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.25px;
+}
+
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #44D69B;
+
+    box-shadow:
+        0 0 0 4px
+        rgba(68, 214, 155, .10),
+
+        0 0 12px
+        rgba(68, 214, 155, .45);
+
+    animation:
+        currentClassPulse
+        1.8s
+        infinite;
+}
+
+
+.current-class-heading h2 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 23px;
+    font-weight: 700;
+
+    letter-spacing: -.4px;
+}
+
+
+.current-class-meta {
+    margin-top: 10px;
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 16px;
+}
+
+
+.current-class-meta > span {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.current-class-meta ::deep svg {
+    width: 15px !important;
+    height: 15px !important;
+
+    color:
+        var(--mud-palette-primary) !important;
+}
+
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+
+.current-class-clock {
+    min-width: 92px;
+
+    padding:
+        9px
+        14px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    border-radius: 11px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 6%,
+            transparent
+        );
+}
+
+
+.current-class-clock span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.2px;
+}
+
+
+.current-class-clock strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 23px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   ATTENDANCE SUMMARY
+   ============================================================ */
+
+.attendance-summary {
+    position: relative;
+
+    z-index: 2;
+
+    margin:
+        17px
+        0
+        8px;
+
+    display: flex;
+
+    gap: 24px;
+}
+
+
+.attendance-stat {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.attendance-dot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+}
+
+
+.attendance-dot.present {
+    background: #46D49A;
+}
+
+
+.attendance-dot.absent {
+    background: #EF7180;
+}
+
+
+.attendance-dot.pending {
+    background: #8CA8BA;
+}
+
+
+.attendance-stat > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.attendance-stat strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.attendance-stat span:last-child {
+    margin-top: 1px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   ALUMNOS
+   ============================================================ */
+
+.student-list {
+    position: relative;
+
+    z-index: 2;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        8px
+        10px;
+
+    margin-top: 13px;
+}
+
+
+.student-row {
+    min-height: 64px;
+
+    padding:
+        9px
+        11px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        auto;
+
+    align-items: center;
+
+    gap: 11px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 97%,
+            var(--mud-palette-primary) 3%
+        );
+
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        transform .2s ease;
+}
+
+
+.student-row:hover {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 18%,
+            var(--mud-palette-divider)
+        );
+
+    transform:
+        translateY(-1px);
+}
+
+
+.student-present {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #47D49A 6%
+        );
+
+    border-color:
+        rgba(71, 212, 154, .16);
+}
+
+
+.student-absent {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #EF7180 6%
+        );
+
+    border-color:
+        rgba(239, 113, 128, .16);
+}
+
+
+/* ============================================================
+   STUDENT
+   ============================================================ */
+
+.student-main {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.student-avatar {
+    width: 36px;
+    height: 36px;
+
+    flex:
+        0
+        0
+        36px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 9%,
+            transparent
+        );
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+.student-info {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.student-info strong {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.student-info span {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.student-notified {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #F4B740 6%
+        );
+
+    border-color:
+        rgba(244, 183, 64, .18);
+}
+
+
+.attendance-dot.notified {
+    background: #F4B740;
+}
+
+
+.status-notified {
+    color: #F4B740;
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button:hover,
+.notified-button.selected {
+    color: #F4B740;
+
+    border-color:
+        rgba(244, 183, 64, .30);
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button.selected {
+    box-shadow:
+        0 0 12px
+        rgba(244, 183, 64, .09);
+}
+
+.student-notified {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            #F4B740 6%
+        );
+
+    border-color:
+        rgba(244, 183, 64, .18);
+}
+
+
+.attendance-dot.notified {
+    background:
+        #F4B740;
+}
+
+
+.status-notified {
+    color:
+        #F4B740;
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button:hover,
+.notified-button.selected {
+    color:
+        #F4B740;
+
+    border-color:
+        rgba(244, 183, 64, .30);
+
+    background:
+        rgba(244, 183, 64, .09);
+}
+
+
+.notified-button.selected {
+    box-shadow:
+        0 0 12px
+        rgba(244, 183, 64, .09);
+}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+
+.status-label {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: .3px;
+
+    white-space: nowrap;
+}
+
+
+.status-present {
+    color: #47D49A;
+
+    background:
+        rgba(71, 212, 154, .08);
+}
+
+
+.status-absent {
+    color: #EF7180;
+
+    background:
+        rgba(239, 113, 128, .08);
+}
+
+
+.status-pending {
+    color:
+        var(--mud-palette-text-secondary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-text-secondary) 7%,
+            transparent
+        );
+}
+
+
+/* ============================================================
+   BOTONES ASISTENCIA
+   ============================================================ */
+
+.student-actions {
+    display: flex;
+
+    gap: 5px;
+}
+
+
+.attendance-button {
+    width: 34px;
+    height: 34px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 8px;
+
+    background: transparent;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    cursor: pointer;
+
+    transition:
+        background .18s ease,
+        border-color .18s ease,
+        color .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+
+.attendance-button ::deep svg {
+    width: 17px !important;
+    height: 17px !important;
+
+    color: inherit !important;
+}
+
+
+.attendance-button:hover {
+    transform:
+        translateY(-1px);
+}
+
+
+.present-button:hover,
+.present-button.selected {
+    color: #47D49A;
+
+    border-color:
+        rgba(71, 212, 154, .28);
+
+    background:
+        rgba(71, 212, 154, .09);
+}
+
+
+.present-button.selected {
+    box-shadow:
+        0 0 12px
+        rgba(71, 212, 154, .09);
+}
+
+
+.absent-button:hover,
+.absent-button.selected {
+    color: #EF7180;
+
+    border-color:
+        rgba(239, 113, 128, .28);
+
+    background:
+        rgba(239, 113, 128, .09);
+}
+
+
+.absent-button.selected {
+    box-shadow:
+        0 0 12px
+        rgba(239, 113, 128, .09);
+}
+
+
+/* ============================================================
+   FOOTER CLASE
+   ============================================================ */
+
+.current-class-footer {
+    position: relative;
+
+    z-index: 2;
+
+    margin-top: 17px;
+
+    padding-top: 15px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.attendance-progress {
+    width:
+        min(
+            360px,
+            100%
+        );
+}
+
+
+.attendance-progress-info {
+    margin-bottom: 7px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+
+.attendance-progress-info span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.attendance-progress-info strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+.progress-track {
+    width: 100%;
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 20px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 7%,
+            transparent
+        );
+}
+
+
+.progress-value {
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--mud-palette-primary),
+            var(--mud-palette-secondary)
+        );
+
+    transition:
+        width .3s ease;
+}
+
+
+.open-attendance-button {
+    min-height: 38px;
+
+    padding:
+        0
+        13px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 18%,
+            transparent
+        );
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 7%,
+            transparent
+        );
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        background .2s ease;
+}
+
+
+.open-attendance-button:hover {
+    transform:
+        translateY(-1px);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 11%,
+            transparent
+        );
+}
+
+
+/* ============================================================
+   LIVE
+   ============================================================ */
+
+@keyframes currentClassPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .45;
+    }
+
+}
+
+
+/* ============================================================
+   CUMPLEAÑOS DEL MES
+   ============================================================ */
+
+.birthdays-card {
+    position: relative;
+
+    margin-bottom: 22px;
+
+    padding:
+        20px
+        22px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 18px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 8px 28px
+        rgba(0, 27, 47, .035);
+}
+
+
+/* ============================================================
+   BIRTHDAY HEADER
+   ============================================================ */
+
+.birthdays-header {
+    margin-bottom: 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+
+.birthdays-eyebrow {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #F1AFC4;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.5px;
+}
+
+
+.birthdays-header h2 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 20px;
+    font-weight: 700;
+
+    text-transform: capitalize;
+}
+
+
+.birthdays-icon {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 12px;
+
+    color: #F2AFC4;
+
+    background:
+        rgba(242, 175, 196, .09);
+}
+
+
+.birthdays-icon ::deep svg {
+    width: 21px !important;
+    height: 21px !important;
+
+    color: inherit !important;
+}
+
+
+/* ============================================================
+   CUMPLEAÑOS HOY
+   ============================================================ */
+
+.birthday-today {
+    margin-bottom: 14px;
+
+    padding:
+        14px
+        15px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    border:
+        1px solid
+        rgba(66, 205, 242, .16);
+
+    border-radius: 13px;
+
+    background:
+        linear-gradient(
+            100deg,
+            rgba(25, 172, 228, .10),
+            rgba(82, 216, 246, .045)
+        );
+}
+
+
+.birthday-today-icon {
+    width: 40px;
+    height: 40px;
+
+    flex:
+        0
+        0
+        40px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255, 255, 255, .05);
+
+    font-size: 20px;
+}
+
+
+.birthday-today-text {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.birthday-today-text strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+.birthday-today-text span {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   BIRTHDAY LIST
+   ============================================================ */
+
+.birthday-list {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap:
+        8px
+        10px;
+}
+
+
+.birthday-row {
+    min-height: 67px;
+
+    padding:
+        9px
+        11px;
+
+    display: grid;
+
+    grid-template-columns:
+        46px
+        36px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 97%,
+            var(--mud-palette-primary) 3%
+        );
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        background .2s ease;
+}
+
+
+.birthday-row:hover {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 18%,
+            var(--mud-palette-divider)
+        );
+}
+
+
+.birthday-row-today {
+    border-color:
+        rgba(62, 209, 245, .22);
+
+    background:
+        linear-gradient(
+            100deg,
+            rgba(18, 167, 224, .08),
+            rgba(69, 214, 244, .035)
+        );
+}
+
+
+/* ============================================================
+   BIRTHDAY DATE
+   ============================================================ */
+
+.birthday-date {
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+.birthday-date strong {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 19px;
+    font-weight: 700;
+
+    line-height: 1;
+}
+
+
+.birthday-date span {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: .65px;
+}
+
+
+/* ============================================================
+   BIRTHDAY AVATAR
+   ============================================================ */
+
+.birthday-avatar {
+    width: 36px;
+    height: 36px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 50%;
+
+    color: #F2AFC4;
+
+    background:
+        rgba(242, 175, 196, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   BIRTHDAY INFO
+   ============================================================ */
+
+.birthday-info {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.birthday-info strong {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.birthday-info span {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   HOY BADGE
+   ============================================================ */
+
+.birthday-today-badge {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    color: #47D7F5;
+
+    background:
+        rgba(71, 215, 245, .08);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: .6px;
+}
+
+
+/* ============================================================
+   DÍAS RESTANTES
+   ============================================================ */
+
+.birthday-days {
+    display: flex;
+    align-items: baseline;
+
+    gap: 3px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    white-space: nowrap;
+}
+
+
+.birthday-days span {
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 10px;
+}
+
+
+.birthday-days strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   MAIN GRID
+   ============================================================ */
+
+.dashboard-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(310px, .85fr);
+
+    gap: 16px;
+}
+
+
+/* ============================================================
+   CARD BASE
+   ============================================================ */
+
+.dashboard-card {
+    position: relative;
+
+    padding: 20px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 18px;
+
+    background:
+        var(--mud-palette-surface);
+
+    box-shadow:
+        0 8px 28px
+        rgba(0, 27, 47, .035);
+
+    overflow: hidden;
+}
+
+
+.dashboard-card::before {
+    content: "";
+
+    position: absolute;
+
+    width: 180px;
+    height: 180px;
+
+    top: -120px;
+    right: -100px;
+
+    border-radius: 50%;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 5%,
+            transparent
+        );
+
+    pointer-events: none;
+}
+
+
+.card-header {
+    position: relative;
+
+    z-index: 2;
+
+    margin-bottom: 17px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+}
+
+
+.card-header h2 {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+
+.text-action {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    border: 0;
+
+    background: transparent;
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   CLASES
+   ============================================================ */
+
+.classes-card {
+    min-height: 410px;
+}
+
+
+.class-list {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.class-row {
+    min-height: 68px;
+
+    display: grid;
+
+    grid-template-columns:
+        68px
+        1px
+        minmax(0, 1fr)
+        32px;
+
+    align-items: center;
+
+    gap: 14px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+
+    transition:
+        background .2s ease;
+}
+
+
+.class-row:last-child {
+    border-bottom: 0;
+}
+
+
+.class-row:hover {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 4%,
+            transparent
+        );
+}
+
+
+.class-time {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.class-time strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+.class-time span {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.class-line {
+    width: 1px;
+    height: 31px;
+
+    background:
+        var(--mud-palette-divider);
+}
+
+
+.class-info {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.class-title {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.class-title strong {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.class-info > span {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.occupancy {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+.occupancy.available {
+    color: #44CE8D;
+
+    background:
+        rgba(68, 206, 141, .09);
+}
+
+
+.occupancy.warning {
+    color: #E7B14B;
+
+    background:
+        rgba(231, 177, 75, .09);
+}
+
+
+.occupancy.full {
+    color: #EC7180;
+
+    background:
+        rgba(236, 113, 128, .09);
+}
+
+
+.row-action {
+    width: 31px;
+    height: 31px;
+
+    display: grid;
+    place-items: center;
+
+    border: 0;
+
+    border-radius: 8px;
+
+    background: transparent;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    cursor: pointer;
+
+    transition:
+        color .2s ease,
+        background .2s ease,
+        transform .2s ease;
+}
+
+
+.row-action:hover {
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 8%,
+            transparent
+        );
+
+    transform:
+        translateX(2px);
+}
+
+
+/* ============================================================
+   ALERTAS
+   ============================================================ */
+
+.alert-counter {
+    min-width: 29px;
+    height: 29px;
+
+    padding:
+        0
+        7px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 20px;
+
+    color: #F06C79;
+
+    background:
+        rgba(240, 108, 121, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+.alert-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 9px;
+}
+
+
+.alert-row {
+    padding: 13px;
+
+    display: flex;
+
+    gap: 11px;
+
+    border-radius: 12px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 3%,
+            transparent
+        );
+}
+
+
+.alert-icon {
+    width: 32px;
+    height: 32px;
+
+    flex:
+        0
+        0
+        32px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+}
+
+
+.alert-icon ::deep svg {
+    width: 17px !important;
+    height: 17px !important;
+
+    color: inherit !important;
+}
+
+
+.alert-row strong {
+    display: block;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.alert-row span {
+    display: block;
+
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.danger-alert .alert-icon {
+    color: #F06C79;
+
+    background:
+        rgba(240, 108, 121, .09);
+}
+
+
+.warning-alert .alert-icon {
+    color: #EAB24A;
+
+    background:
+        rgba(234, 178, 74, .09);
+}
+
+
+.blue-alert .alert-icon {
+    color: #56CEFA;
+
+    background:
+        rgba(86, 206, 250, .09);
+}
+
+
+/* ============================================================
+   VACANTES
+   ============================================================ */
+
+.vacancy-list {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.vacancy-row {
+    min-height: 70px;
+
+    display: grid;
+
+    grid-template-columns:
+        60px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 12px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.vacancy-row:last-child {
+    border-bottom: 0;
+}
+
+
+.vacancy-date {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.vacancy-date span {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.vacancy-date strong {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+.vacancy-info {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.vacancy-info strong {
+    overflow: hidden;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.vacancy-info span {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 11px;
+}
+
+
+.notify-button {
+    min-height: 34px;
+
+    padding:
+        0
+        11px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 20%,
+            transparent
+        );
+
+    border-radius: 8px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 7%,
+            transparent
+        );
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   CAJA
+   ============================================================ */
+
+.cash-status {
+    padding:
+        4px
+        8px;
+
+    border-radius: 20px;
+
+    color: #42CE8C;
+
+    background:
+        rgba(66, 206, 140, .09);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.cash-total {
+    padding:
+        8px
+        0
+        17px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.cash-total span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 12px;
+}
+
+
+.cash-total strong {
+    margin-top: 4px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 30px;
+    font-weight: 700;
+}
+
+
+.cash-details {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 10px;
+}
+
+
+.cash-details > div {
+    padding: 11px;
+
+    border-radius: 10px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 4%,
+            transparent
+        );
+}
+
+
+.cash-details span {
+    display: block;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-body,
+            "Lora",
+            Georgia,
+            serif
+        );
+
+    font-size: 10px;
+}
+
+
+.cash-details strong {
+    display: block;
+
+    margin-top: 5px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.card-bottom-action {
+    width: 100%;
+
+    margin-top: 14px;
+
+    padding: 11px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    border: 0;
+
+    border-radius: 9px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 8%,
+            transparent
+        );
+
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   ATTENDANCE CHART
+   ============================================================ */
+
+.attendance-value {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 24px;
+    font-weight: 700;
+}
+
+
+.chart-bars {
+    height: 145px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 12px;
+}
+
+
+.chart-column {
+    flex: 1;
+
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: flex-end;
+}
+
+
+.chart-track {
+    width: 100%;
+    height: 110px;
+
+    display: flex;
+    align-items: flex-end;
+
+    overflow: hidden;
+
+    border-radius:
+        8px
+        8px
+        3px
+        3px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 5%,
+            transparent
+        );
+}
+
+
+.chart-bar {
+    width: 100%;
+
+    border-radius:
+        8px
+        8px
+        3px
+        3px;
+
+    background:
+        linear-gradient(
+            to top,
+            var(--mud-palette-primary),
+            var(--mud-palette-secondary)
+        );
+
+    opacity: .80;
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
+}
+
+
+.chart-column:hover .chart-bar {
+    opacity: 1;
+
+    transform:
+        scaleX(.92);
+}
+
+
+.chart-column > span {
+    margin-top: 7px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+
+.quick-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 10px;
+}
+
+
+.quick-grid button {
+    min-height: 74px;
+
+    padding: 12px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 12px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 96%,
+            var(--mud-palette-primary) 4%
+        );
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(
+            --bn-font-title,
+            "Montserrat",
+            "Segoe UI",
+            Arial,
+            sans-serif
+        );
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        background .2s ease;
+}
+
+
+.quick-grid button:hover {
+    transform:
+        translateY(-2px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 25%,
+            var(--mud-palette-divider)
+        );
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 92%,
+            var(--mud-palette-primary) 8%
+        );
+}
+
+
+.quick-icon {
+    width: 35px;
+    height: 35px;
+
+    flex:
+        0
+        0
+        35px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 10px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 9%,
+            transparent
+        );
+}
+
+
+.quick-icon ::deep svg {
+    width: 18px !important;
+    height: 18px !important;
+
+    color: inherit !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1300px) {
+
+    .kpi-grid {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+}
+
+
+@media (max-width: 1050px) {
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .kpi-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+
+    .student-list {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 900px) {
+
+    .birthday-list {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .dashboard-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .dashboard-header h1 {
+        font-size: 29px;
+    }
+
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .current-class-header {
+        flex-direction: column;
+    }
+
+
+    .current-class-clock {
+        align-items: flex-start;
+    }
+
+
+    .attendance-summary {
+        flex-wrap: wrap;
+    }
+
+
+    .student-row {
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto;
+    }
+
+
+    .student-status {
+        display: none;
+    }
+
+
+    .current-class-footer {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .attendance-progress {
+        width: 100%;
+    }
+
+
+    .open-attendance-button {
+        justify-content: center;
+    }
+
+
+    .cash-details {
+        grid-template-columns: 1fr;
+    }
+
+
+    .quick-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 550px) {
+
+    .birthday-row {
+        grid-template-columns:
+            42px
+            34px
+            minmax(0, 1fr);
+    }
+
+
+    .birthday-days,
+    .birthday-today-badge {
+        grid-column: 3;
+
+        width: fit-content;
+    }
+
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .live-dot {
+        animation: none;
+    }
+
+
+    .kpi-card,
+    .student-row,
+    .birthday-row,
+    .quick-grid button,
+    .attendance-button,
+    .quick-primary,
+    .open-attendance-button {
+        transition: none;
+    }
+
+}

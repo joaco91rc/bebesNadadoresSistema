@@ -1,0 +1,4454 @@
+@page "/turnos"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.Turnera
+@using BebesNadadores.Application.Turnera.Dtos
+@using BebesNadadores.Domain.Enums
+@using BebesNadadores.Application.CiclosLectivos
+@using BebesNadadores.Application.CiclosLectivos.Dtos
+
+@inject ICicloLectivoService CicloLectivoService
+@inject ITurneraService TurneraService
+@inject NavigationManager Navigation
+@inject IDiaNoLaborableService DiaNoLaborableService
+
+<PageTitle>Turnos | Bebés Nadadores</PageTitle>
+
+
+<div class="turnera-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="turnera-header">
+
+        <div class="turnera-title">
+
+            <span class="turnera-eyebrow">
+                ORGANIZACIÓN DE CLASES
+            </span>
+
+            <h1>
+                Turnera
+            </h1>
+
+            <p>
+                Gestioná horarios, cupos, niveles,
+                profesores y clases programadas.
+            </p>
+
+        </div>
+
+
+       <div class="turnera-header-actions">
+
+        <button type="button"
+        class="secondary-action"
+        @onclick="IrAProfesores">
+
+    <MudIcon Icon="@Icons.Material.Filled.Sports"
+             Size="Size.Small" />
+
+    Profesores
+
+</button>
+<button type="button"
+        class="secondary-action"
+        @onclick="IrANiveles">
+
+    <MudIcon Icon="@Icons.Material.Filled.Layers"
+             Size="Size.Small" />
+
+    Niveles
+
+</button>
+
+    <button type="button"
+            class="secondary-action"
+            @onclick="IrAHoy">
+
+        <MudIcon Icon="@Icons.Material.Filled.Today"
+                 Size="Size.Small" />
+
+        Hoy
+
+    </button>
+
+
+    <button type="button"
+            class="secondary-action"
+            @onclick="AbrirGrillaSemanal">
+
+        <MudIcon Icon="@Icons.Material.Filled.ViewWeek"
+                 Size="Size.Small" />
+
+        Configurar grilla semanal
+
+    </button>
+
+
+    <button type="button"
+            class="secondary-action"
+            @onclick="AbrirDiasNoLaborables">
+
+        <MudIcon Icon="@Icons.Material.Filled.EventBusy"
+                 Size="Size.Small" />
+
+        Feriados y cierres
+
+    </button>
+
+
+    <button type="button"
+            class="primary-action"
+            @onclick="AbrirNuevoTurno">
+
+        <MudIcon Icon="@Icons.Material.Filled.Add"
+                 Size="Size.Small" />
+
+        Nuevo turno
+
+    </button>
+
+</div>
+
+    </section>
+
+
+    @* =========================================================
+       ERROR / MENSAJE
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       KPIs
+       ========================================================= *@
+
+    <section class="turnera-stats">
+
+        <article class="turnera-stat">
+
+            <div class="stat-icon blue">
+
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Clases semana
+                </span>
+
+                <strong>
+                    @_agenda.Count
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article class="turnera-stat">
+
+            <div class="stat-icon cyan">
+
+                <MudIcon Icon="@Icons.Material.Filled.Groups" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Alumnos previstos
+                </span>
+
+                <strong>
+                    @TotalInscriptos
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article class="turnera-stat">
+
+            <div class="stat-icon green">
+
+                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Vacantes
+                </span>
+
+                <strong>
+                    @TotalVacantes
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article class="turnera-stat">
+
+            <div class="stat-icon red">
+
+                <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+            </div>
+
+            <div>
+
+                <span>
+                    Canceladas
+                </span>
+
+                <strong>
+                    @TotalCanceladas
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    @* =========================================================
+       NAVEGACIÓN SEMANA
+       ========================================================= *@
+
+    <section class="week-toolbar">
+
+        <div class="week-navigation">
+
+            <button type="button"
+                    class="nav-week-button"
+                    title="Semana anterior"
+                    @onclick="SemanaAnterior">
+
+                <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" />
+
+            </button>
+
+
+            <div class="week-title">
+
+                <span>
+                    SEMANA
+                </span>
+
+                <strong>
+                    @TextoSemana
+                </strong>
+
+            </div>
+
+
+            <button type="button"
+                    class="nav-week-button"
+                    title="Semana siguiente"
+                    @onclick="SemanaSiguiente">
+
+                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+
+            </button>
+
+        </div>
+
+
+        <div class="week-legend">
+
+            <span>
+                <i class="legend-dot available"></i>
+                Disponible
+            </span>
+
+            <span>
+                <i class="legend-dot almost"></i>
+                Casi completo
+            </span>
+
+            <span>
+                <i class="legend-dot full"></i>
+                Completo
+            </span>
+
+            <span>
+                <i class="legend-dot cancelled"></i>
+                Cancelado
+            </span>
+
+        </div>
+
+    </section>
+
+
+    @* =========================================================
+       CALENDARIO
+       ========================================================= *@
+
+    @if (_cargando)
+    {
+        <div class="turnera-loading">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando turnera...
+            </span>
+
+        </div>
+    }
+    else
+    {
+        <section class="week-calendar">
+
+            @foreach (var dia in DiasSemana)
+            {
+                var sesiones =
+                    ObtenerSesionesDia(dia);
+
+                <article class="day-column @(EsHoy(dia) ? "today" : "")">
+
+                    <header class="day-header">
+
+                        <span>
+                            @ObtenerNombreDia(dia)
+                        </span>
+
+                        <strong>
+                            @dia.Day
+                        </strong>
+
+                        @if (EsHoy(dia))
+                        {
+                            <small>
+                                HOY
+                            </small>
+                        }
+
+                    </header>
+
+
+                    <div class="day-content">
+
+                        @if (sesiones.Count == 0)
+                        {
+                            <div class="empty-day">
+
+                                <MudIcon Icon="@Icons.Material.Filled.WaterDrop"
+                                         Size="Size.Small" />
+
+                                <span>
+                                    Sin clases
+                                </span>
+
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var sesion in sesiones)
+                            {
+                                <button type="button"
+                                        class="@ObtenerClaseSesion(sesion)"
+                                        @onclick="() => AbrirSesion(sesion.Id)">
+
+                                    <div class="session-top">
+
+                                        <strong>
+                                            @sesion.HoraInicio.ToString("HH:mm")
+                                        </strong>
+
+                                        <span class="@ObtenerClaseEstado(sesion)">
+                                            @ObtenerTextoEstado(sesion)
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="session-name">
+                                        @sesion.Turno
+                                    </div>
+
+
+                                    <div class="session-level">
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Pool"
+                                                 Size="Size.Small" />
+
+                                        @sesion.Nivel
+
+                                    </div>
+
+
+                                   @if (sesion.Profesores.Count > 0)
+{
+    <div class="session-teachers">
+
+        <MudIcon Icon="@Icons.Material.Filled.Sports"
+                 Size="Size.Small" />
+
+        <div class="session-teachers-list">
+
+            @foreach (var profesor in sesion.Profesores)
+            {
+                <span>
+                    @profesor.NombreCompleto
+                </span>
+            }
+
+        </div>
+
+    </div>
+}
+
+
+                                    <div class="session-footer">
+
+                                        <div class="capacity">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Groups"
+                                                     Size="Size.Small" />
+
+                                            <strong>
+                                                @sesion.Inscriptos
+                                            </strong>
+
+                                            <span>
+                                                / @sesion.Cupo
+                                            </span>
+
+                                        </div>
+
+
+                                        @if (sesion.Estado ==
+                                            EstadoSesionClase.Programada)
+                                        {
+                                            <span class="vacancy-text">
+
+                                                @if (sesion.Vacantes == 0)
+                                                {
+                                                    <text>
+                                                        Completo
+                                                    </text>
+                                                }
+                                                else
+                                                {
+                                                    <text>
+                                                        @sesion.Vacantes libres
+                                                    </text>
+                                                }
+
+                                            </span>
+                                        }
+
+                                    </div>
+
+
+                                    <div class="capacity-track">
+
+                                        <div class="capacity-value"
+                                             style="@ObtenerEstiloOcupacion(sesion)">
+                                        </div>
+
+                                    </div>
+
+                                </button>
+                            }
+                        }
+
+                    </div>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL NUEVO / EDITAR TURNO
+   ============================================================= *@
+
+@if (_mostrarFormulario)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarFormulario">
+
+        <div class="turn-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+                    <span class="modal-eyebrow">
+                        @(_editandoId.HasValue
+                            ? "EDITAR CONFIGURACIÓN"
+                            : "NUEVA CLASE RECURRENTE")
+                    </span>
+
+                    <h2>
+                        @(_editandoId.HasValue
+                            ? "Editar turno"
+                            : "Crear turno")
+                    </h2>
+                </div>
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarFormulario">
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+                </button>
+
+            </div>
+
+            <div class="form-grid turn-form-grid">
+
+                @* FILA 1: NIVEL + NOMBRE *@
+                <div class="form-field">
+                    <label>Nivel</label>
+
+                    <select value="@_form.NivelId"
+                            @onchange="CambiarNivel">
+                        <option value="">Seleccionar nivel</option>
+
+                        @foreach (var nivel in _niveles)
+                        {
+                            <option value="@nivel.Id">
+                                @nivel.Nombre
+                            </option>
+                        }
+                    </select>
+
+                    <small class="field-help">
+                        Completa nombre, duración y cupo sugerido.
+                    </small>
+                </div>
+
+                <div class="form-field span-2">
+                    <label>Nombre del turno</label>
+
+                    <input type="text"
+                           maxlength="150"
+                           placeholder="Se completa con el nivel seleccionado"
+                           @bind="_form.Nombre" />
+                </div>
+
+                @* FILA 2: DÍA + HORA + DURACIÓN *@
+                <div class="form-field">
+                    <label>Día</label>
+
+                    <select @bind="_form.DiaSemana">
+                        @foreach (var dia in Enum.GetValues<DiaSemana>())
+                        {
+                            <option value="@dia">
+                                @ObtenerNombreDiaEnum(dia)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label>Hora de inicio</label>
+
+                    <input type="time"
+                           value="@_form.HoraInicioTexto"
+                           @onchange="CambiarHora" />
+                </div>
+
+                <div class="form-field">
+                    <label>Duración</label>
+
+                    <div class="input-with-suffix">
+                        <input type="number"
+                               min="1"
+                               max="240"
+                               @bind="_form.DuracionMinutos" />
+
+                        <span>min</span>
+                    </div>
+                </div>
+
+                @* FILA 3: CUPO + APLICA DESDE + VIGENTE HASTA *@
+                <div class="form-field">
+                    <label>Cupo</label>
+
+                    <input type="number"
+                           min="1"
+                           max="100"
+                           @bind="_form.Cupo" />
+                </div>
+
+                <div class="form-field">
+                    <label>
+                        @(PuedeCambiarFechaAplicacion
+                            ? "Aplicar desde"
+                            : "Vigente desde")
+                    </label>
+
+                    <input type="date"
+                           value="@(_form.VigenteDesde.ToString("yyyy-MM-dd"))"
+                           disabled="@(!PuedeCambiarFechaAplicacion)"
+                           @onchange="CambiarVigenteDesde" />
+
+                    @if (PuedeCambiarFechaAplicacion)
+                    {
+                        <small class="field-help">
+                            Las clases anteriores conservan su configuración.
+                        </small>
+                    }
+                </div>
+
+                <div class="form-field">
+                    <label>Vigente hasta</label>
+
+                    <input type="date"
+                           value="@ObtenerFechaNullable(_form.VigenteHasta)"
+                           disabled="@(!_editandoId.HasValue)"
+                           @onchange="CambiarVigenteHasta" />
+                </div>
+
+            </div>
+
+            <div class="teachers-section">
+
+                <div class="section-heading">
+                    <div>
+                        <span>EQUIPO</span>
+                        <h3>Profesores</h3>
+                    </div>
+
+                    @if (NivelSeleccionado is not null)
+                    {
+                        <small>
+                            Requiere entre
+                            @NivelSeleccionado.ProfesoresMinimos y
+                            @NivelSeleccionado.ProfesoresMaximos
+                        </small>
+                    }
+                </div>
+
+                <div class="teachers-grid">
+                    @foreach (var profesor in _profesores)
+                    {
+                        var seleccionado =
+                            _form.ProfesorIds.Contains(profesor.Id);
+
+                        <div class="teacher-option @(seleccionado ? "selected" : "")">
+
+                            <label>
+                                <input type="checkbox"
+                                       checked="@seleccionado"
+                                       @onchange="e => CambiarProfesor(
+                                           profesor.Id,
+                                           (bool)e.Value!)" />
+
+                                <span class="teacher-avatar">
+                                    @ObtenerIniciales(profesor.NombreCompleto)
+                                </span>
+
+                                <span class="teacher-name">
+                                    @profesor.NombreCompleto
+                                </span>
+                            </label>
+
+                            @if (seleccionado)
+                            {
+                                <button type="button"
+                                        class="principal-button @(_form.ProfesorPrincipalId == profesor.Id ? "active" : "")"
+                                        title="Profesor principal"
+                                        @onclick="() => _form.ProfesorPrincipalId = profesor.Id">
+                                    <MudIcon Icon="@Icons.Material.Filled.Star"
+                                             Size="Size.Small" />
+                                </button>
+                            }
+
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_errorFormulario))
+            {
+                <div class="form-error">
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                             Size="Size.Small" />
+
+                    @_errorFormulario
+                </div>
+            }
+
+            <div class="modal-actions">
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="CerrarFormulario">
+                    Cancelar
+                </button>
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="GuardarTurno">
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+
+                    @(_editandoId.HasValue
+                        ? "Guardar cambios"
+                        : "Crear turno")
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@* =============================================================
+   MODAL SESIÓN
+   ============================================================= *@
+
+@if (_sesionDetalle is not null)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarSesion">
+
+        <div class="session-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        CLASE PROGRAMADA
+                    </span>
+
+                    <h2>
+                        @_sesionDetalle.Sesion.Turno
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarSesion">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="session-detail-head">
+
+                <div>
+
+                    <span>
+                        Fecha
+                    </span>
+
+                    <strong>
+                        @_sesionDetalle.Sesion.Fecha.ToString("dd/MM/yyyy")
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Horario
+                    </span>
+
+                    <strong>
+                        @_sesionDetalle.Sesion.HoraInicio.ToString("HH:mm")
+                        -
+                        @_sesionDetalle.Sesion.HoraFin.ToString("HH:mm")
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Nivel
+                    </span>
+
+                    <strong>
+                        @_sesionDetalle.Sesion.Nivel
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Ocupación
+                    </span>
+
+                    <strong>
+                        @_sesionDetalle.Sesion.Inscriptos
+                        /
+                        @_sesionDetalle.Sesion.Cupo
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="session-modal-actions">
+
+                @if (_sesionDetalle.Sesion.Estado ==
+                    EstadoSesionClase.Programada)
+                {
+                    <button type="button"
+                            class="danger-action"
+                            @onclick="MostrarCancelarSesion">
+
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy"
+                                 Size="Size.Small" />
+
+                        Cancelar clase
+
+                    </button>
+
+
+                    <button type="button"
+                            class="secondary-action"
+                            @onclick="FinalizarSesion">
+
+                        <MudIcon Icon="@Icons.Material.Filled.TaskAlt"
+                                 Size="Size.Small" />
+
+                        Finalizar
+
+                    </button>
+                }
+
+
+                @if (_sesionDetalle.Sesion.Estado ==
+                    EstadoSesionClase.Cancelada)
+                {
+                    <button type="button"
+                            class="primary-action"
+                            @onclick="ReactivarSesion">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Restore"
+                                 Size="Size.Small" />
+
+                        Reactivar clase
+
+                    </button>
+                }
+
+
+               <button type="button"
+        class="secondary-action"
+        @onclick="EditarClaseDesdeSesion">
+
+    <MudIcon Icon="@Icons.Material.Filled.Edit"
+             Size="Size.Small" />
+
+    Editar clase
+
+</button>
+
+            </div>
+
+
+            @if (_mostrarCancelar)
+            {
+                <div class="cancel-box">
+
+                    <label>
+                        Motivo de cancelación
+                    </label>
+
+                    <textarea rows="3"
+                              placeholder="Ej. mantenimiento extraordinario"
+                              @bind="_motivoCancelacion">
+                    </textarea>
+
+
+                    <button type="button"
+                            class="danger-action"
+                            @onclick="CancelarSesion">
+
+                        Confirmar cancelación
+
+                    </button>
+
+                </div>
+            }
+
+
+            <div class="students-heading">
+
+                <div>
+
+                    <span>
+                        ASISTENCIA
+                    </span>
+
+                    <h3>
+                        Alumnos esperados
+                    </h3>
+
+                </div>
+
+
+                <strong>
+                    @_sesionDetalle.Bebes.Count
+                </strong>
+
+            </div>
+
+
+            <div class="session-students">
+
+                @if (_sesionDetalle.Bebes.Count == 0)
+                {
+                    <div class="empty-students">
+
+                        Todavía no hay alumnos asignados
+                        a esta clase.
+
+                    </div>
+                }
+                else
+                {
+                    @foreach (var bebe in _sesionDetalle.Bebes)
+                    {
+                        <div class="session-student">
+
+                            <div class="student-avatar">
+                                @ObtenerIniciales(bebe.NombreCompleto)
+                            </div>
+
+
+                            <div class="student-name">
+
+                                <strong>
+                                    @bebe.NombreCompleto
+                                </strong>
+
+                                <span>
+                                    @(bebe.EsRecupero
+                                        ? "Asiste como recupero"
+                                        : "Inscripción regular")
+                                </span>
+
+                            </div>
+
+
+                            @if (bebe.EsRecupero)
+                            {
+                                <span class="recovery-badge">
+                                    RECUPERO
+                                </span>
+                            }
+
+                        </div>
+                    }
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@if (_mostrarEditarClase)
+{
+    <div class="modal-backdrop"
+         @onclick="() => _mostrarEditarClase = false">
+
+        <div class="turn-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        EDICIÓN PUNTUAL
+                    </span>
+
+                    <h2>
+                        Editar clase
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="() => _mostrarEditarClase = false">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="session-detail-head">
+
+                <div>
+
+                    <span>
+                        Fecha
+                    </span>
+
+                    <strong>
+                        @(_claseForm.Fecha.ToString("dd/MM/yyyy"))
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Horario
+                    </span>
+
+                    <strong>
+                        @(_claseForm.HoraInicio.ToString("HH:mm"))
+                        —
+                        @(_claseForm.HoraFin.ToString("HH:mm"))
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Nivel
+                    </span>
+
+                    <strong>
+                        @_claseForm.Nivel
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Turno base
+                    </span>
+
+                    <strong>
+                        @_claseForm.Turno
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="teachers-section">
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span>
+                            ESTA CLASE SOLAMENTE
+                        </span>
+
+                        <h3>
+                            Profesores
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="teachers-grid">
+
+                    @foreach (var profesor in _profesores)
+                    {
+                        var seleccionado =
+                            _claseForm
+                                .ProfesorIds
+                                .Contains(
+                                    profesor.Id);
+
+
+                        <div class="teacher-option @(seleccionado ? "selected" : "")">
+
+                            <label>
+
+                                <input type="checkbox"
+                                       checked="@seleccionado"
+                                       @onchange="e => CambiarProfesorClase(
+                                           profesor.Id,
+                                           (bool)e.Value!)" />
+
+
+                                <span class="teacher-avatar">
+                                    @ObtenerIniciales(
+                                        profesor.NombreCompleto)
+                                </span>
+
+
+                                <span class="teacher-name">
+                                    @profesor.NombreCompleto
+                                </span>
+
+                            </label>
+
+
+                            @if (seleccionado)
+                            {
+                                <button type="button"
+                                        class="principal-button @(_claseForm.ProfesorPrincipalId == profesor.Id ? "active" : "")"
+                                        title="Profesor principal"
+                                        @onclick="() => _claseForm.ProfesorPrincipalId = profesor.Id">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Star"
+                                             Size="Size.Small" />
+
+                                </button>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <div class="weekly-grid-info">
+
+                <MudIcon Icon="@Icons.Material.Filled.Info"
+                         Size="Size.Small" />
+
+                <span>
+                    Este cambio afecta únicamente esta clase.
+                    La grilla semanal y las demás fechas no se modificarán.
+                </span>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                _errorEditarClase))
+            {
+                <div class="form-error">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                             Size="Size.Small" />
+
+                    @_errorEditarClase
+
+                </div>
+            }
+
+
+            <div class="modal-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        disabled="@_guardandoClase"
+                        @onclick="() => _mostrarEditarClase = false">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardandoClase"
+                        @onclick="GuardarClasePuntual">
+
+                    @if (_guardandoClase)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+
+                    Guardar clase
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+@if (_mostrarDiasNoLaborables)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarDiasNoLaborables">
+
+        <div class="closures-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        CALENDARIO OPERATIVO
+                    </span>
+
+                    <h2>
+                        Feriados y cierres
+                    </h2>
+
+                </div>
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarDiasNoLaborables">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="closures-toolbar">
+
+                <div class="year-navigation">
+
+                    <button type="button"
+                            @onclick="AnioAnterior">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronLeft"
+                                 Size="Size.Small" />
+
+                    </button>
+
+                    <strong>
+                        @_anioDiasNoLaborables
+                    </strong>
+
+                    <button type="button"
+                            @onclick="AnioSiguiente">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                                 Size="Size.Small" />
+
+                    </button>
+
+                </div>
+
+
+                <button type="button"
+                        class="primary-action"
+                        @onclick="NuevoDiaNoLaborable">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Add"
+                             Size="Size.Small" />
+
+                    Nuevo cierre
+
+                </button>
+
+            </div>
+
+
+            <div class="closures-layout">
+
+                @* =================================================
+                   LISTADO
+                   ================================================= *@
+
+                <div class="closures-list-panel">
+
+                    <div class="closures-panel-title">
+
+                        <span>
+                            DÍAS CONFIGURADOS
+                        </span>
+
+                        <strong>
+                            @_diasNoLaborables.Count
+                        </strong>
+
+                    </div>
+
+
+                    @if (_cargandoDias)
+                    {
+                        <div class="closures-empty">
+
+                            <MudProgressCircular Indeterminate="true"
+                                                 Size="Size.Small" />
+
+                            Cargando...
+
+                        </div>
+                    }
+                    else if (_diasNoLaborables.Count == 0)
+                    {
+                        <div class="closures-empty">
+
+                            <MudIcon Icon="@Icons.Material.Filled.EventAvailable" />
+
+                            <strong>
+                                Sin cierres configurados
+                            </strong>
+
+                            <span>
+                                No hay feriados ni cierres cargados
+                                para @_anioDiasNoLaborables.
+                            </span>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="closures-list">
+
+                            @foreach (var dia in _diasNoLaborables)
+                            {
+                                <div class="closure-row @(!dia.Activo ? "inactive" : "")">
+
+                                    <div class="closure-date">
+
+                                        <strong>
+                                            @dia.Fecha.Day.ToString("00")
+                                        </strong>
+
+                                        <span>
+                                            @ObtenerMesCorto(dia.Fecha.Month)
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="closure-info">
+
+                                        <div class="closure-title">
+
+                                            <strong>
+                                                @dia.Descripcion
+                                            </strong>
+
+                                            <span class="@ObtenerClaseTipoCierre(dia.Tipo)">
+                                                @ObtenerTextoTipoCierre(dia.Tipo)
+                                            </span>
+
+                                        </div>
+
+
+                                        <div class="closure-meta">
+
+                                            @if (dia.TodoElDia)
+                                            {
+                                                <span>
+                                                    Todo el día
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span>
+                                                    @dia.HoraDesde?.ToString("HH:mm")
+                                                    —
+                                                    @dia.HoraHasta?.ToString("HH:mm")
+                                                </span>
+                                            }
+
+
+                                            @if (dia.GeneraRecupero)
+                                            {
+                                                <span class="recovery-info">
+                                                    Recuperable
+                                                </span>
+                                            }
+
+
+                                            @if (dia.RecuperoSinVencimiento)
+                                            {
+                                                <span class="recovery-unlimited">
+                                                    Sin vencimiento
+                                                </span>
+                                            }
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="closure-actions">
+
+                                        <button type="button"
+                                                title="Editar"
+                                                @onclick="() => EditarDiaNoLaborable(dia)">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                                     Size="Size.Small" />
+
+                                        </button>
+
+
+                                        <button type="button"
+                                                class="@(dia.Activo ? "disable-action" : "enable-action")"
+                                                title="@(dia.Activo ? "Desactivar" : "Activar")"
+                                                @onclick="() => CambiarEstadoDia(dia)">
+
+                                            <MudIcon Icon="@(dia.Activo
+                                                ? Icons.Material.Filled.VisibilityOff
+                                                : Icons.Material.Filled.Visibility)"
+                                                     Size="Size.Small" />
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+
+                @* =================================================
+                   FORMULARIO
+                   ================================================= *@
+
+                <div class="closure-form-panel">
+
+                    <div class="closures-panel-title">
+
+                        <span>
+                            @(_editandoDiaId.HasValue
+                                ? "EDITAR"
+                                : "NUEVO")
+                        </span>
+
+                        <strong>
+                            @(_editandoDiaId.HasValue
+                                ? "Modificar cierre"
+                                : "Agregar cierre")
+                        </strong>
+
+                    </div>
+
+
+                    <div class="closure-form">
+
+                        <div class="form-field">
+
+                            <label>
+                                Fecha
+                            </label>
+
+                            <input type="date"
+                                   value="@_diaForm.Fecha.ToString("yyyy-MM-dd")"
+                                   @onchange="CambiarFechaDiaNoLaborable" />
+
+                        </div>
+
+
+                        <div class="form-field">
+
+                            <label>
+                                Tipo
+                            </label>
+
+                            <select @bind="_diaForm.Tipo">
+
+                                @foreach (var tipo in Enum.GetValues<TipoDiaNoLaborable>())
+                                {
+                                    <option value="@tipo">
+                                        @ObtenerTextoTipoCierre(tipo)
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-field full">
+
+                            <label>
+                                Descripción
+                            </label>
+
+                            <input type="text"
+                                   maxlength="300"
+                                   placeholder="Ej. Navidad, mantenimiento de pileta..."
+                                   @bind="_diaForm.Descripcion" />
+
+                        </div>
+
+
+                        <label class="switch-row">
+
+                            <input type="checkbox"
+                                   @bind="_diaForm.TodoElDia" />
+
+                            <span class="switch-control"></span>
+
+                            <span>
+                                Cierra todo el día
+                            </span>
+
+                        </label>
+
+
+                        @if (!_diaForm.TodoElDia)
+                        {
+                            <div class="time-range">
+
+                                <div class="form-field">
+
+                                    <label>
+                                        Desde
+                                    </label>
+
+                                    <input type="time"
+                                           value="@_diaForm.HoraDesde"
+                                           @onchange="CambiarHoraDesdeCierre" />
+
+                                </div>
+
+
+                                <div class="form-field">
+
+                                    <label>
+                                        Hasta
+                                    </label>
+
+                                    <input type="time"
+                                           value="@_diaForm.HoraHasta"
+                                           @onchange="CambiarHoraHastaCierre" />
+
+                                </div>
+
+                            </div>
+                        }
+
+
+                        <label class="switch-row">
+
+                            <input type="checkbox"
+                                   @bind="_diaForm.GeneraRecupero" />
+
+                            <span class="switch-control"></span>
+
+                            <span>
+                                Genera recupero
+                            </span>
+
+                        </label>
+
+
+                        @if (_diaForm.GeneraRecupero)
+                        {
+                            <label class="switch-row">
+
+                                <input type="checkbox"
+                                       @bind="_diaForm.RecuperoSinVencimiento" />
+
+                                <span class="switch-control"></span>
+
+                                <span>
+                                    Recupero sin vencimiento
+                                </span>
+
+                            </label>
+                        }
+
+
+                        @if (!string.IsNullOrWhiteSpace(_errorDia))
+                        {
+                            <div class="form-error closure-form-error">
+
+                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                                         Size="Size.Small" />
+
+                                @_errorDia
+
+                            </div>
+                        }
+
+
+                        <div class="closure-form-actions">
+
+                            @if (_editandoDiaId.HasValue)
+                            {
+                                <button type="button"
+                                        class="secondary-action"
+                                        @onclick="NuevoDiaNoLaborable">
+
+                                    Cancelar edición
+
+                                </button>
+                            }
+
+
+                            <button type="button"
+                                    class="primary-action"
+                                    disabled="@_guardandoDia"
+                                    @onclick="GuardarDiaNoLaborable">
+
+                                @if (_guardandoDia)
+                                {
+                                    <MudProgressCircular Indeterminate="true"
+                                                         Size="Size.Small" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Save"
+                                             Size="Size.Small" />
+                                }
+
+                                @(_editandoDiaId.HasValue
+                                    ? "Guardar cambios"
+                                    : "Agregar")
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@if (_mostrarGrillaSemanal)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarGrillaSemanal">
+
+        <div class="weekly-grid-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        CONFIGURACIÓN BASE
+                    </span>
+
+                    <h2>
+                        Grilla semanal
+                    </h2>
+
+                    <p class="weekly-grid-description">
+                        Estos son los horarios fijos que se repiten
+                        automáticamente todas las semanas.
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarGrillaSemanal">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="weekly-grid-info">
+
+                <MudIcon Icon="@Icons.Material.Filled.Info"
+
+                         Size="Size.Small" />
+
+               <span>
+        Configurá los horarios recurrentes del ciclo lectivo.
+        Al publicar la grilla se generarán todas las clases
+        desde el inicio hasta el fin del ciclo.
+    </span>
+
+            </div>
+
+
+            @if (_cargandoGrilla)
+            {
+                <div class="turnera-loading">
+
+                    <MudProgressCircular Indeterminate="true"
+                                         Size="Size.Large" />
+
+                    <span>
+                        Cargando grilla semanal...
+                    </span>
+
+                </div>
+            }
+            else
+            {
+<div class="cycle-toolbar">
+
+   <div class="cycle-selector">
+
+    <label>
+        Ciclo lectivo
+    </label>
+
+    <div class="cycle-selector-row">
+
+        <select value="@_cicloLectivoId"
+                @onchange="CambiarCicloLectivo">
+
+            @if (_ciclosLectivos.Count == 0)
+            {
+                <option value="">
+                    Sin ciclos configurados
+                </option>
+            }
+            else
+            {
+                @foreach (var ciclo in
+                    _ciclosLectivos
+                        .Where(x =>
+                            x.Estado !=
+                            EstadoCicloLectivo.Cerrado)
+                        .OrderByDescending(x =>
+                            x.Anio))
+                {
+                    <option value="@ciclo.Id">
+                        @ciclo.Anio
+                    </option>
+                }
+            }
+
+        </select>
+
+
+        <button type="button"
+                class="manage-cycles-button"
+                title="Administrar ciclos lectivos"
+                @onclick="IrACiclosLectivos">
+
+            <MudIcon Icon="@Icons.Material.Filled.Settings"
+                     Size="Size.Small" />
+
+            Ciclos
+
+        </button>
+
+    </div>
+
+</div>
+
+
+    @if (_cicloLectivoSeleccionado is not null)
+    {
+        <div class="cycle-info">
+
+            <span class="cycle-state @ObtenerClaseEstadoCiclo(_cicloLectivoSeleccionado.Estado)">
+                @ObtenerTextoEstadoCiclo(
+                    _cicloLectivoSeleccionado.Estado)
+            </span>
+
+            <strong>
+                @(_cicloLectivoSeleccionado.FechaInicio.ToString("dd/MM/yyyy"))
+                —
+                @(_cicloLectivoSeleccionado.FechaFin.ToString("dd/MM/yyyy"))
+            </strong>
+
+            <small>
+                @_turnosConfigurados.Count horarios configurados
+            </small>
+
+        </div>
+
+
+        @if (_cicloLectivoSeleccionado.Estado ==
+            EstadoCicloLectivo.Borrador)
+        {
+            <button type="button"
+                    class="publish-grid-button"
+                    disabled="@_publicandoCiclo"
+                    @onclick="PublicarCiclo">
+
+                <MudIcon Icon="@Icons.Material.Filled.RocketLaunch"
+                         Size="Size.Small" />
+
+                Publicar grilla
+            </button>
+        }
+        else
+        {
+            <div class="published-grid-badge">
+
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                         Size="Size.Small" />
+
+                Grilla publicada
+
+            </div>
+        }
+
+    }
+
+</div>
+
+                <div class="weekly-template-grid">
+
+                    @foreach (var dia in Enum.GetValues<DiaSemana>())
+                    {
+                        var turnosDia =
+                            ObtenerTurnosConfiguradosDia(dia);
+
+                        <section class="weekly-template-day">
+
+                            <header>
+
+                                <span>
+                                    @ObtenerNombreDiaEnum(dia)
+                                </span>
+
+                                <strong>
+                                    @turnosDia.Count
+                                </strong>
+
+                            </header>
+
+
+                            <div class="weekly-template-content">
+
+                                @if (turnosDia.Count == 0)
+                                {
+                                    <div class="weekly-empty">
+                                        Sin horarios
+                                    </div>
+                                }
+
+
+                                @foreach (var turno in turnosDia)
+                                {
+                                    <article class="weekly-turn-card">
+
+                                        <div class="weekly-turn-time">
+
+                                            <strong>
+                                                @turno.HoraInicio.ToString("HH:mm")
+                                            </strong>
+
+                                            <span>
+                                                —
+                                                @turno.HoraFin.ToString("HH:mm")
+                                            </span>
+
+                                        </div>
+
+
+                                        <div class="weekly-turn-name">
+                                            @turno.Nombre
+                                        </div>
+
+
+                                        <div class="weekly-turn-level">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Pool"
+                                                     Size="Size.Small" />
+
+                                            @turno.Nivel
+
+                                        </div>
+
+
+                                        <div class="weekly-turn-meta">
+
+                                            <span>
+
+                                                <MudIcon Icon="@Icons.Material.Filled.Groups"
+                                                         Size="Size.Small" />
+
+                                                @turno.Cupo
+                                            </span>
+
+
+                                        </div>
+
+                                        @if (turno.Profesores.Count > 0)
+                                        {
+                                            <div class="weekly-turn-teachers">
+
+                                                @foreach (var profesor in
+                                                    turno.Profesores
+                                                        .OrderByDescending(x => x.EsPrincipal)
+                                                        .ThenBy(x => x.NombreCompleto))
+                                                {
+                                                    <div class="weekly-turn-teacher">
+
+                                                        <MudIcon Icon="@Icons.Material.Filled.Person"
+                                                                 Size="Size.Small" />
+
+                                                        <span>
+                                                            @profesor.NombreCompleto
+                                                        </span>
+
+                                                        @if (profesor.EsPrincipal)
+                                                        {
+                                                            <MudIcon Icon="@Icons.Material.Filled.Star"
+                                                                     Size="Size.Small"
+                                                                     Class="teacher-main-star" />
+                                                        }
+
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="weekly-turn-teachers">
+                                                <div class="weekly-turn-teacher empty">
+                                                    Sin profesores asignados
+                                                </div>
+                                            </div>
+                                        }
+
+
+                                       <div class="weekly-turn-actions">
+
+    <button type="button"
+            class="weekly-turn-action edit"
+            title="Editar horario"
+            @onclick="() => AbrirEditarTurnoDesdeGrilla(turno.Id)">
+
+        <MudIcon Icon="@Icons.Material.Filled.Edit"
+                 Size="Size.Small" />
+
+    </button>
+
+
+    <button type="button"
+            class="weekly-turn-action delete"
+            title="Quitar de la grilla"
+            @onclick="() => SolicitarQuitarTurno(turno)">
+
+        <MudIcon Icon="@Icons.Material.Filled.DeleteOutline"
+                 Size="Size.Small" />
+
+    </button>
+
+</div>
+
+                                    </article>
+                                }
+
+
+                                <button type="button"
+                                        class="weekly-add-turn"
+                                        @onclick="() => AbrirNuevoTurnoDesdeGrilla(dia)">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Add"
+                                             Size="Size.Small" />
+
+                                    Agregar horario
+
+                                </button>
+
+                            </div>
+
+                        </section>
+                    }
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+}
+@* =============================================================
+   CONFIRMAR QUITAR TURNO DE LA GRILLA
+   ============================================================= *@
+
+@if (_turnoAQuitar is not null)
+{
+    <div class="modal-backdrop remove-turn-backdrop">
+
+        <div class="remove-turn-modal">
+
+            <div class="remove-turn-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+            </div>
+
+
+            <div class="remove-turn-heading">
+
+                <span>
+                    CONFIGURACIÓN DE GRILLA
+                </span>
+
+                <h3>
+                    Quitar horario
+                </h3>
+
+                <p>
+                    El horario dejará de formar parte de la
+                    grilla semanal desde la fecha indicada.
+                </p>
+
+            </div>
+
+
+            <div class="remove-turn-summary">
+
+                <div>
+
+                    <span>
+                        HORARIO
+                    </span>
+
+                    <strong>
+                        @ObtenerNombreDiaEnum(_turnoAQuitar.DiaSemana)
+                        ·
+                        @(_turnoAQuitar.HoraInicio.ToString("HH:mm"))
+                        —
+                        @(_turnoAQuitar.HoraFin.ToString("HH:mm"))
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        NIVEL
+                    </span>
+
+                    <strong>
+                        @_turnoAQuitar.Nivel
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="remove-turn-date">
+
+                <label>
+                    Quitar de la grilla desde
+                </label>
+
+
+                <input type="date"
+                       value="@_fechaQuitarTurno.ToString("yyyy-MM-dd")"
+                       @onchange="CambiarFechaQuitarTurno" />
+
+
+                <small>
+                    Las clases anteriores conservarán toda su
+                    información histórica.
+                </small>
+
+            </div>
+
+
+            <div class="remove-turn-warning">
+
+                <MudIcon Icon="@Icons.Material.Filled.Info"
+                         Size="Size.Small" />
+
+                <span>
+                    Si todavía hay bebés asignados a este horario,
+                    primero tendrás que reubicarlos en otro turno.
+                </span>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                _errorQuitarTurno))
+            {
+                <div class="remove-turn-error">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                             Size="Size.Small" />
+
+                    <span>
+                        @_errorQuitarTurno
+                    </span>
+
+                </div>
+            }
+
+
+            <div class="remove-turn-actions">
+
+                <button type="button"
+                        class="secondary-action"
+                        disabled="@_quitandoTurno"
+                        @onclick="CerrarQuitarTurno">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="remove-confirm-button"
+                        disabled="@_quitandoTurno"
+                        @onclick="ConfirmarQuitarTurno">
+
+                    @if (_quitandoTurno)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.DeleteOutline"
+                                 Size="Size.Small" />
+                    }
+
+                    Quitar horario
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@code
+{
+
+    [Parameter]
+[SupplyParameterFromQuery(
+    Name = "grilla")]
+public bool AbrirGrillaDesdeQuery { get; set; }
+
+
+[Parameter]
+[SupplyParameterFromQuery(
+    Name = "ciclo")]
+
+    
+public Guid? CicloLectivoDesdeQuery { get; set; }
+    private List<CicloLectivoDto> _ciclosLectivos =
+    [];
+
+private Guid? _cicloLectivoId;
+
+private bool _mostrarEditarClase;
+
+private bool _guardandoClase;
+
+private string? _errorEditarClase;
+
+private EditarClaseFormModel _claseForm =
+    new();
+
+private CicloLectivoDto? _cicloLectivoSeleccionado;
+
+private bool _publicandoCiclo;
+
+    private bool _mostrarGrillaSemanal;
+
+private bool _cargandoGrilla;
+
+private bool _volverAGrillaDespuesDeGuardar;
+
+private List<TurnoDto> _turnosConfigurados =
+    [];
+    private bool _mostrarDiasNoLaborables;
+
+private bool _cargandoDias;
+
+private bool _guardandoDia;
+
+private int _anioDiasNoLaborables =
+    DateTime.Today.Year;
+
+private Guid? _editandoDiaId;
+
+private string? _errorDia;
+
+private List<DiaNoLaborableDto> _diasNoLaborables =
+    [];
+
+private DiaNoLaborableFormModel _diaForm =
+    new();
+    private DateOnly _inicioSemana;
+
+    private TurnoDto? _turnoAQuitar;
+
+private DateOnly _fechaQuitarTurno =
+    DateOnly.FromDateTime(
+        DateTime.Today);
+
+private string? _errorQuitarTurno;
+
+private bool _quitandoTurno;
+
+    private List<SesionClaseDto> _agenda = [];
+
+    private IReadOnlyList<NivelTurneraDto> _niveles =
+        Array.Empty<NivelTurneraDto>();
+
+    private IReadOnlyList<ProfesorDisponibleDto> _profesores =
+        Array.Empty<ProfesorDisponibleDto>();
+
+
+    private bool _cargando = true;
+    private bool _guardando;
+
+    private string? _error;
+    private string? _mensaje;
+    private string? _errorFormulario;
+
+
+    private bool _mostrarFormulario;
+
+    private Guid? _editandoId;
+
+    private TurnoFormModel _form =
+        new();
+
+
+    private SesionClaseDetalleDto? _sesionDetalle;
+
+    private bool _mostrarCancelar;
+
+    private string _motivoCancelacion =
+        string.Empty;
+
+
+    private int TotalInscriptos =>
+        _agenda.Sum(x => x.Inscriptos);
+
+
+    private int TotalVacantes =>
+        _agenda
+            .Where(x =>
+                x.Estado ==
+                    EstadoSesionClase.Programada)
+            .Sum(x => x.Vacantes);
+
+
+    private int TotalCanceladas =>
+        _agenda.Count(x =>
+            x.Estado ==
+                EstadoSesionClase.Cancelada);
+
+
+    private IEnumerable<DateOnly> DiasSemana =>
+        Enumerable.Range(0, 7)
+            .Select(x =>
+                _inicioSemana.AddDays(x));
+
+
+    private string TextoSemana
+    {
+        get
+        {
+            var fin =
+                _inicioSemana.AddDays(6);
+
+            if (_inicioSemana.Month ==
+                fin.Month)
+            {
+                return
+                    $"{_inicioSemana.Day:00} — {fin.Day:00} " +
+                    $"{ObtenerNombreMes(fin.Month)} {fin.Year}";
+            }
+
+            return
+                $"{_inicioSemana.Day:00} {ObtenerNombreMes(_inicioSemana.Month)}" +
+                $" — {fin.Day:00} {ObtenerNombreMes(fin.Month)} {fin.Year}";
+        }
+    }
+private sealed class EditarClaseFormModel
+{
+    public Guid SesionId { get; set; }
+
+    public string Turno { get; set; }
+        = string.Empty;
+
+    public string Nivel { get; set; }
+        = string.Empty;
+
+    public DateOnly Fecha { get; set; }
+
+    public TimeOnly HoraInicio { get; set; }
+
+    public TimeOnly HoraFin { get; set; }
+
+    public HashSet<Guid> ProfesorIds { get; set; }
+        = [];
+
+    public Guid? ProfesorPrincipalId { get; set; }
+}
+private void EditarClaseDesdeSesion()
+{
+    if (_sesionDetalle is null)
+        return;
+
+
+    var sesion =
+        _sesionDetalle.Sesion;
+
+
+    _claseForm =
+        new EditarClaseFormModel
+        {
+            SesionId =
+                sesion.Id,
+
+            Turno =
+                sesion.Turno,
+
+            Nivel =
+                sesion.Nivel,
+
+            Fecha =
+                sesion.Fecha,
+
+            HoraInicio =
+                sesion.HoraInicio,
+
+            HoraFin =
+                sesion.HoraFin,
+
+            ProfesorIds =
+                sesion.Profesores
+                    .Select(x =>
+                        x.ProfesorId)
+                    .ToHashSet(),
+
+            ProfesorPrincipalId =
+                sesion.Profesores
+                    .FirstOrDefault(x =>
+                        x.EsPrincipal)
+                    ?.ProfesorId
+        };
+
+
+    _errorEditarClase =
+        null;
+
+
+    CerrarSesion();
+
+
+    _mostrarEditarClase =
+        true;
+}
+
+private void CambiarProfesorClase(
+    Guid profesorId,
+    bool seleccionado)
+{
+    if (seleccionado)
+    {
+        _claseForm.ProfesorIds.Add(
+            profesorId);
+
+
+        if (!_claseForm
+            .ProfesorPrincipalId
+            .HasValue)
+        {
+            _claseForm.ProfesorPrincipalId =
+                profesorId;
+        }
+    }
+    else
+    {
+        _claseForm.ProfesorIds.Remove(
+            profesorId);
+
+
+        if (_claseForm
+            .ProfesorPrincipalId ==
+            profesorId)
+        {
+            var primero =
+                _claseForm
+                    .ProfesorIds
+                    .FirstOrDefault();
+
+
+            _claseForm.ProfesorPrincipalId =
+                primero == Guid.Empty
+                    ? null
+                    : primero;
+        }
+    }
+}
+
+private async Task GuardarClasePuntual()
+{
+    _errorEditarClase =
+        null;
+
+
+    try
+    {
+        _guardandoClase =
+            true;
+
+
+        if (_claseForm
+            .ProfesorIds.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Seleccioná al menos un profesor.");
+        }
+
+
+        if (!_claseForm
+            .ProfesorPrincipalId
+            .HasValue)
+        {
+            throw new InvalidOperationException(
+                "Seleccioná el profesor principal.");
+        }
+
+
+        var profesores =
+            _claseForm
+                .ProfesorIds
+                .Select(x =>
+                    new ProfesorTurnoInputDto(
+                        x,
+                        x ==
+                            _claseForm
+                                .ProfesorPrincipalId))
+                .ToList();
+
+
+        var sesionId =
+            _claseForm.SesionId;
+
+
+        await TurneraService
+            .ActualizarSesionClaseAsync(
+                sesionId,
+                new ActualizarSesionClaseDto
+                {
+                    Profesores =
+                        profesores
+                });
+
+
+        _mostrarEditarClase =
+            false;
+
+
+        _mensaje =
+            "La clase fue actualizada sin modificar la grilla recurrente.";
+
+
+        await CargarAgendaAsync();
+
+
+        /*
+         * Volvemos a abrir el detalle para que se vea
+         * inmediatamente el nuevo profesor.
+         */
+        await AbrirSesion(
+            sesionId);
+    }
+    catch (Exception ex)
+    {
+        _errorEditarClase =
+            ex.Message;
+    }
+    finally
+    {
+        _guardandoClase =
+            false;
+    }
+}
+private void SolicitarQuitarTurno(
+    TurnoDto turno)
+{
+    _turnoAQuitar =
+        turno;
+
+
+    _fechaQuitarTurno =
+        DateOnly.FromDateTime(
+            DateTime.Today);
+
+
+    /*
+     * Si el turno todavía no empezó,
+     * usamos su fecha inicial.
+     */
+    if (turno.VigenteDesde >
+        _fechaQuitarTurno)
+    {
+        _fechaQuitarTurno =
+            turno.VigenteDesde;
+    }
+
+
+    _errorQuitarTurno =
+        null;
+}
+
+
+private void CerrarQuitarTurno()
+{
+    if (_quitandoTurno)
+    {
+        return;
+    }
+
+
+    _turnoAQuitar =
+        null;
+
+
+    _errorQuitarTurno =
+        null;
+}
+
+
+private void CambiarFechaQuitarTurno(
+    ChangeEventArgs e)
+{
+    if (DateOnly.TryParse(
+        e.Value?.ToString(),
+        out var fecha))
+    {
+        _fechaQuitarTurno =
+            fecha;
+    }
+}
+
+
+private async Task ConfirmarQuitarTurno()
+{
+    if (_turnoAQuitar is null)
+    {
+        return;
+    }
+
+
+    try
+    {
+        _quitandoTurno =
+            true;
+
+
+        _errorQuitarTurno =
+            null;
+
+
+        var nombre =
+            _turnoAQuitar.Nombre;
+
+
+        await TurneraService
+            .QuitarTurnoDeGrillaAsync(
+                _turnoAQuitar.Id,
+                _fechaQuitarTurno);
+
+
+        _turnoAQuitar =
+            null;
+
+
+        _mensaje =
+            $"El horario \"{nombre}\" fue quitado de la grilla.";
+
+
+        await CargarGrillaSemanalAsync();
+
+        await CargarAgendaAsync();
+    }
+    catch (Exception ex)
+    {
+        _errorQuitarTurno =
+            ex.Message;
+    }
+    finally
+    {
+        _quitandoTurno =
+            false;
+    }
+}
+
+private async Task AbrirDiasNoLaborables()
+{
+    _anioDiasNoLaborables =
+        _inicioSemana.Year;
+
+    _mostrarDiasNoLaborables =
+        true;
+
+    NuevoDiaNoLaborable();
+
+    await CargarDiasNoLaborablesAsync();
+}
+
+private void IrANiveles()
+{
+    Navigation.NavigateTo(
+        "/niveles");
+}
+private void IrAProfesores()
+{
+    Navigation.NavigateTo(
+        "/profesores");
+}
+
+private async Task AbrirGrillaSemanal()
+{
+    _mostrarGrillaSemanal =
+        true;
+
+    await CargarGrillaSemanalAsync();
+}
+
+
+private void CerrarGrillaSemanal()
+{
+    _mostrarGrillaSemanal =
+        false;
+}
+
+
+private async Task CargarGrillaSemanalAsync()
+{
+    try
+    {
+        _cargandoGrilla =
+            true;
+
+        _error =
+            null;
+
+
+        if (!_cicloLectivoId.HasValue)
+        {
+            _turnosConfigurados =
+                [];
+
+            return;
+        }
+
+
+        _cicloLectivoSeleccionado =
+            await CicloLectivoService
+                .ObtenerAsync(
+                    _cicloLectivoId.Value);
+
+
+        _turnosConfigurados =
+            (await TurneraService
+                .ListarTurnosCicloAsync(
+                    _cicloLectivoId.Value))
+            .OrderBy(x =>
+                x.DiaSemana)
+            .ThenBy(x =>
+                x.HoraInicio)
+            .ToList();
+    }
+    catch (Exception ex)
+    {
+        _error =
+            ex.Message;
+    }
+    finally
+    {
+        _cargandoGrilla =
+            false;
+    }
+}
+
+private List<TurnoDto> ObtenerTurnosConfiguradosDia(
+    DiaSemana dia)
+{
+    return _turnosConfigurados
+        .Where(x =>
+            x.DiaSemana == dia)
+        .OrderBy(x =>
+            x.HoraInicio)
+        .ToList();
+}
+
+
+private void AbrirNuevoTurnoDesdeGrilla(
+    DiaSemana dia)
+{
+    _mostrarGrillaSemanal =
+        false;
+
+    _volverAGrillaDespuesDeGuardar =
+        true;
+
+
+    /*
+     * Buscamos el último horario configurado
+     * para ese día dentro del ciclo seleccionado.
+     */
+    var ultimoTurno =
+        _turnosConfigurados
+            .Where(x =>
+                x.DiaSemana == dia)
+            .OrderByDescending(x =>
+                x.HoraFin)
+            .FirstOrDefault();
+
+
+    /*
+     * Si todavía no hay horarios para ese día,
+     * arrancamos a las 09:00.
+     *
+     * Si ya existen, el nuevo comienza exactamente
+     * cuando finaliza el último.
+     */
+    var horaSugerida =
+        ultimoTurno is null
+            ? new TimeOnly(9, 0)
+            : ultimoTurno.HoraFin;
+
+
+    PrepararNuevoTurno(
+        dia,
+        horaSugerida);
+}
+
+
+private async Task AbrirEditarTurnoDesdeGrilla(
+    Guid turnoId)
+{
+    _mostrarGrillaSemanal =
+        false;
+
+    _volverAGrillaDespuesDeGuardar =
+        true;
+
+    await AbrirEditarTurno(
+        turnoId);
+}
+
+private void CerrarDiasNoLaborables()
+{
+    _mostrarDiasNoLaborables =
+        false;
+
+    _errorDia =
+        null;
+}
+private void IrACiclosLectivos()
+{
+    Navigation.NavigateTo(
+        "/ciclos-lectivos");
+}
+
+private async Task CargarDiasNoLaborablesAsync()
+{
+    try
+    {
+        _cargandoDias =
+            true;
+
+        _errorDia =
+            null;
+
+        _diasNoLaborables =
+            (await DiaNoLaborableService.ListarAsync(
+                _anioDiasNoLaborables))
+            .ToList();
+    }
+    catch (Exception ex)
+    {
+        _errorDia =
+            ex.Message;
+    }
+    finally
+    {
+        _cargandoDias =
+            false;
+    }
+}
+
+
+private void NuevoDiaNoLaborable()
+{
+    _editandoDiaId =
+        null;
+
+    _errorDia =
+        null;
+
+    _diaForm =
+        new DiaNoLaborableFormModel
+        {
+            Fecha =
+                new DateOnly(
+                    _anioDiasNoLaborables,
+                    DateTime.Today.Month,
+                    Math.Min(
+                        DateTime.Today.Day,
+                        DateTime.DaysInMonth(
+                            _anioDiasNoLaborables,
+                            DateTime.Today.Month))),
+
+            Tipo =
+                TipoDiaNoLaborable.Feriado,
+
+            TodoElDia =
+                true,
+
+            GeneraRecupero =
+                true,
+
+            RecuperoSinVencimiento =
+                true,
+
+            HoraDesde =
+                "14:00",
+
+            HoraHasta =
+                "18:00"
+        };
+}
+
+
+private void EditarDiaNoLaborable(
+    DiaNoLaborableDto dia)
+{
+    _editandoDiaId =
+        dia.Id;
+
+    _errorDia =
+        null;
+
+    _diaForm =
+        new DiaNoLaborableFormModel
+        {
+            Fecha =
+                dia.Fecha,
+
+            Tipo =
+                dia.Tipo,
+
+            Descripcion =
+                dia.Descripcion,
+
+            TodoElDia =
+                dia.TodoElDia,
+
+            HoraDesde =
+                dia.HoraDesde?
+                    .ToString("HH:mm")
+                ?? "14:00",
+
+            HoraHasta =
+                dia.HoraHasta?
+                    .ToString("HH:mm")
+                ?? "18:00",
+
+            GeneraRecupero =
+                dia.GeneraRecupero,
+
+            RecuperoSinVencimiento =
+                dia.RecuperoSinVencimiento
+        };
+}
+
+
+private async Task GuardarDiaNoLaborable()
+{
+    _errorDia =
+        null;
+
+    try
+    {
+        _guardandoDia =
+            true;
+
+
+        if (string.IsNullOrWhiteSpace(
+            _diaForm.Descripcion))
+        {
+            throw new InvalidOperationException(
+                "Ingresá una descripción.");
+        }
+
+
+        TimeOnly? horaDesde =
+            null;
+
+        TimeOnly? horaHasta =
+            null;
+
+
+        if (!_diaForm.TodoElDia)
+        {
+            if (!TimeOnly.TryParse(
+                _diaForm.HoraDesde,
+                out var desde))
+            {
+                throw new InvalidOperationException(
+                    "Ingresá una hora Desde válida.");
+            }
+
+
+            if (!TimeOnly.TryParse(
+                _diaForm.HoraHasta,
+                out var hasta))
+            {
+                throw new InvalidOperationException(
+                    "Ingresá una hora Hasta válida.");
+            }
+
+
+            horaDesde =
+                desde;
+
+            horaHasta =
+                hasta;
+        }
+
+
+        var dto =
+            new GuardarDiaNoLaborableDto
+            {
+                Fecha =
+                    _diaForm.Fecha,
+
+                Tipo =
+                    _diaForm.Tipo,
+
+                Descripcion =
+                    _diaForm.Descripcion,
+
+                TodoElDia =
+                    _diaForm.TodoElDia,
+
+                HoraDesde =
+                    horaDesde,
+
+                HoraHasta =
+                    horaHasta,
+
+                GeneraRecupero =
+                    _diaForm.GeneraRecupero,
+
+                RecuperoSinVencimiento =
+                    _diaForm.GeneraRecupero &&
+                    _diaForm.RecuperoSinVencimiento
+            };
+
+
+        if (_editandoDiaId.HasValue)
+        {
+            await DiaNoLaborableService
+                .ActualizarAsync(
+                    _editandoDiaId.Value,
+                    dto);
+
+            _mensaje =
+                "Feriado o cierre actualizado.";
+        }
+        else
+        {
+            await DiaNoLaborableService
+                .CrearAsync(dto);
+
+            _mensaje =
+                "Feriado o cierre agregado.";
+        }
+
+
+        await CargarDiasNoLaborablesAsync();
+
+        await CargarAgendaAsync();
+
+        NuevoDiaNoLaborable();
+    }
+    catch (Exception ex)
+    {
+        _errorDia =
+            ex.Message;
+    }
+    finally
+    {
+        _guardandoDia =
+            false;
+    }
+}
+
+
+private async Task CambiarEstadoDia(
+    DiaNoLaborableDto dia)
+{
+    try
+    {
+        _errorDia =
+            null;
+
+        await DiaNoLaborableService
+            .CambiarEstadoAsync(
+                dia.Id,
+                !dia.Activo);
+
+        await CargarDiasNoLaborablesAsync();
+
+        await CargarAgendaAsync();
+
+
+        _mensaje =
+            dia.Activo
+                ? "Cierre desactivado."
+                : "Cierre activado.";
+    }
+    catch (Exception ex)
+    {
+        _errorDia =
+            ex.Message;
+    }
+}
+
+
+private async Task AnioAnterior()
+{
+    _anioDiasNoLaborables--;
+
+    NuevoDiaNoLaborable();
+
+    await CargarDiasNoLaborablesAsync();
+}
+
+
+private async Task AnioSiguiente()
+{
+    _anioDiasNoLaborables++;
+
+    NuevoDiaNoLaborable();
+
+    await CargarDiasNoLaborablesAsync();
+}
+
+
+private void CambiarFechaDiaNoLaborable(
+    ChangeEventArgs e)
+{
+    if (DateOnly.TryParse(
+        e.Value?.ToString(),
+        out var fecha))
+    {
+        _diaForm.Fecha =
+            fecha;
+    }
+}
+
+
+private void CambiarHoraDesdeCierre(
+    ChangeEventArgs e)
+{
+    _diaForm.HoraDesde =
+        e.Value?.ToString()
+        ?? string.Empty;
+}
+
+
+private void CambiarHoraHastaCierre(
+    ChangeEventArgs e)
+{
+    _diaForm.HoraHasta =
+        e.Value?.ToString()
+        ?? string.Empty;
+}
+private static string ObtenerTextoTipoCierre(
+    TipoDiaNoLaborable tipo)
+{
+    return tipo switch
+    {
+        TipoDiaNoLaborable.Feriado =>
+            "FERIADO",
+
+        TipoDiaNoLaborable.CierreNatatorio =>
+            "CIERRE",
+
+        TipoDiaNoLaborable.Mantenimiento =>
+            "MANTENIMIENTO",
+
+        TipoDiaNoLaborable.EventoEspecial =>
+            "EVENTO",
+
+        _ =>
+            tipo.ToString().ToUpperInvariant()
+    };
+}
+
+
+private static string ObtenerClaseTipoCierre(
+    TipoDiaNoLaborable tipo)
+{
+    return tipo switch
+    {
+        TipoDiaNoLaborable.Feriado =>
+            "closure-type holiday",
+
+        TipoDiaNoLaborable.CierreNatatorio =>
+            "closure-type closed",
+
+        TipoDiaNoLaborable.Mantenimiento =>
+            "closure-type maintenance",
+
+        TipoDiaNoLaborable.EventoEspecial =>
+            "closure-type event-special",
+
+        _ =>
+            "closure-type"
+    };
+}
+
+
+private static string ObtenerMesCorto(
+    int mes)
+{
+    string[] meses =
+    [
+        "",
+        "ENE",
+        "FEB",
+        "MAR",
+        "ABR",
+        "MAY",
+        "JUN",
+        "JUL",
+        "AGO",
+        "SEP",
+        "OCT",
+        "NOV",
+        "DIC"
+    ];
+
+    return meses[mes];
+}
+
+    private NivelTurneraDto? NivelSeleccionado =>
+        _niveles.FirstOrDefault(x =>
+            x.Id == _form.NivelId);
+
+
+    protected override async Task OnInitializedAsync()
+{
+    _inicioSemana =
+        ObtenerLunes(
+            DateOnly.FromDateTime(
+                DateTime.Today));
+
+
+    await CargarInicialAsync();
+
+
+    if (CicloLectivoDesdeQuery.HasValue)
+    {
+        var ciclo =
+            _ciclosLectivos
+                .FirstOrDefault(x =>
+                    x.Id ==
+                    CicloLectivoDesdeQuery.Value);
+
+
+        if (ciclo is not null)
+        {
+            _cicloLectivoId =
+                ciclo.Id;
+
+            _cicloLectivoSeleccionado =
+                ciclo;
+        }
+    }
+
+
+    if (AbrirGrillaDesdeQuery)
+    {
+        _mostrarGrillaSemanal =
+            true;
+
+        await CargarGrillaSemanalAsync();
+    }
+}
+
+
+    private async Task CargarInicialAsync()
+    {
+        try
+        {
+            _cargando = true;
+            _error = null;
+
+var ciclosTask =
+    CicloLectivoService.ListarAsync();
+
+            var nivelesTask =
+                TurneraService.ListarNivelesAsync();
+
+            var profesoresTask =
+                TurneraService.ListarProfesoresAsync();
+
+            var agendaTask =
+                TurneraService.ObtenerAgendaAsync(
+                    _inicioSemana,
+                    _inicioSemana.AddDays(6));
+
+
+           await Task.WhenAll(
+    nivelesTask,
+    profesoresTask,
+    agendaTask,
+    ciclosTask);
+
+    _ciclosLectivos =
+    (await ciclosTask)
+        .ToList();
+
+
+var anioActual =
+    DateTime.Today.Year;
+
+
+var cicloActual =
+    _ciclosLectivos
+        .FirstOrDefault(x =>
+            x.Anio ==
+            anioActual);
+
+
+cicloActual ??=
+    _ciclosLectivos
+        .OrderByDescending(x =>
+            x.Anio)
+        .FirstOrDefault();
+
+
+if (cicloActual is not null)
+{
+    _cicloLectivoId =
+        cicloActual.Id;
+
+    _cicloLectivoSeleccionado =
+        cicloActual;
+}
+
+
+            _niveles =
+                await nivelesTask;
+
+            _profesores =
+                await profesoresTask;
+
+            _agenda =
+                (await agendaTask)
+                    .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+
+    private async Task CargarAgendaAsync()
+    {
+        try
+        {
+            _cargando = true;
+            _error = null;
+
+            _agenda =
+                (await TurneraService
+                    .ObtenerAgendaAsync(
+                        _inicioSemana,
+                        _inicioSemana.AddDays(6)))
+                    .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+
+    private async Task SemanaAnterior()
+    {
+        _inicioSemana =
+            _inicioSemana.AddDays(-7);
+
+        await CargarAgendaAsync();
+    }
+
+
+    private async Task SemanaSiguiente()
+    {
+        _inicioSemana =
+            _inicioSemana.AddDays(7);
+
+        await CargarAgendaAsync();
+    }
+
+
+    private async Task IrAHoy()
+    {
+        _inicioSemana =
+            ObtenerLunes(
+                DateOnly.FromDateTime(
+                    DateTime.Today));
+
+        await CargarAgendaAsync();
+    }
+
+
+    private List<SesionClaseDto> ObtenerSesionesDia(
+        DateOnly fecha)
+    {
+        return _agenda
+            .Where(x =>
+                x.Fecha == fecha)
+            .OrderBy(x =>
+                x.HoraInicio)
+            .ToList();
+    }
+
+
+   private void AbrirNuevoTurno()
+{
+    _volverAGrillaDespuesDeGuardar =
+        false;
+
+    PrepararNuevoTurno(
+        ObtenerDiaSemana(
+            DateOnly.FromDateTime(
+                DateTime.Today)));
+}
+
+
+private void PrepararNuevoTurno(
+    DiaSemana dia,
+    TimeOnly? horaInicio = null)
+{
+    _editandoId =
+        null;
+
+    _errorFormulario =
+        null;
+
+
+    var hoy =
+        DateOnly.FromDateTime(
+            DateTime.Today);
+
+    var ciclo =
+        _cicloLectivoSeleccionado;
+
+
+    DateOnly vigenteDesde;
+
+    if (ciclo is null)
+    {
+        vigenteDesde =
+            hoy;
+    }
+    else if (ciclo.Estado ==
+        EstadoCicloLectivo.Borrador)
+    {
+        // Mientras el ciclo está en borrador, el horario
+        // pertenece al ciclo completo.
+        vigenteDesde =
+            ciclo.FechaInicio;
+    }
+    else
+    {
+        // Si el ciclo ya está publicado, un horario nuevo
+        // sólo puede impactar desde hoy hacia adelante.
+        vigenteDesde =
+            hoy < ciclo.FechaInicio
+                ? ciclo.FechaInicio
+                : hoy;
+    }
+
+
+    _form =
+        new TurnoFormModel
+        {
+            DiaSemana =
+                dia,
+
+            HoraInicioTexto =
+                (horaInicio
+                    ?? new TimeOnly(9, 0))
+                .ToString("HH:mm"),
+
+            DuracionMinutos =
+                30,
+
+            Cupo =
+                8,
+
+            VigenteDesde =
+                vigenteDesde,
+
+            VigenteHasta =
+                ciclo?.FechaFin,
+
+            Estado =
+                EstadoTurno.Activo
+        };
+
+
+    _mostrarFormulario =
+        true;
+}
+
+   
+
+
+    private async Task AbrirEditarTurno(
+        Guid turnoId)
+    {
+        try
+        {
+            _error = null;
+
+            var turno =
+                await TurneraService
+                    .ObtenerTurnoAsync(
+                        turnoId);
+
+            if (turno is null)
+                return;
+
+
+            _editandoId =
+                turno.Id;
+
+
+            _form =
+                new TurnoFormModel
+                {
+                    Nombre =
+                        turno.Nombre,
+
+                    DiaSemana =
+                        turno.DiaSemana,
+
+                    HoraInicioTexto =
+                        turno.HoraInicio
+                            .ToString("HH:mm"),
+
+                    DuracionMinutos =
+                        turno.DuracionMinutos,
+
+                    NivelId =
+                        turno.NivelId,
+
+                    Cupo =
+                        turno.Cupo,
+
+
+                    VigenteDesde =
+                        ObtenerFechaAplicacionEdicion(
+                            turno),
+
+                    VigenteHasta =
+                        turno.VigenteHasta,
+
+                    Estado =
+                        turno.Estado,
+
+                    ProfesorIds =
+                        turno.Profesores
+                            .Select(x =>
+                                x.ProfesorId)
+                            .ToHashSet(),
+
+                    ProfesorPrincipalId =
+                        turno.Profesores
+                            .FirstOrDefault(x =>
+                                x.EsPrincipal)
+                            ?.ProfesorId
+                };
+
+
+            _mostrarFormulario =
+                true;
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private async Task GuardarTurno()
+    {
+        _errorFormulario = null;
+        _mensaje = null;
+
+        try
+        {
+            _guardando = true;
+
+
+            if (string.IsNullOrWhiteSpace(
+                _form.Nombre))
+            {
+                throw new InvalidOperationException(
+                    "Ingresá un nombre para el turno.");
+            }
+
+
+            if (_form.NivelId ==
+                Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "Seleccioná un nivel.");
+            }
+
+
+            if (!TimeOnly.TryParse(
+                _form.HoraInicioTexto,
+                out var hora))
+            {
+                throw new InvalidOperationException(
+                    "Ingresá una hora válida.");
+            }
+
+
+            if (_form.ProfesorIds.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "Seleccioná al menos un profesor.");
+            }
+
+
+            if (!_form.ProfesorPrincipalId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Seleccioná el profesor principal usando la estrella.");
+            }
+
+
+            var profesores =
+                _form.ProfesorIds
+                    .Select(x =>
+                        new ProfesorTurnoInputDto(
+                            x,
+                            x ==
+                            _form.ProfesorPrincipalId))
+                    .ToList();
+
+
+            if (_editandoId.HasValue)
+            {
+                await TurneraService
+                    .ActualizarTurnoAsync(
+                        _editandoId.Value,
+
+                       new ActualizarTurnoDto
+{
+    Nombre =
+        _form.Nombre,
+
+    DiaSemana =
+        _form.DiaSemana,
+
+    HoraInicio =
+        hora,
+
+    DuracionMinutos =
+        _form.DuracionMinutos,
+
+    NivelId =
+        _form.NivelId,
+
+    Cupo =
+        _form.Cupo,
+
+
+    AplicarDesde =
+        _form.VigenteDesde,
+
+    VigenteHasta =
+        _form.VigenteHasta,
+
+    Estado =
+        _form.Estado,
+
+    Profesores =
+        profesores
+});
+
+
+                _mensaje =
+                    "Turno actualizado correctamente.";
+            }
+            else
+            {
+                if (!_cicloLectivoId.HasValue)
+{
+    throw new InvalidOperationException(
+        "Seleccioná un ciclo lectivo.");
+}
+                await TurneraService
+    .CrearTurnoAsync(
+        new CrearTurnoDto
+        {
+            CicloLectivoId =
+                _cicloLectivoId.Value,
+
+            Nombre =
+                _form.Nombre,
+
+            DiaSemana =
+                _form.DiaSemana,
+
+            HoraInicio =
+                hora,
+
+            DuracionMinutos =
+                _form.DuracionMinutos,
+
+            NivelId =
+                _form.NivelId,
+
+            Cupo =
+                _form.Cupo,
+
+
+            VigenteDesde =
+                _form.VigenteDesde,
+
+            VigenteHasta =
+                _form.VigenteHasta,
+
+            Profesores =
+                profesores
+        });
+
+
+                _mensaje =
+                    "Turno creado correctamente.";
+            }
+
+
+           CerrarFormulario();
+
+await CargarGrillaSemanalAsync();
+await CargarAgendaAsync();
+
+if (_volverAGrillaDespuesDeGuardar)
+{
+    _volverAGrillaDespuesDeGuardar = false;
+    _mostrarGrillaSemanal = true;
+}
+        }
+        catch (Exception ex)
+        {
+            _errorFormulario =
+                ex.Message;
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+
+    private void CerrarFormulario()
+    {
+        _mostrarFormulario =
+            false;
+
+        _errorFormulario =
+            null;
+    }
+
+
+    private async Task AbrirSesion(
+        Guid sesionId)
+    {
+        try
+        {
+            _error = null;
+
+            _sesionDetalle =
+                await TurneraService
+                    .ObtenerSesionAsync(
+                        sesionId);
+
+            _mostrarCancelar =
+                false;
+
+            _motivoCancelacion =
+                string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private void CerrarSesion()
+    {
+        _sesionDetalle =
+            null;
+
+        _mostrarCancelar =
+            false;
+    }
+
+
+    private void MostrarCancelarSesion()
+    {
+        _mostrarCancelar =
+            true;
+    }
+
+
+    private async Task CancelarSesion()
+    {
+        if (_sesionDetalle is null)
+            return;
+
+        try
+        {
+            await TurneraService.CancelarSesionAsync(
+                _sesionDetalle.Sesion.Id,
+                _motivoCancelacion);
+
+            _mensaje =
+                "Clase cancelada.";
+
+            CerrarSesion();
+
+            await CargarAgendaAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private async Task ReactivarSesion()
+    {
+        if (_sesionDetalle is null)
+            return;
+
+        try
+        {
+            await TurneraService.ReactivarSesionAsync(
+                _sesionDetalle.Sesion.Id);
+
+            _mensaje =
+                "Clase reactivada.";
+
+            CerrarSesion();
+
+            await CargarAgendaAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private async Task FinalizarSesion()
+    {
+        if (_sesionDetalle is null)
+            return;
+
+        try
+        {
+            await TurneraService.FinalizarSesionAsync(
+                _sesionDetalle.Sesion.Id);
+
+            _mensaje =
+                "Clase finalizada.";
+
+            CerrarSesion();
+
+            await CargarAgendaAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+    }
+
+
+    private void CambiarNivel(
+    ChangeEventArgs e)
+{
+    if (!Guid.TryParse(
+        e.Value?.ToString(),
+        out var nivelId))
+    {
+        _form.NivelId =
+            Guid.Empty;
+
+        _form.Nombre =
+            string.Empty;
+
+        return;
+    }
+
+
+    _form.NivelId =
+        nivelId;
+
+
+    var nivel =
+        _niveles.FirstOrDefault(x =>
+            x.Id == nivelId);
+
+
+    if (nivel is null)
+        return;
+
+
+    /*
+     * En un turno nuevo usamos los valores
+     * predeterminados definidos en el nivel.
+     *
+     * En edición no pisamos la configuración histórica.
+     */
+    if (!_editandoId.HasValue)
+    {
+        _form.Nombre =
+            nivel.Nombre;
+
+        _form.DuracionMinutos =
+            nivel.DuracionMinutos;
+
+        _form.Cupo =
+            nivel.CupoPredeterminado;
+    }
+}
+
+
+    private void CambiarProfesor(
+        Guid profesorId,
+        bool seleccionado)
+    {
+        if (seleccionado)
+        {
+            _form.ProfesorIds.Add(
+                profesorId);
+
+            if (!_form
+                .ProfesorPrincipalId
+                .HasValue)
+            {
+                _form.ProfesorPrincipalId =
+                    profesorId;
+            }
+        }
+        else
+        {
+            _form.ProfesorIds.Remove(
+                profesorId);
+
+            if (_form.ProfesorPrincipalId ==
+                profesorId)
+            {
+                _form.ProfesorPrincipalId =
+                    _form.ProfesorIds
+                        .FirstOrDefault();
+
+                if (_form.ProfesorPrincipalId ==
+                    Guid.Empty)
+                {
+                    _form.ProfesorPrincipalId =
+                        null;
+                }
+            }
+        }
+    }
+
+
+    private void CambiarHora(
+        ChangeEventArgs e)
+    {
+        _form.HoraInicioTexto =
+            e.Value?.ToString()
+            ?? string.Empty;
+    }
+
+
+    private void CambiarVigenteDesde(
+        ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(
+            e.Value?.ToString(),
+            out var fecha))
+        {
+            _form.VigenteDesde =
+                fecha;
+        }
+    }
+
+
+    private void CambiarVigenteHasta(
+        ChangeEventArgs e)
+    {
+        var valor =
+            e.Value?.ToString();
+
+        if (string.IsNullOrWhiteSpace(
+            valor))
+        {
+            _form.VigenteHasta =
+                null;
+
+            return;
+        }
+
+        if (DateOnly.TryParse(
+            valor,
+            out var fecha))
+        {
+            _form.VigenteHasta =
+                fecha;
+        }
+    }
+
+
+    private static string ObtenerFechaNullable(
+        DateOnly? fecha)
+    {
+        return fecha.HasValue
+            ? fecha.Value.ToString("yyyy-MM-dd")
+            : string.Empty;
+    }
+
+
+    private static DateOnly ObtenerLunes(
+        DateOnly fecha)
+    {
+        var diferencia =
+            ((int)fecha.DayOfWeek + 6) % 7;
+
+        return fecha.AddDays(
+            -diferencia);
+    }
+
+
+    private static bool EsHoy(
+        DateOnly fecha)
+    {
+        return fecha ==
+            DateOnly.FromDateTime(
+                DateTime.Today);
+    }
+
+
+    private static string ObtenerNombreDia(
+        DateOnly fecha)
+    {
+        return fecha.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "LUN",
+            DayOfWeek.Tuesday => "MAR",
+            DayOfWeek.Wednesday => "MIÉ",
+            DayOfWeek.Thursday => "JUE",
+            DayOfWeek.Friday => "VIE",
+            DayOfWeek.Saturday => "SÁB",
+            DayOfWeek.Sunday => "DOM",
+            _ => ""
+        };
+    }
+
+
+    private static string ObtenerNombreDiaEnum(
+        DiaSemana dia)
+    {
+        return dia switch
+        {
+            DiaSemana.Lunes => "Lunes",
+            DiaSemana.Martes => "Martes",
+            DiaSemana.Miercoles => "Miércoles",
+            DiaSemana.Jueves => "Jueves",
+            DiaSemana.Viernes => "Viernes",
+            DiaSemana.Sabado => "Sábado",
+            DiaSemana.Domingo => "Domingo",
+            _ => dia.ToString()
+        };
+    }
+
+
+    private static DiaSemana ObtenerDiaSemana(
+        DateOnly fecha)
+    {
+        return fecha.DayOfWeek switch
+        {
+            DayOfWeek.Monday => DiaSemana.Lunes,
+            DayOfWeek.Tuesday => DiaSemana.Martes,
+            DayOfWeek.Wednesday => DiaSemana.Miercoles,
+            DayOfWeek.Thursday => DiaSemana.Jueves,
+            DayOfWeek.Friday => DiaSemana.Viernes,
+            DayOfWeek.Saturday => DiaSemana.Sabado,
+            DayOfWeek.Sunday => DiaSemana.Domingo,
+
+            _ =>
+                DiaSemana.Lunes
+        };
+    }
+
+
+    private static string ObtenerNombreMes(
+        int mes)
+    {
+        string[] meses =
+        [
+            "",
+            "enero",
+            "febrero",
+            "marzo",
+            "abril",
+            "mayo",
+            "junio",
+            "julio",
+            "agosto",
+            "septiembre",
+            "octubre",
+            "noviembre",
+            "diciembre"
+        ];
+
+        return meses[mes];
+    }
+
+
+    private static string ObtenerClaseEstado(
+        SesionClaseDto sesion)
+    {
+        if (sesion.Estado ==
+            EstadoSesionClase.Cancelada)
+        {
+            return "session-status cancelled";
+        }
+
+        if (sesion.Estado ==
+            EstadoSesionClase.Finalizada)
+        {
+            return "session-status finished";
+        }
+
+        if (sesion.Vacantes == 0)
+        {
+            return "session-status full";
+        }
+
+        if (sesion.Vacantes <= 2)
+        {
+            return "session-status almost";
+        }
+
+        return "session-status available";
+    }
+
+
+    private static string ObtenerTextoEstado(
+        SesionClaseDto sesion)
+    {
+        if (sesion.Estado ==
+            EstadoSesionClase.Cancelada)
+        {
+            return "CANCELADA";
+        }
+
+        if (sesion.Estado ==
+            EstadoSesionClase.Finalizada)
+        {
+            return "FINALIZADA";
+        }
+
+        if (sesion.Vacantes == 0)
+        {
+            return "COMPLETA";
+        }
+
+        if (sesion.Vacantes <= 2)
+        {
+            return "CASI LLENA";
+        }
+
+        return "DISPONIBLE";
+    }
+
+
+    private static string ObtenerClaseSesion(
+        SesionClaseDto sesion)
+    {
+        var clase =
+            "session-card";
+
+        if (sesion.Estado ==
+            EstadoSesionClase.Cancelada)
+        {
+            return clase + " cancelled-session";
+        }
+
+        if (sesion.Estado ==
+            EstadoSesionClase.Finalizada)
+        {
+            return clase + " finished-session";
+        }
+
+        if (sesion.Vacantes == 0)
+        {
+            return clase + " full-session";
+        }
+
+        if (sesion.Vacantes <= 2)
+        {
+            return clase + " almost-session";
+        }
+
+        return clase;
+    }
+
+
+    private static string ObtenerEstiloOcupacion(
+        SesionClaseDto sesion)
+    {
+        if (sesion.Cupo <= 0)
+            return "width:0%";
+
+        var porcentaje =
+            Math.Clamp(
+                sesion.Inscriptos * 100d /
+                sesion.Cupo,
+                0,
+                100);
+
+        return $"width:{porcentaje:0}%";
+    }
+
+
+    private static string ObtenerIniciales(
+        string nombre)
+    {
+        var partes =
+            nombre.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries);
+
+        if (partes.Length == 0)
+            return "?";
+
+        if (partes.Length == 1)
+        {
+            return partes[0][0]
+                .ToString()
+                .ToUpperInvariant();
+        }
+
+        return string.Concat(
+                partes[0][0],
+                partes[^1][0])
+            .ToUpperInvariant();
+    }
+
+    private async Task CambiarCicloLectivo(
+    ChangeEventArgs e)
+{
+    if (!Guid.TryParse(
+        e.Value?.ToString(),
+        out var cicloId))
+    {
+        return;
+    }
+
+
+    _cicloLectivoId =
+        cicloId;
+
+
+    await CargarGrillaSemanalAsync();
+}
+
+private async Task PublicarCiclo()
+{
+    if (!_cicloLectivoId.HasValue)
+        return;
+
+
+    try
+    {
+        _publicandoCiclo =
+            true;
+
+        _error =
+            null;
+
+        _mensaje =
+            null;
+
+
+        var resultado =
+            await TurneraService
+                .PublicarCicloLectivoAsync(
+                    _cicloLectivoId.Value);
+
+
+        _mensaje =
+            $"Grilla publicada correctamente. " +
+            $"Se generaron {resultado.SesionesGeneradas} clases.";
+
+
+        await CargarGrillaSemanalAsync();
+
+        await CargarAgendaAsync();
+    }
+    catch (Exception ex)
+    {
+        _error =
+            ex.Message;
+    }
+    finally
+    {
+        _publicandoCiclo =
+            false;
+    }
+}
+
+
+private static string ObtenerTextoEstadoCiclo(
+    EstadoCicloLectivo estado)
+{
+    return estado switch
+    {
+        EstadoCicloLectivo.Borrador =>
+            "BORRADOR",
+
+        EstadoCicloLectivo.Publicado =>
+            "PUBLICADO",
+
+        EstadoCicloLectivo.Cerrado =>
+            "CERRADO",
+
+        _ =>
+            estado.ToString().ToUpperInvariant()
+    };
+}
+
+
+private static string ObtenerClaseEstadoCiclo(
+    EstadoCicloLectivo estado)
+{
+    return estado switch
+    {
+        EstadoCicloLectivo.Borrador =>
+            "draft",
+
+        EstadoCicloLectivo.Publicado =>
+            "published",
+
+        EstadoCicloLectivo.Cerrado =>
+            "closed",
+
+        _ =>
+            string.Empty
+    };
+}
+
+    private bool PuedeCambiarFechaAplicacion =>
+        _editandoId.HasValue
+        ||
+        _cicloLectivoSeleccionado?.Estado ==
+            EstadoCicloLectivo.Publicado;
+
+
+    private DateOnly ObtenerFechaAplicacionEdicion(
+        TurnoDto turno)
+    {
+        var hoy =
+            DateOnly.FromDateTime(
+                DateTime.Today);
+
+        if (_cicloLectivoSeleccionado?.Estado ==
+            EstadoCicloLectivo.Borrador)
+        {
+            return turno.VigenteDesde;
+        }
+
+        return hoy < turno.VigenteDesde
+            ? turno.VigenteDesde
+            : hoy;
+    }
+
+
+    private sealed class TurnoFormModel
+    {
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public DiaSemana DiaSemana { get; set; }
+            = DiaSemana.Lunes;
+
+        public string HoraInicioTexto { get; set; }
+            = "09:00";
+
+        public int DuracionMinutos { get; set; }
+            = 30;
+
+        public Guid NivelId { get; set; }
+
+        public int Cupo { get; set; }
+            = 8;
+
+
+        public DateOnly VigenteDesde { get; set; }
+
+        public DateOnly? VigenteHasta { get; set; }
+
+        public EstadoTurno Estado { get; set; }
+            = EstadoTurno.Activo;
+
+        public HashSet<Guid> ProfesorIds { get; set; }
+            = [];
+
+        public Guid? ProfesorPrincipalId { get; set; }
+    }
+    private sealed class DiaNoLaborableFormModel
+{
+    public DateOnly Fecha { get; set; }
+        = DateOnly.FromDateTime(
+            DateTime.Today);
+
+    public TipoDiaNoLaborable Tipo { get; set; }
+        = TipoDiaNoLaborable.Feriado;
+
+    public string Descripcion { get; set; }
+        = string.Empty;
+
+    public bool TodoElDia { get; set; }
+        = true;
+
+    public string HoraDesde { get; set; }
+        = "14:00";
+
+    public string HoraHasta { get; set; }
+        = "18:00";
+
+    public bool GeneraRecupero { get; set; }
+        = true;
+
+    public bool RecuperoSinVencimiento { get; set; }
+        = true;
+}
+}

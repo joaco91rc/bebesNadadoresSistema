@@ -1,0 +1,1141 @@
+@page "/clientes/{BebeId:guid}/inscripcion/editar"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.Bebes
+@using BebesNadadores.Application.Inscripciones
+@using BebesNadadores.Application.Inscripciones.Dtos
+@using BebesNadadores.Application.Niveles.Dtos
+@using BebesNadadores.Domain.Enums
+@using BebesNadadores.Web.Components.Shared.Utils
+
+
+<PageTitle>
+    @(EsPrimeraInscripcion
+        ? "Crear inscripción | Bebés Nadadores"
+        : "Gestionar inscripción | Bebés Nadadores")
+</PageTitle>
+
+
+<div class="subscription-page">
+
+    @* =========================================================
+       CARGANDO
+       ========================================================= *@
+
+    @if (_cargando)
+    {
+        <div class="page-loading">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Cargando inscripción...
+            </span>
+
+        </div>
+    }
+
+    @* =========================================================
+       ERROR DE CARGA
+       ========================================================= *@
+
+    else if (!string.IsNullOrWhiteSpace(_errorCarga))
+    {
+        <div class="load-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" />
+
+            <h2>
+                No pudimos cargar la inscripción
+            </h2>
+
+            <p>
+                @_errorCarga
+            </p>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+
+                Volver al legajo
+
+            </button>
+
+        </div>
+    }
+
+    @* =========================================================
+       CONTENIDO
+       ========================================================= *@
+
+    else if (_legajo is not null)
+    {
+        @* =====================================================
+           HEADER
+           ===================================================== *@
+
+        <header class="subscription-header">
+
+            <button type="button"
+                    class="back-button"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+            </button>
+
+
+            <div>
+
+                <span class="page-eyebrow">
+
+                    @(EsPrimeraInscripcion
+                        ? "ALTA DE INSCRIPCIÓN"
+                        : "GESTIÓN DE INSCRIPCIÓN")
+
+                </span>
+
+
+                <h1>
+                    @_legajo.NombreCompleto
+                </h1>
+
+
+                <p>
+
+                    @(EsPrimeraInscripcion
+                        ? "Configurá la primera inscripción, plan y horario semanal."
+                        : "Modificá el nivel, plan, horario y condiciones comerciales de la inscripción.")
+
+                </p>
+
+            </div>
+
+        </header>
+
+
+        @* =====================================================
+           ERROR
+           ===================================================== *@
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="form-error">
+
+                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                         Size="Size.Small" />
+
+                <span>
+                    @_error
+                </span>
+
+            </div>
+        }
+
+
+        @* =====================================================
+           ESTADO DE LA INSCRIPCIÓN
+           ===================================================== *@
+
+        @if (EsPrimeraInscripcion)
+        {
+            <section class="no-enrollment-card">
+
+                <div class="no-enrollment-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.PersonAddAlt1" />
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        SIN INSCRIPCIÓN ACTIVA
+                    </span>
+
+                    <strong>
+                        Crear primera inscripción
+                    </strong>
+
+                    <p>
+                        Este bebé fue registrado antes de incorporar
+                        el manejo obligatorio de planes y horarios.
+                        Completá la configuración para incorporarlo
+                        al circuito normal del sistema.
+                    </p>
+
+                </div>
+
+            </section>
+        }
+        else if (_legajo.InscripcionActual is not null)
+        {
+            @* =================================================
+               INSCRIPCIÓN ACTUAL
+               ================================================= *@
+
+            <section class="current-subscription-card">
+
+                <div class="current-title">
+
+                    <div class="current-icon">
+
+                        <MudIcon Icon="@Icons.Material.Filled.EventAvailable" />
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            INSCRIPCIÓN ACTUAL
+                        </span>
+
+                        <strong>
+                            @_legajo.InscripcionActual.Plan
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="current-data">
+
+                    <div>
+
+                        <span>
+                            Nivel
+                        </span>
+
+                        <strong>
+                            @(_legajo.NivelActual ?? "Sin nivel")
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Inicio
+                        </span>
+
+                        <strong>
+                            @(_legajo.InscripcionActual.FechaInicio.ToString("dd/MM/yyyy"))
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Medio de pago
+                        </span>
+
+                        <strong>
+                            @ObtenerMedioPagoTexto(
+                                _legajo.InscripcionActual.MedioPagoPreferido)
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Tarifa
+                        </span>
+
+                        <strong>
+
+                            @(_legajo.InscripcionActual.TarifaMensual.HasValue
+                                ? FormatearPrecio(
+                                    _legajo.InscripcionActual.TarifaMensual.Value)
+                                : "Sin tarifa")
+
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Descuento
+                        </span>
+
+                        <strong>
+
+                            @if (_legajo.InscripcionActual.TipoDescuento is null)
+                            {
+                                <text>
+                                    Sin descuento
+                                </text>
+                            }
+                            else if (
+                                _legajo.InscripcionActual.TipoDescuento ==
+                                TipoDescuento.Porcentaje)
+                            {
+                                <text>
+                                    @(_legajo.InscripcionActual.ValorDescuento ?? 0)%
+                                </text>
+                            }
+                            else
+                            {
+                                <text>
+                                    @FormatearPrecio(
+                                        _legajo.InscripcionActual.ValorDescuento ?? 0)
+                                </text>
+                            }
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                @if (_legajo.InscripcionActual.Turnos.Count > 0)
+                {
+                    <div class="current-schedules">
+
+                        @foreach (var turno in
+                            _legajo.InscripcionActual.Turnos)
+                        {
+                            <span>
+
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                         Size="Size.Small" />
+
+                                @turno.DiaSemana
+
+                                @(turno.HoraInicio.ToString("HH:mm"))
+
+                                —
+
+                                @(turno.HoraFin.ToString("HH:mm"))
+
+                            </span>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        @* =====================================================
+           01 - CONFIGURACIÓN
+           ===================================================== *@
+
+        <section class="workspace-card">
+
+            <div class="section-heading">
+
+                <span class="section-number">
+                    01
+                </span>
+
+
+                <div>
+
+                    <strong>
+
+                        @(EsPrimeraInscripcion
+                            ? "Configuración inicial"
+                            : "Nueva configuración")
+
+                    </strong>
+
+                    <small>
+
+                        @(EsPrimeraInscripcion
+                            ? "Definí el nivel y las condiciones iniciales de la inscripción."
+                            : "Configuración que reemplazará a la inscripción actual.")
+
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="configuration-grid">
+
+                @* =================================================
+                   NIVEL
+                   ================================================= *@
+
+                <div class="form-field">
+
+                    <label>
+                        Nivel *
+                    </label>
+
+
+                    <select @bind="_form.NivelId"
+                            @bind:after="NivelCambioAsync">
+
+                        <option value="@Guid.Empty">
+                            Seleccionar nivel...
+                        </option>
+
+
+                        @foreach (var nivel in _niveles)
+                        {
+                            <option value="@nivel.Id">
+                                @nivel.Nombre
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   FECHA
+                   ================================================= *@
+
+                <div class="form-field">
+
+                    <label>
+
+                        @(EsPrimeraInscripcion
+                            ? "Fecha de inicio *"
+                            : "Aplicar cambio desde *")
+
+                    </label>
+
+
+                    <BnDatePicker @bind-Value="_form.AplicarDesde"
+                                  MinDate="_hoy"
+                                  MaxDate="_hoy" />
+
+
+                    <small class="field-info">
+
+                        @(EsPrimeraInscripcion
+                            ? "La inscripción comenzará desde hoy."
+                            : "En esta primera versión el cambio se aplica hoy.")
+
+                    </small>
+
+                </div>
+
+
+                @* =================================================
+                   MEDIO DE PAGO
+                   ================================================= *@
+
+                <div class="form-field">
+
+                    <label>
+                        Medio de pago preferido
+                    </label>
+
+
+                    <select @bind="_form.MedioPagoPreferido">
+
+                        @foreach (var medio in
+                            Enum.GetValues<MedioPago>())
+                        {
+                            <option value="@medio">
+
+                                @ObtenerMedioPagoTexto(
+                                    medio)
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        @* =====================================================
+           02 - PLAN
+           ===================================================== *@
+
+        <section class="workspace-card">
+
+            <div class="section-heading">
+
+                <span class="section-number">
+                    02
+                </span>
+
+
+                <div>
+
+                    <strong>
+                        Plan y tarifa
+                    </strong>
+
+                    <small>
+                        Plan mensual y descuento aplicable.
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               UN ÚNICO PLAN
+               ================================================= *@
+
+            @if (_planes.Count == 1 &&
+                 PlanSeleccionado is not null)
+            {
+                <div class="single-plan-card">
+
+                    <div>
+
+                        <span>
+                            PLAN
+                        </span>
+
+                        <strong>
+                            @PlanSeleccionado.Nombre
+                        </strong>
+
+                        <small>
+
+                            @PlanSeleccionado.VecesPorSemana
+
+                            @(PlanSeleccionado.VecesPorSemana == 1
+                                ? " clase por semana"
+                                : " clases por semana")
+
+                        </small>
+
+                    </div>
+
+
+                    <div class="single-plan-price">
+
+                        <span>
+                            TARIFA VIGENTE
+                        </span>
+
+                        <strong>
+
+                            @(PlanSeleccionado.PrecioMensual.HasValue
+                                ? FormatearPrecio(
+                                    PlanSeleccionado.PrecioMensual.Value)
+                                : "Sin tarifa")
+
+                        </strong>
+
+                    </div>
+
+                </div>
+            }
+
+            @* =================================================
+               VARIOS PLANES
+               ================================================= *@
+
+            else
+            {
+                <div class="form-field">
+
+                    <label>
+                        Plan *
+                    </label>
+
+
+                    <select @bind="_form.PlanId"
+                            @bind:after="PlanCambio">
+
+                        <option value="@Guid.Empty">
+                            Seleccionar plan...
+                        </option>
+
+
+                        @foreach (var plan in _planes)
+                        {
+                            <option value="@plan.Id">
+
+                                @plan.Nombre
+
+                                @if (plan.PrecioMensual.HasValue)
+                                {
+                                    @($" · {FormatearPrecio(plan.PrecioMensual.Value)}")
+                                }
+
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+            }
+
+
+            @* =================================================
+               DESCUENTO
+               ================================================= *@
+
+            <div class="discount-box">
+
+                <label class="discount-toggle">
+
+                    <input type="checkbox"
+                           class="discount-toggle-input"
+                           checked="@AplicaDescuento"
+                           @onchange="CambiarDescuento" />
+
+
+                    <span class="discount-switch">
+
+                        <span class="discount-switch-dot"></span>
+
+                    </span>
+
+
+                    <div class="discount-toggle-text">
+
+                        <strong>
+                            Aplicar descuento manual
+                        </strong>
+
+                        <span>
+                            Por ejemplo descuento por hermano.
+                        </span>
+
+                    </div>
+
+                </label>
+
+
+                @if (AplicaDescuento)
+                {
+                    <div class="discount-fields">
+
+                        @* =========================================
+                           TIPO
+                           ========================================= *@
+
+                        <div class="form-field">
+
+                            <label>
+                                Tipo
+                            </label>
+
+
+                            <select @bind="_form.TipoDescuento">
+
+                                <option value="@TipoDescuento.MontoFijo">
+                                    Monto fijo
+                                </option>
+
+                                <option value="@TipoDescuento.Porcentaje">
+                                    Porcentaje
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        @* =========================================
+                           VALOR
+                           ========================================= *@
+
+                        <div class="form-field">
+
+                            <label>
+
+                                @(_form.TipoDescuento ==
+                                    TipoDescuento.Porcentaje
+                                        ? "Porcentaje"
+                                        : "Monto de descuento")
+
+                            </label>
+
+
+                            <input type="number"
+                                   min="0"
+                                   step="0.01"
+                                   @bind="_form.ValorDescuento" />
+
+                        </div>
+
+
+                        @* =========================================
+                           MOTIVO
+                           ========================================= *@
+
+                        <div class="form-field">
+
+                            <label>
+                                Motivo
+                            </label>
+
+
+                            <input type="text"
+                                   maxlength="200"
+                                   placeholder="Ej. Descuento hermano"
+                                   @bind="_form.MotivoDescuento" />
+
+                        </div>
+
+                    </div>
+
+
+                    @if (PlanSeleccionado?.PrecioMensual is decimal precio)
+                    {
+                        <div class="discount-summary">
+
+                            <div>
+
+                                <span>
+                                    Tarifa base
+                                </span>
+
+                                <strong>
+                                    @FormatearPrecio(precio)
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Descuento
+                                </span>
+
+                                <strong>
+
+                                    - @FormatearPrecio(
+                                        CalcularDescuento(
+                                            precio))
+
+                                </strong>
+
+                            </div>
+
+
+                            <div class="discount-total">
+
+                                <span>
+                                    Total mensual
+                                </span>
+
+                                <strong>
+
+                                    @FormatearPrecio(
+                                        CalcularTotal(
+                                            precio))
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+                    }
+                }
+
+            </div>
+
+        </section>
+
+
+        @* =====================================================
+           03 - HORARIOS
+           ===================================================== *@
+
+        <section class="workspace-card">
+
+            <div class="section-heading">
+
+                <span class="section-number">
+                    03
+                </span>
+
+
+                <div>
+
+                    <strong>
+                        Horario semanal
+                    </strong>
+
+                    <small>
+
+                        @(EsPrimeraInscripcion
+                            ? "Seleccioná el turno habitual que comenzará a ocupar el bebé."
+                            : "Seleccioná el turno habitual del bebé.")
+
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="schedule-picker">
+
+                <div class="schedule-picker-header">
+
+                    <div>
+
+                        <span class="schedule-eyebrow">
+                            GRILLA SEMANAL
+                        </span>
+
+
+                        <h3>
+
+                            @if (PlanSeleccionado?.VecesPorSemana > 1)
+                            {
+                                <text>
+                                    Elegí los horarios en los que asistirá
+                                    @_legajo.Nombre
+                                </text>
+                            }
+                            else
+                            {
+                                <text>
+                                    Elegí el horario en el que asistirá
+                                    @_legajo.Nombre
+                                </text>
+                            }
+
+                        </h3>
+
+
+                        @if (NivelSeleccionado is not null)
+                        {
+                            <p>
+
+                                Nivel:
+
+                                <strong>
+                                    @NivelSeleccionado.Nombre
+                                </strong>
+
+
+                                @if (PlanSeleccionado is not null)
+                                {
+                                    <span>
+                                        ·
+                                    </span>
+
+                                    <strong>
+                                        @PlanSeleccionado.VecesPorSemana
+                                    </strong>
+
+                                    @(PlanSeleccionado.VecesPorSemana == 1
+                                        ? " clase semanal"
+                                        : " clases semanales")
+                                }
+
+                            </p>
+                        }
+
+                    </div>
+
+
+                    @if (PlanSeleccionado is not null)
+                    {
+                        <div class="selected-counter
+                                    @(CantidadCorrecta
+                                        ? "complete"
+                                        : "")">
+
+                            <strong>
+                                @_form.TurnosIds.Count
+                            </strong>
+
+                            <span>
+
+                                /
+
+                                @PlanSeleccionado.VecesPorSemana
+
+                            </span>
+
+                            <small>
+                                seleccionados
+                            </small>
+
+                        </div>
+                    }
+
+                </div>
+
+
+                @* =================================================
+                   SIN NIVEL
+                   ================================================= *@
+
+                @if (_form.NivelId == Guid.Empty)
+                {
+                    <div class="schedule-empty">
+
+                      <MudIcon Icon="@Icons.Material.Filled.Pool" />
+
+                        <div>
+
+                            <strong>
+                                Seleccioná primero un nivel
+                            </strong>
+
+                            <span>
+                                Los horarios disponibles dependen del nivel del bebé.
+                            </span>
+
+                        </div>
+
+                    </div>
+                }
+
+                @* =================================================
+                   CARGANDO TURNOS
+                   ================================================= *@
+
+                else if (_cargandoTurnos)
+                {
+                    <div class="schedule-empty">
+
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+
+                        <span>
+                            Cargando horarios...
+                        </span>
+
+                    </div>
+                }
+
+                @* =================================================
+                   SIN TURNOS
+                   ================================================= *@
+
+                else if (_turnosDisponibles.Count == 0)
+                {
+                    <div class="schedule-empty">
+
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+
+                        <div>
+
+                            <strong>
+                                No hay horarios disponibles
+                            </strong>
+
+                            <span>
+                                No encontramos turnos vigentes para este nivel.
+                            </span>
+
+                        </div>
+
+                    </div>
+                }
+
+                @* =================================================
+                   TURNOS DISPONIBLES
+                   ================================================= *@
+
+                else
+                {
+                    <div class="available-schedules">
+
+                        @foreach (var grupo in
+                            _turnosDisponibles
+                                .GroupBy(x =>
+                                    x.DiaSemana)
+                                .OrderBy(x =>
+                                    x.Key))
+                        {
+                            <div class="schedule-day-group">
+
+                                <div class="schedule-day-title">
+
+                                    <span>
+
+                                        @ObtenerDiaSemanaTexto(
+                                            grupo.Key)
+
+                                    </span>
+
+                                    <small>
+                                        @grupo.Count() horario(s)
+                                    </small>
+
+                                </div>
+
+
+                                <div class="schedule-options">
+
+                                    @foreach (var turno in
+                                        grupo.OrderBy(x =>
+                                            x.HoraInicio))
+                                    {
+                                        var seleccionado =
+                                            _form.TurnosIds.Contains(
+                                                turno.TurnoId);
+
+
+                                        var esActual =
+                                            EsTurnoActual(
+                                                turno.TurnoId);
+
+
+                                        var sinCupo =
+                                            turno.Disponibles <= 0
+                                            &&
+                                            !seleccionado
+                                            &&
+                                            !esActual;
+
+
+                                        <button type="button"
+                                                class="schedule-option
+                                                       @(seleccionado
+                                                           ? "selected"
+                                                           : "")
+                                                       @(esActual
+                                                           ? "current"
+                                                           : "")"
+                                                disabled="@sinCupo"
+                                                @onclick="() => AlternarTurno(turno)">
+
+                                            <div class="schedule-option-check">
+
+                                                @if (seleccionado)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.Check"
+                                                             Size="Size.Small" />
+                                                }
+
+                                            </div>
+
+
+                                            <div class="schedule-option-time">
+
+                                                <strong>
+
+                                                    @(turno.HoraInicio.ToString("HH:mm"))
+
+                                                    —
+
+                                                    @(turno.HoraFin.ToString("HH:mm"))
+
+                                                </strong>
+
+                                                <span>
+                                                    @turno.Nivel
+                                                </span>
+
+
+                                                @if (esActual)
+                                                {
+                                                    <small class="current-label">
+                                                        HORARIO ACTUAL
+                                                    </small>
+                                                }
+
+                                            </div>
+
+
+                                            <div class="schedule-option-capacity">
+
+                                                @if (sinCupo)
+                                                {
+                                                    <strong>
+                                                        0
+                                                    </strong>
+
+                                                    <span>
+                                                        sin lugares
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <strong>
+                                                        @turno.Disponibles
+                                                    </strong>
+
+                                                    <span>
+                                                        de @turno.Cupo libres
+                                                    </span>
+                                                }
+
+                                            </div>
+
+                                        </button>
+                                    }
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+            </div>
+
+        </section>
+
+
+        @* =====================================================
+           ACCIONES
+           ===================================================== *@
+
+        <footer class="page-actions">
+
+            <button type="button"
+                    class="secondary-action"
+                    disabled="@_guardando"
+                    @onclick="Volver">
+
+                Cancelar
+
+            </button>
+
+
+            <button type="button"
+                    class="primary-action"
+                    disabled="@_guardando"
+                    @onclick="GuardarAsync">
+
+                @if (_guardando)
+                {
+                    <MudProgressCircular Indeterminate="true"
+                                         Size="Size.Small" />
+                }
+                else
+                {
+                    <MudIcon Icon="@(EsPrimeraInscripcion
+                                      ? Icons.Material.Filled.PersonAdd
+                                      : Icons.Material.Filled.Save)"
+                             Size="Size.Small" />
+                }
+
+
+                @(EsPrimeraInscripcion
+                    ? "Crear inscripción"
+                    : "Aplicar cambio")
+
+            </button>
+
+        </footer>
+    }
+
+</div>

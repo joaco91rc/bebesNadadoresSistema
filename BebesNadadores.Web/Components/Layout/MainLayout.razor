@@ -1,23 +1,77 @@
-﻿@inherits LayoutComponentBase
+﻿@using BebesNadadores.Web.Themes
+@using MudBlazor
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+@inherits LayoutComponentBase
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
 
-        <article class="content px-4">
+
+
+<MudThemeProvider
+    Theme="@BebesNadadoresTheme.Theme"
+    @bind-IsDarkMode="_isDarkMode" />
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+
+<div class="app-shell @(_menuCollapsed ? "menu-collapsed" : "")">
+
+    @* =========================================================
+       SIDEBAR
+       ========================================================= *@
+
+    <aside class="app-sidebar">
+
+        <SideMenu
+            Collapsed="_menuCollapsed"
+            OnToggle="ToggleMenu" />
+
+    </aside>
+
+
+    @* =========================================================
+       MAIN AREA
+       ========================================================= *@
+
+    <section class="app-main">
+
+        <TopBar
+            IsDarkMode="_isDarkMode"
+            OnThemeChanged="ToggleTheme"
+            OnMenuToggle="ToggleMenu"
+            NotificationsCount="3" />
+
+
+        <main class="app-content">
+
             @Body
-        </article>
-    </main>
+
+        </main>
+
+    </section>
+
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+
+@code {
+
+    private bool _isDarkMode = true;
+
+    private bool _menuCollapsed;
+
+
+    private void ToggleTheme()
+    {
+        _isDarkMode =
+            !_isDarkMode;
+    }
+
+
+    private void ToggleMenu()
+    {
+        _menuCollapsed =
+            !_menuCollapsed;
+    }
+
+}

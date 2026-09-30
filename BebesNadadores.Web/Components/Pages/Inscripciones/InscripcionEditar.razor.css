@@ -1,0 +1,1282 @@
+.subscription-page,
+.subscription-page * {
+    box-sizing: border-box;
+}
+
+
+.subscription-page {
+    width: 100%;
+    max-width: 1500px;
+
+    margin: 0 auto;
+
+    padding:
+        14px
+        20px
+        110px;
+
+    font-family:
+        var(--bn-font-body);
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.subscription-header {
+    margin-bottom: 20px;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 14px;
+}
+
+
+.back-button {
+    width: 42px;
+    height: 42px;
+
+    flex:
+        0
+        0
+        42px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+
+    cursor: pointer;
+}
+
+
+.page-eyebrow {
+    color:
+        var(--mud-palette-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 10px;
+    font-weight: 800;
+
+    letter-spacing: 1.2px;
+}
+
+
+.subscription-header h1 {
+    margin:
+        3px
+        0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 32px;
+}
+
+
+.subscription-header p {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   INSCRIPCIÓN ACTUAL
+   ============================================================ */
+
+.current-subscription-card {
+    margin-bottom: 18px;
+
+    padding: 16px;
+
+    display: grid;
+
+    grid-template-columns:
+        auto
+        1fr;
+
+    gap:
+        14px
+        28px;
+
+    border:
+        1px solid
+        rgba(46, 195, 235, .22);
+
+    border-radius: 15px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(46, 195, 235, .055),
+            rgba(46, 195, 235, .015));
+}
+
+
+.current-title {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.current-icon {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 11px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(46, 195, 235, .09);
+}
+
+
+.current-title > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.current-title span,
+.current-data span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+.current-title strong {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 14px;
+}
+
+
+.current-data {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 10px;
+}
+
+
+.current-data > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.current-data strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+}
+
+
+.current-schedules {
+    grid-column:
+        1 / -1;
+
+    padding-top: 12px;
+
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 7px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.current-schedules span {
+    padding:
+        6px
+        9px;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 7px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+.workspace-card {
+    margin-bottom: 18px;
+
+    padding: 20px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 15px;
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+.section-heading {
+    margin-bottom: 17px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.section-number {
+    width: 32px;
+    height: 32px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+
+    color:
+        var(--mud-palette-primary);
+
+    background:
+        rgba(46, 195, 235, .08);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.section-heading > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.section-heading strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 15px;
+}
+
+
+.section-heading small {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   CAMPOS
+   ============================================================ */
+
+.configuration-grid,
+.discount-fields {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 13px;
+}
+
+
+.form-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+}
+
+
+.form-field label {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+.form-field input,
+.form-field select {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding:
+        0
+        11px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    outline: 0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%);
+
+    font-family:
+        var(--bn-font-body);
+
+    font-size: 12px;
+}
+
+
+.form-field input:focus,
+.form-field select:focus {
+    border-color:
+        rgba(46, 195, 235, .45);
+}
+
+
+.field-info {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+/* ============================================================
+   PLAN
+   ============================================================ */
+
+.single-plan-card {
+    padding:
+        13px
+        14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    border:
+        1px solid
+        rgba(46, 195, 235, .20);
+
+    border-radius: 11px;
+
+    background:
+        rgba(46, 195, 235, .035);
+}
+
+
+.single-plan-card > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.single-plan-card span {
+    color:
+        var(--mud-palette-primary);
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+.single-plan-card strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 14px;
+}
+
+
+.single-plan-card small {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+.single-plan-price {
+    text-align: right;
+}
+
+
+/* ============================================================
+   DESCUENTO
+   ============================================================ */
+
+.discount-box {
+    margin-top: 15px;
+
+    padding: 14px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 11px;
+}
+
+
+.discount-toggle {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    cursor: pointer;
+}
+
+
+.discount-toggle-input {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    opacity: 0;
+}
+
+
+.discount-switch {
+    position: relative;
+
+    width: 44px;
+    height: 24px;
+
+    flex:
+        0
+        0
+        44px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(120, 145, 160, .18);
+}
+
+
+.discount-switch-dot {
+    position: absolute;
+
+    top: 4px;
+    left: 4px;
+
+    width: 16px;
+    height: 16px;
+
+    border-radius: 50%;
+
+    background: #8ea2b1;
+
+    transition: .2s ease;
+}
+
+
+.discount-toggle-input:checked
++ .discount-switch {
+    background:
+        linear-gradient(
+            135deg,
+            #159ddd,
+            #31c4ed);
+}
+
+
+.discount-toggle-input:checked
++ .discount-switch
+.discount-switch-dot {
+    transform:
+        translateX(20px);
+
+    background: #fff;
+}
+
+
+.discount-toggle-text {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.discount-toggle-text strong {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+}
+
+
+.discount-toggle-text span {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+.discount-fields {
+    margin-top: 14px;
+
+    padding-top: 14px;
+
+    border-top:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.discount-summary {
+    margin-top: 13px;
+
+    padding: 11px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+}
+
+
+.discount-summary > div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.discount-summary span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+}
+
+
+.discount-summary strong {
+    margin-top: 3px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-size: 12px;
+}
+
+
+.discount-total {
+    padding-left: 12px;
+
+    border-left:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.discount-total strong {
+    color: #55dca6;
+
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   HORARIOS
+   ============================================================ */
+
+.schedule-picker {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 13px;
+}
+
+
+.schedule-picker-header {
+    padding:
+        14px
+        16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    border-bottom:
+        1px solid
+        var(--mud-palette-divider);
+}
+
+
+.schedule-eyebrow {
+    color:
+        var(--mud-palette-primary);
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+.schedule-picker-header h3 {
+    margin:
+        3px
+        0;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 16px;
+}
+
+
+.schedule-picker-header p {
+    margin: 0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 10px;
+}
+
+
+.selected-counter {
+    min-width: 86px;
+
+    padding: 7px;
+
+    display: grid;
+
+    grid-template-columns:
+        auto
+        auto;
+
+    justify-content: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 9px;
+}
+
+
+.selected-counter strong {
+    color:
+        var(--mud-palette-primary);
+
+    font-size: 18px;
+}
+
+
+.selected-counter small {
+    grid-column:
+        1 / -1;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 7px;
+}
+
+
+.selected-counter.complete strong {
+    color: #55dca6;
+}
+
+
+.available-schedules {
+    padding: 14px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 15px;
+}
+
+
+.schedule-day-title {
+    margin-bottom: 7px;
+
+    display: flex;
+    justify-content: space-between;
+}
+
+
+.schedule-day-title span {
+    color:
+        var(--mud-palette-text-primary);
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.schedule-day-title small {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+}
+
+
+.schedule-options {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 8px;
+}
+
+
+.schedule-option {
+    min-height: 72px;
+
+    padding: 10px;
+
+    display: grid;
+
+    grid-template-columns:
+        28px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    gap: 8px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 10px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+
+    text-align: left;
+
+    cursor: pointer;
+}
+
+
+.schedule-option.selected {
+    border-color:
+        rgba(46, 195, 235, .50);
+
+    background:
+        rgba(46, 195, 235, .07);
+}
+
+
+.schedule-option.current:not(.selected) {
+    border-color:
+        rgba(239, 184, 79, .28);
+}
+
+
+.schedule-option-check {
+    width: 28px;
+    height: 28px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 7px;
+}
+
+
+.schedule-option.selected
+.schedule-option-check {
+    color: #fff;
+
+    border-color:
+        var(--mud-palette-primary);
+
+    background:
+        var(--mud-palette-primary);
+}
+
+
+.schedule-option-time {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.schedule-option-time strong {
+    font-size: 11px;
+}
+
+
+.schedule-option-time span {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+}
+
+
+.current-label {
+    margin-top: 3px;
+
+    color: #efb84f !important;
+
+    font-size: 7px !important;
+    font-weight: 800;
+}
+
+
+.schedule-option-capacity {
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-end;
+}
+
+
+.schedule-option-capacity strong {
+    color: #55dca6;
+
+    font-size: 13px;
+}
+
+
+.schedule-option-capacity span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 7px;
+}
+
+
+.schedule-empty {
+    min-height: 110px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   ERROR / LOADING
+   ============================================================ */
+
+.form-error {
+    margin-bottom: 14px;
+
+    padding: 10px;
+
+    display: flex;
+
+    gap: 7px;
+
+    border:
+        1px solid
+        rgba(239, 90, 100, .20);
+
+    border-radius: 9px;
+
+    color: #ef8992;
+
+    background:
+        rgba(239, 90, 100, .04);
+}
+
+
+.page-loading,
+.load-error {
+    min-height: 400px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 10px;
+}
+
+
+/* ============================================================
+   ACCIONES
+   ============================================================ */
+
+.page-actions {
+    position: sticky;
+
+    bottom: 12px;
+
+    z-index: 20;
+
+    padding: 12px;
+
+    display: flex;
+    justify-content: flex-end;
+
+    gap: 8px;
+
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    border-radius: 13px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 92%,
+            transparent);
+
+    backdrop-filter:
+        blur(15px);
+}
+
+
+.primary-action,
+.secondary-action {
+    min-height: 39px;
+
+    padding:
+        0
+        14px;
+
+    border-radius: 9px;
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.primary-action {
+    border: 0;
+
+    color: #fff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #159ddd,
+            #31c4ed);
+}
+
+
+.secondary-action {
+    border:
+        1px solid
+        var(--mud-palette-divider);
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-surface);
+}
+
+
+@media (max-width: 1000px) {
+
+    .current-subscription-card {
+        grid-template-columns: 1fr;
+    }
+
+
+    .current-data,
+    .configuration-grid,
+    .discount-fields {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+
+    .schedule-options {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .subscription-page {
+        padding:
+            10px
+            12px
+            100px;
+    }
+
+
+    .current-data,
+    .configuration-grid,
+    .discount-fields,
+    .discount-summary,
+    .schedule-options {
+        grid-template-columns: 1fr;
+    }
+
+
+    .discount-total {
+        padding-left: 0;
+
+        padding-top: 8px;
+
+        border-left: 0;
+
+        border-top:
+            1px solid
+            var(--mud-palette-divider);
+    }
+
+
+    .schedule-picker-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .page-actions {
+        flex-direction: column-reverse;
+    }
+
+
+    .page-actions button {
+        width: 100%;
+    }
+
+}
+
+
+/* ============================================================
+   SIN INSCRIPCIÓN ACTIVA
+   ============================================================ */
+
+.no-enrollment-card {
+    margin-bottom: 14px;
+
+    padding:
+        14px
+        16px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    border:
+        1px solid
+        rgba(243, 185, 88, .20);
+
+    border-radius: 13px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 96%,
+            #f3b958 4%);
+}
+
+
+.no-enrollment-icon {
+    width: 44px;
+    height: 44px;
+
+    flex:
+        0
+        0
+        44px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 11px;
+
+    color:
+        #f3b958;
+
+    background:
+        rgba(243, 185, 88, .08);
+}
+
+
+.no-enrollment-card > div:last-child {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.no-enrollment-card span {
+    color:
+        #f3b958;
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 8px;
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+
+.no-enrollment-card strong {
+    margin-top: 2px;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    font-family:
+        var(--bn-font-title);
+
+    font-size: 13px;
+}
+
+
+.no-enrollment-card p {
+    max-width: 700px;
+
+    margin:
+        3px
+        0
+        0;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+
+    line-height: 1.45;
+}

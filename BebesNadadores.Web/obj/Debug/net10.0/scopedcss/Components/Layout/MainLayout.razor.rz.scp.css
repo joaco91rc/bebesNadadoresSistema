@@ -1,98 +1,123 @@
-.page[b-khho87hj7a] {
-    position: relative;
+.app-shell[b-khho87hj7a] {
+    width: 100%;
+    min-height: 100vh;
+
+    display: grid;
+
+    grid-template-columns:
+        270px
+        minmax(0, 1fr);
+
+    background:
+        var(--mud-palette-background);
+
+    transition:
+        grid-template-columns .25s ease;
+}
+
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+.app-sidebar[b-khho87hj7a] {
+    position: sticky;
+
+    top: 0;
+
+    height: 100vh;
+
+    overflow: hidden;
+
+    z-index: 50;
+
+    background:
+        linear-gradient(
+            180deg,
+            #07598d 0%,
+            #064873 55%,
+            #043b61 100%
+        );
+
+    box-shadow:
+        8px 0 35px
+        rgba(0, 30, 55, .08);
+}
+
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+
+.app-main[b-khho87hj7a] {
+    min-width: 0;
+
+    min-height: 100vh;
+
     display: flex;
     flex-direction: column;
 }
 
-main[b-khho87hj7a] {
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+
+.app-content[b-khho87hj7a] {
     flex: 1;
+
+    padding:
+        28px
+        32px
+        40px;
+
+    overflow-x: hidden;
+
+    background:
+        var(--mud-palette-background);
 }
 
-.sidebar[b-khho87hj7a] {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+
+/* ============================================================
+   COLLAPSED
+   ============================================================ */
+
+.app-shell.menu-collapsed[b-khho87hj7a] {
+    grid-template-columns:
+        82px
+        minmax(0, 1fr);
 }
 
-.top-row[b-khho87hj7a] {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 960px) {
+
+    .app-shell[b-khho87hj7a] {
+        grid-template-columns:
+            82px
+            minmax(0, 1fr);
+    }
+
+    .app-content[b-khho87hj7a] {
+        padding:
+            20px
+            18px
+            32px;
+    }
+
 }
 
-    .top-row[b-khho87hj7a]  a, .top-row[b-khho87hj7a]  .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
+
+@media (max-width: 600px) {
+
+    .app-content[b-khho87hj7a] {
+        padding:
+            16px
+            12px
+            28px;
     }
 
-    .top-row[b-khho87hj7a]  a:hover, .top-row[b-khho87hj7a]  .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row[b-khho87hj7a]  a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row[b-khho87hj7a] {
-        justify-content: space-between;
-    }
-
-    .top-row[b-khho87hj7a]  a, .top-row[b-khho87hj7a]  .btn-link {
-        margin-left: 0;
-    }
 }
-
-@media (min-width: 641px) {
-    .page[b-khho87hj7a] {
-        flex-direction: row;
-    }
-
-    .sidebar[b-khho87hj7a] {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row[b-khho87hj7a] {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .top-row.auth[b-khho87hj7a]  a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
-
-    .top-row[b-khho87hj7a], article[b-khho87hj7a] {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
-}
-
-#blazor-error-ui[b-khho87hj7a] {
-    color-scheme: light only;
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    box-sizing: border-box;
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
-
-    #blazor-error-ui .dismiss[b-khho87hj7a] {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }

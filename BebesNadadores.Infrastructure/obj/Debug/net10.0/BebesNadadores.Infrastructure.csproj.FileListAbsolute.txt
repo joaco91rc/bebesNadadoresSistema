@@ -11,6 +11,7 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\BebesNadadores.Infrastructure.AssemblyInfoInputs.cache
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\BebesNadadores.Infrastructure.AssemblyInfo.cs
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\BebesNadadores.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\BebesNadadores.Infrastructure.sourcelink.json
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\BebesNad.0D4DB560.Up2Date
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\BebesNadadores.Infrastructure.dll
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Infrastructure\obj\Debug\net10.0\refint\BebesNadadores.Infrastructure.dll

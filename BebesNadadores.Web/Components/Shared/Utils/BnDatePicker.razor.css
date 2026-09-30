@@ -1,0 +1,260 @@
+/* ============================================================
+   BEBÉS NADADORES
+   DATE PICKER
+   ============================================================ */
+
+.bn-date-picker-shell {
+    width: 100%;
+    height: 42px;
+
+    margin: 0;
+    padding: 0;
+}
+
+
+/* ============================================================
+   CONTROL MUDBLAZOR
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input-control {
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+
+.bn-date-picker-shell
+::deep .mud-input-control-input-container {
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+
+/* ============================================================
+   INPUT EXTERIOR
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input {
+    width: 100% !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden;
+
+    border-radius: 9px !important;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%) !important;
+
+    box-shadow: none !important;
+}
+
+
+/* MUDBLAZOR OUTLINED */
+
+.bn-date-picker-shell
+::deep .mud-input-outlined {
+    height: 42px !important;
+    min-height: 42px !important;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%) !important;
+}
+
+
+/* ============================================================
+   BORDE
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input-outlined-border {
+    top: 0 !important;
+
+    height: 42px !important;
+
+    border:
+        1px solid
+        var(--mud-palette-divider) !important;
+
+    border-radius:
+        9px !important;
+
+    box-shadow: none !important;
+}
+
+
+/* ============================================================
+   INPUT REAL
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep input {
+    width: 100% !important;
+
+    height: 40px !important;
+    min-height: 40px !important;
+
+    margin: 0 !important;
+
+    padding:
+        0
+        10px !important;
+
+    border: none !important;
+    outline: none !important;
+
+    color:
+        var(--mud-palette-text-primary) !important;
+
+    background:
+        transparent !important;
+
+    font-family:
+        var(--bn-font-body) !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        400 !important;
+
+    line-height:
+        40px !important;
+}
+
+
+/* ============================================================
+   ICONO
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input-adornment {
+    height: 40px !important;
+
+    margin:
+        0
+        6px
+        0
+        0 !important;
+
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+
+.bn-date-picker-shell
+::deep .mud-icon-button {
+    width: 30px !important;
+    height: 30px !important;
+
+    min-width: 30px !important;
+    min-height: 30px !important;
+
+    margin: 0 !important;
+    padding: 4px !important;
+
+    border-radius: 7px !important;
+
+    color:
+        var(--mud-palette-primary) !important;
+}
+
+
+.bn-date-picker-shell
+::deep .mud-icon-button:hover {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-primary) 9%,
+            transparent) !important;
+}
+
+
+/* ============================================================
+   HOVER
+   ============================================================ */
+
+.bn-date-picker-shell:hover
+::deep .mud-input-outlined-border {
+    border-color:
+        rgba(46, 195, 235, .30) !important;
+}
+
+
+/* ============================================================
+   FOCUS
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input:focus-within {
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 94%,
+            var(--mud-palette-primary) 6%) !important;
+}
+
+
+.bn-date-picker-shell
+::deep .mud-input:focus-within
+.mud-input-outlined-border {
+    border-color:
+        rgba(46, 195, 235, .46) !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(46, 195, 235, .055) !important;
+}
+
+
+/* ============================================================
+   LABEL INTERNO DE MUD
+   NO LO USAMOS
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input-label {
+    display: none !important;
+}
+
+
+/* ============================================================
+   HELPERS / ESPACIOS DE MUDBLAZOR
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-input-helper-text {
+    display: none !important;
+}
+
+
+/* ============================================================
+   DISABLED
+   ============================================================ */
+
+.bn-date-picker-shell
+::deep .mud-disabled {
+    opacity: .55;
+}

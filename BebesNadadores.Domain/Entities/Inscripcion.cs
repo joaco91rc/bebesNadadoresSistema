@@ -21,4 +21,10 @@ public class Inscripcion : EntidadAuditable
 
     public ICollection<InscripcionTurno> Turnos { get; set; } = new List<InscripcionTurno>();
     public ICollection<Cuota> Cuotas { get; set; } = new List<Cuota>();
+
+    public TipoDescuento? TipoDescuento { get; set; }
+
+public decimal? ValorDescuento { get; set; }
+
+public string? MotivoDescuento { get; set; }
 }
