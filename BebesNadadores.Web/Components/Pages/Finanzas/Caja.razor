@@ -1,0 +1,1995 @@
+@page "/caja"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador,Administrativa")]
+
+@using BebesNadadores.Application.Caja
+@using BebesNadadores.Application.Caja.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject ICajaService CajaService
+
+@inject IConceptoCajaService ConceptoCajaService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Caja | Bebés Nadadores</PageTitle>
+
+
+<div class="cash-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <header class="cash-header">
+
+        <div>
+
+            <span class="page-eyebrow">
+                FINANZAS · EFECTIVO
+            </span>
+
+            <h1>
+                Caja
+            </h1>
+
+            <p>
+                Apertura, movimientos, arqueo e histórico diario.
+            </p>
+
+        </div>
+
+
+        <div class="header-actions">
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Volver
+
+            </button>
+
+            <button type="button"
+        class="secondary-action"
+        @onclick="AbrirConceptosCaja">
+
+    <MudIcon Icon="@Icons.Material.Filled.Settings"
+             Size="Size.Small" />
+
+    Conceptos de caja
+
+</button>
+
+
+            <button type="button"
+                    class="secondary-action" @onclick="() => CargarTodoAsync()">
+
+                <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                         Size="Size.Small" />
+
+                Actualizar
+
+            </button>
+
+
+            @if (_cajaHoy is not null &&
+                 _cajaHoy.Estado == EstadoCaja.Abierta)
+            {
+                <button type="button"
+                        class="primary-action danger-soft"
+                        @onclick="() => AbrirCerrarCaja(_cajaHoy)">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Lock"
+                             Size="Size.Small" />
+
+                    Cerrar caja
+
+                </button>
+            }
+
+        </div>
+
+    </header>
+
+
+    @* =========================================================
+       MENSAJES
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box error">
+
+            <MudIcon Icon="@Icons.Material.Filled.Error"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @if (_cargando)
+    {
+        <div class="loading-state">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            <span>
+                Cargando caja...
+            </span>
+
+        </div>
+    }
+    else
+    {
+        @* =====================================================
+           SIN CAJA HOY
+           ===================================================== *@
+
+        @if (_cajaHoy is null)
+        {
+            <section class="closed-hero">
+
+                <div class="closed-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+
+                </div>
+
+
+                <div class="closed-copy">
+
+                    <span>
+                        @FormatearFechaOperativa(_hoy)
+                    </span>
+
+                    <h2>
+                        La caja de hoy todavía no fue abierta
+                    </h2>
+
+                    <p>
+                        Indicá el efectivo inicial disponible
+                        para comenzar la jornada.
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="primary-action open-action"
+                        @onclick="AbrirModalApertura">
+
+                    <MudIcon Icon="@Icons.Material.Filled.LockOpen"
+                             Size="Size.Small" />
+
+                    Abrir caja
+
+                </button>
+
+            </section>
+        }
+        else
+        {
+            @* =================================================
+               CAJA ACTUAL
+               ================================================= *@
+
+            <section class="cash-hero @ObtenerClaseEstado(_cajaHoy.Estado)">
+
+                <div class="cash-hero-main">
+
+                    <div class="cash-icon">
+
+                        <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+
+                    </div>
+
+
+                    <div>
+
+                        <div class="hero-topline">
+
+                            <span class="hero-date">
+                                @FormatearFechaOperativa(_cajaHoy.FechaOperativa)
+                            </span>
+
+
+                            <span class="status-badge @ObtenerClaseEstado(_cajaHoy.Estado)">
+
+                                <i></i>
+
+                                @ObtenerEstadoTexto(_cajaHoy.Estado)
+
+                            </span>
+
+                        </div>
+
+
+                        <span class="balance-label">
+                            SALDO ESPERADO
+                        </span>
+
+                        <strong class="main-balance">
+                            @FormatearMoneda(_cajaHoy.SaldoEsperado)
+                        </strong>
+
+
+                        <small>
+                            Abierta por @_cajaHoy.UsuarioApertura
+                            ·
+                            @FormatearHora(_cajaHoy.FechaAperturaUtc)
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <div class="cash-kpis">
+
+                    <article>
+
+                        <span>
+                            Saldo inicial
+                        </span>
+
+                        <strong>
+                            @FormatearMoneda(_cajaHoy.SaldoInicial)
+                        </strong>
+
+                    </article>
+
+
+                    <article class="income">
+
+                        <span>
+                            Ingresos efectivo
+                        </span>
+
+                        <strong>
+                            +@FormatearMoneda(_cajaHoy.IngresosEfectivo)
+                        </strong>
+
+                    </article>
+
+
+                    <article class="expense">
+
+                        <span>
+                            Egresos efectivo
+                        </span>
+
+                        <strong>
+                            -@FormatearMoneda(_cajaHoy.EgresosEfectivo)
+                        </strong>
+
+                    </article>
+
+
+                    @if (_cajaHoy.Estado == EstadoCaja.Cerrada)
+                    {
+                        <article class="@ObtenerClaseDiferencia(_cajaHoy.Diferencia)">
+
+                            <span>
+                                Diferencia
+                            </span>
+
+                            <strong>
+                                @FormatearDiferencia(_cajaHoy.Diferencia)
+                            </strong>
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+
+
+            @if (_cajaHoy.Estado == EstadoCaja.Abierta)
+            {
+                <section class="quick-actions">
+
+                    <button type="button"
+                            class="quick-card income"
+                            @onclick="() => AbrirMovimiento(TipoMovimientoCaja.Ingreso)">
+
+                        <span class="quick-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" />
+
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Registrar ingreso
+                            </strong>
+
+                            <small>
+                                Kiosco, ajuste u otro ingreso.
+                            </small>
+
+                        </span>
+
+                    </button>
+
+
+                    <button type="button"
+                            class="quick-card expense"
+                            @onclick="() => AbrirMovimiento(TipoMovimientoCaja.Egreso)">
+
+                        <span class="quick-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" />
+
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Registrar egreso
+                            </strong>
+
+                            <small>
+                                Insumos, ajuste u otro gasto.
+                            </small>
+
+                        </span>
+
+                    </button>
+
+
+                    <button type="button"
+                            class="quick-card close"
+                            @onclick="() => AbrirCerrarCaja(_cajaHoy)">
+
+                        <span class="quick-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" />
+
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Arqueo y cierre
+                            </strong>
+
+                            <small>
+                                Contar efectivo y finalizar el día.
+                            </small>
+
+                        </span>
+
+                    </button>
+
+                </section>
+            }
+
+
+            @* =================================================
+               MOVIMIENTOS DEL DÍA
+               ================================================= *@
+
+            <section class="workspace-card">
+
+                <div class="section-header">
+
+                    <div>
+
+                        <span class="section-eyebrow">
+                            ACTIVIDAD
+                        </span>
+
+                        <h2>
+                            Movimientos del día
+                        </h2>
+
+                    </div>
+
+
+                    <span class="movement-count">
+                        @_cajaHoy.Movimientos.Count
+                        movimientos
+                    </span>
+
+                </div>
+
+
+                @if (_cajaHoy.Movimientos.Count == 0)
+                {
+                    <div class="empty-movements">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" />
+
+                        <strong>
+                            Todavía no hay movimientos
+                        </strong>
+
+                        <span>
+                            Los cobros en efectivo aparecerán
+                            automáticamente acá.
+                        </span>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="movement-table">
+
+                        <div class="movement-head">
+
+                            <span>
+                                Hora
+                            </span>
+
+                            <span>
+                                Concepto
+                            </span>
+
+                           <span>
+    Detalle
+</span>
+
+                            <span>
+                                Referencia
+                            </span>
+
+                            <span>
+                                Importe
+                            </span>
+
+                        </div>
+
+
+                        @foreach (var movimiento in
+                            _cajaHoy.Movimientos
+                                .OrderByDescending(x => x.FechaUtc))
+                        {
+                            <div class="movement-row">
+
+                                <span class="movement-time">
+                                    @FormatearHora(movimiento.FechaUtc)
+                                </span>
+
+
+                                <div class="movement-concept">
+
+                                    <span class="movement-type-icon @(movimiento.Tipo == TipoMovimientoCaja.Ingreso ? "income" : "expense")">
+
+                                        <MudIcon Icon="@(movimiento.Tipo == TipoMovimientoCaja.Ingreso
+                                            ? Icons.Material.Filled.ArrowDownward
+                                            : Icons.Material.Filled.ArrowUpward)"
+                                                 Size="Size.Small" />
+
+                                    </span>
+
+
+                                    <div>
+
+                                        <strong>
+                                            @movimiento.Concepto
+                                        </strong>
+
+                                        @if (movimiento.PagoId.HasValue)
+                                        {
+                                            <small>
+                                                Pago de cliente
+                                            </small>
+                                        }
+
+                                    </div>
+
+                                </div>
+
+
+                               <span>
+    @(string.IsNullOrWhiteSpace(movimiento.Detalle)
+        ? "—"
+        : movimiento.Detalle)
+</span>
+
+
+                                <span class="reference">
+                                    @(string.IsNullOrWhiteSpace(movimiento.Referencia)
+                                        ? "—"
+                                        : movimiento.Referencia)
+                                </span>
+
+
+                                <strong class="movement-value @(movimiento.Tipo == TipoMovimientoCaja.Ingreso ? "income" : "expense")">
+
+                                    @(movimiento.Tipo == TipoMovimientoCaja.Ingreso
+                                        ? "+"
+                                        : "-")
+
+                                    @FormatearMoneda(movimiento.Importe)
+
+                                </strong>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        @* =====================================================
+           HISTÓRICO
+           ===================================================== *@
+
+        <section class="workspace-card history-card">
+
+            <div class="section-header">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        HISTÓRICO
+                    </span>
+
+                    <h2>
+                        Cajas anteriores
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="text-action"
+                        @onclick="CargarHistoricoAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                             Size="Size.Small" />
+
+                    Actualizar
+
+                </button>
+
+            </div>
+
+
+            @if (_historico.Count == 0)
+            {
+                <div class="empty-history">
+                    Todavía no hay cajas anteriores.
+                </div>
+            }
+            else
+            {
+                <div class="history-table">
+
+                    <div class="history-head">
+
+                        <span>Fecha</span>
+                        <span>Estado</span>
+                        <span>Inicial</span>
+                        <span>Esperado</span>
+                        <span>Contado</span>
+                        <span>Diferencia</span>
+                        <span></span>
+
+                    </div>
+
+
+                    @foreach (var caja in _historico)
+                    {
+                        <button type="button"
+                                class="history-row"
+                                @onclick="() => AbrirDetalleHistoricoAsync(caja.Id)">
+
+                            <strong>
+                                @FormatearFechaOperativa(caja.FechaOperativa)
+                            </strong>
+
+
+                            <span class="status-badge mini @ObtenerClaseEstado(caja.Estado)">
+
+                                <i></i>
+
+                                @ObtenerEstadoTexto(caja.Estado)
+
+                            </span>
+
+
+                            <span>
+                                @FormatearMoneda(caja.SaldoInicial)
+                            </span>
+
+
+                            <span>
+                                @FormatearMoneda(caja.SaldoEsperado)
+                            </span>
+
+
+                            <span>
+                                @(caja.SaldoFinalDeclarado.HasValue
+                                    ? FormatearMoneda(caja.SaldoFinalDeclarado.Value)
+                                    : "—")
+                            </span>
+
+
+                            <strong class="@ObtenerClaseDiferencia(caja.Diferencia)">
+                                @FormatearDiferencia(caja.Diferencia)
+                            </strong>
+
+
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                                     Size="Size.Small" />
+
+                        </button>
+                    }
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL APERTURA
+   ============================================================= *@
+
+@if (_modalApertura)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarModalApertura">
+
+        <section class="premium-modal compact-modal"
+                 @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span>
+                        APERTURA DIARIA
+                    </span>
+
+                    <h2>
+                        Abrir caja
+                    </h2>
+
+                    <p>
+                        @FormatearFechaOperativa(_hoy)
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModalApertura">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div class="opening-illustration">
+
+                    <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+
+                    <div>
+
+                        <strong>
+                            Efectivo inicial
+                        </strong>
+
+                        <span>
+                            Dinero físico disponible al comenzar la jornada.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Saldo inicial *
+                    </label>
+
+                    <div class="money-input">
+
+                        <span>
+                            $
+                        </span>
+
+                        <input type="number"
+                               min="0"
+                               step="0.01"
+                               @bind="_abrirCaja.SaldoInicial" />
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Observaciones
+                    </label>
+
+                    <textarea maxlength="1000"
+                              rows="3"
+                              placeholder="Opcional..."
+                              @bind="_abrirCaja.Observaciones">
+                    </textarea>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModalApertura">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_procesando"
+                        @onclick="AbrirCajaAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.LockOpen"
+                             Size="Size.Small" />
+
+                    @(_procesando
+                        ? "Abriendo..."
+                        : "Abrir caja")
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+}
+
+
+@* =============================================================
+   MODAL MOVIMIENTO
+   ============================================================= *@
+
+@if (_modalMovimiento &&
+     _cajaHoy is not null)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarModalMovimiento">
+
+        <section class="premium-modal"
+                 @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span>
+                        MOVIMIENTO DE EFECTIVO
+                    </span>
+
+                    <h2>
+                        @(_tipoMovimientoSeleccionado ==
+                            TipoMovimientoCaja.Ingreso
+                                ? "Registrar ingreso"
+                                : "Registrar egreso")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModalMovimiento">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="modal-body form-grid">
+
+                <div class="movement-mode @(_tipoMovimientoSeleccionado == TipoMovimientoCaja.Ingreso ? "income" : "expense")">
+
+                    <span>
+
+                        <MudIcon Icon="@(_tipoMovimientoSeleccionado == TipoMovimientoCaja.Ingreso
+                            ? Icons.Material.Filled.ArrowDownward
+                            : Icons.Material.Filled.ArrowUpward)" />
+
+                    </span>
+
+
+                    <div>
+
+                        <strong>
+                            @(_tipoMovimientoSeleccionado ==
+                                TipoMovimientoCaja.Ingreso
+                                    ? "Ingreso de efectivo"
+                                    : "Egreso de efectivo")
+                        </strong>
+
+                        <small>
+                            Este movimiento modifica
+                            el efectivo esperado de caja.
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                @if (ConceptosDisponibles.Count == 0)
+                {
+                   <div class="form-warning full">
+
+    <MudIcon Icon="@Icons.Material.Filled.Info"
+             Size="Size.Small" />
+
+
+    <div>
+
+        <span>
+            No hay conceptos activos de
+            @(_tipoMovimientoSeleccionado ==
+                TipoMovimientoCaja.Ingreso
+                    ? "ingreso"
+                    : "egreso").
+        </span>
+
+
+        <button type="button"
+                class="inline-create-concept"
+                @onclick="CrearConceptoDesdeMovimiento">
+
+            <MudIcon Icon="@Icons.Material.Filled.Add"
+                     Size="Size.Small" />
+
+            Crear concepto
+
+        </button>
+
+    </div>
+
+</div>
+                }
+                else
+                {
+                    <div class="form-field full">
+
+                        <label>
+                            Concepto *
+                        </label>
+
+                        <select @bind="_movimiento.ConceptoCajaId">
+
+                            @foreach (var concepto in
+                                ConceptosDisponibles)
+                            {
+                                <option value="@concepto.Id">
+                                    @concepto.Nombre
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Importe *
+                        </label>
+
+                        <div class="money-input">
+
+                            <span>
+                                $
+                            </span>
+
+                            <input type="number"
+                                   min="0.01"
+                                   step="0.01"
+                                   @bind="_movimiento.Importe" />
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Referencia
+                        </label>
+
+                        <input type="text"
+                               maxlength="200"
+                               placeholder="Factura, ticket, comprobante..."
+                               @bind="_movimiento.Referencia" />
+
+                    </div>
+
+
+                    <div class="form-field full">
+
+                        <label>
+                            Detalle
+                        </label>
+
+                        <textarea maxlength="500"
+                                  rows="3"
+                                  placeholder="Detalle opcional del movimiento..."
+                                  @bind="_movimiento.Detalle">
+                        </textarea>
+
+                    </div>
+
+
+                    @if (ConceptoSeleccionado is not null)
+                    {
+                        <div class="selected-concept-info full">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Info"
+                                     Size="Size.Small" />
+
+                            <span>
+                                Se registrará como
+                                <strong>
+                                    @ObtenerTipoMovimientoTexto(
+                                        ConceptoSeleccionado.Tipo)
+                                </strong>
+                                de efectivo.
+                            </span>
+
+                        </div>
+                    }
+                }
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModalMovimiento">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@(_procesando || ConceptosDisponibles.Count == 0)"
+                        @onclick="GuardarMovimientoAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Check"
+                             Size="Size.Small" />
+
+                    @(_procesando
+                        ? "Registrando..."
+                        : "Registrar movimiento")
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+}
+
+@* =============================================================
+   MODAL CIERRE
+   ============================================================= *@
+
+@if (_modalCierre &&
+     _cajaParaCerrar is not null)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarModalCierre">
+
+        <section class="premium-modal close-modal"
+                 @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span>
+                        ARQUEO DE CAJA
+                    </span>
+
+                    <h2>
+                        Cerrar caja
+                    </h2>
+
+                    <p>
+                        @FormatearFechaOperativa(_cajaParaCerrar.FechaOperativa)
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModalCierre">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="close-summary">
+
+                <article>
+
+                    <span>
+                        Saldo inicial
+                    </span>
+
+                    <strong>
+                        @FormatearMoneda(_cajaParaCerrar.SaldoInicial)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Ingresos
+                    </span>
+
+                    <strong class="positive">
+                        +@FormatearMoneda(_cajaParaCerrar.IngresosEfectivo)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Egresos
+                    </span>
+
+                    <strong class="negative">
+                        -@FormatearMoneda(_cajaParaCerrar.EgresosEfectivo)
+                    </strong>
+
+                </article>
+
+            </div>
+
+
+            <div class="expected-balance">
+
+                <span>
+                    SALDO ESPERADO
+                </span>
+
+                <strong>
+                    @FormatearMoneda(_cajaParaCerrar.SaldoEsperado)
+                </strong>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div class="form-field">
+
+                    <label>
+                        Efectivo contado *
+                    </label>
+
+                    <div class="money-input large">
+
+                        <span>$</span>
+
+                        <input type="number"
+                               min="0"
+                               step="0.01"
+                               @bind="_cerrarCaja.SaldoFinalDeclarado" />
+
+                    </div>
+
+                </div>
+
+
+                <div class="difference-preview @ObtenerClaseDiferencia(DiferenciaCierre)">
+
+                    <span>
+                        Diferencia
+                    </span>
+
+                    <strong>
+                        @FormatearDiferencia(DiferenciaCierre)
+                    </strong>
+
+                    <small>
+                        @(DiferenciaCierre == 0
+                            ? "El efectivo coincide con el sistema."
+                            : DiferenciaCierre > 0
+                                ? "Hay más efectivo del esperado."
+                                : "Hay menos efectivo del esperado.")
+                    </small>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Observaciones
+                    </label>
+
+                    <textarea maxlength="1000"
+                              rows="3"
+                              placeholder="Detalle de diferencias u observaciones del cierre..."
+                              @bind="_cerrarCaja.Observaciones">
+                    </textarea>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModalCierre">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action danger-action"
+                        disabled="@_procesando"
+                        @onclick="CerrarCajaAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Lock"
+                             Size="Size.Small" />
+
+                    @(_procesando
+                        ? "Cerrando..."
+                        : "Confirmar cierre")
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+}
+
+
+@* =============================================================
+   DETALLE HISTÓRICO
+   ============================================================= *@
+
+@if (_detalleHistorico is not null)
+{
+    <div class="drawer-overlay"
+         @onclick="CerrarDetalleHistorico">
+
+        <aside class="history-drawer"
+               @onclick:stopPropagation="true">
+
+            <div class="drawer-header">
+
+                <div>
+
+                    <span>
+                        DETALLE DE CAJA
+                    </span>
+
+                    <h2>
+                        @FormatearFechaOperativa(_detalleHistorico.FechaOperativa)
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarDetalleHistorico">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="drawer-balance">
+
+                <span>
+                    Saldo esperado
+                </span>
+
+                <strong>
+                    @FormatearMoneda(_detalleHistorico.SaldoEsperado)
+                </strong>
+
+
+                <span class="status-badge @ObtenerClaseEstado(_detalleHistorico.Estado)">
+
+                    <i></i>
+
+                    @ObtenerEstadoTexto(_detalleHistorico.Estado)
+
+                </span>
+
+            </div>
+
+
+            <div class="drawer-stats">
+
+                <article>
+
+                    <span>
+                        Inicial
+                    </span>
+
+                    <strong>
+                        @FormatearMoneda(_detalleHistorico.SaldoInicial)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Ingresos
+                    </span>
+
+                    <strong class="positive">
+                        @FormatearMoneda(_detalleHistorico.IngresosEfectivo)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Egresos
+                    </span>
+
+                    <strong class="negative">
+                        @FormatearMoneda(_detalleHistorico.EgresosEfectivo)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Diferencia
+                    </span>
+
+                    <strong class="@ObtenerClaseDiferencia(_detalleHistorico.Diferencia)">
+                        @FormatearDiferencia(_detalleHistorico.Diferencia)
+                    </strong>
+
+                </article>
+
+            </div>
+
+
+            <div class="drawer-meta">
+
+                <p>
+                    <strong>Abierta por:</strong>
+                    @_detalleHistorico.UsuarioApertura
+                </p>
+
+                @if (!string.IsNullOrWhiteSpace(_detalleHistorico.UsuarioCierre))
+                {
+                    <p>
+                        <strong>Cerrada por:</strong>
+                        @_detalleHistorico.UsuarioCierre
+                    </p>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_detalleHistorico.Observaciones))
+                {
+                    <p>
+                        <strong>Observaciones:</strong><br />
+                        @_detalleHistorico.Observaciones
+                    </p>
+                }
+
+            </div>
+
+
+            <div class="drawer-movements">
+
+                <h3>
+                    Movimientos
+                </h3>
+
+
+                @foreach (var movimiento in
+                    _detalleHistorico.Movimientos
+                        .OrderByDescending(x => x.FechaUtc))
+                {
+                    <div class="drawer-movement">
+
+                        <span class="movement-type-icon @(movimiento.Tipo == TipoMovimientoCaja.Ingreso ? "income" : "expense")">
+
+                            <MudIcon Icon="@(movimiento.Tipo == TipoMovimientoCaja.Ingreso
+                                ? Icons.Material.Filled.ArrowDownward
+                                : Icons.Material.Filled.ArrowUpward)"
+                                     Size="Size.Small" />
+
+                        </span>
+
+
+                        <div>
+
+    <strong>
+        @movimiento.Concepto
+    </strong>
+
+    <small>
+        @FormatearHora(movimiento.FechaUtc)
+        ·
+        @ObtenerTipoMovimientoTexto(movimiento.Tipo)
+
+        @if (!string.IsNullOrWhiteSpace(
+            movimiento.Detalle))
+        {
+            <text>
+                · @movimiento.Detalle
+            </text>
+        }
+    </small>
+
+</div>
+
+
+                        <strong class="drawer-value @(movimiento.Tipo == TipoMovimientoCaja.Ingreso ? "income" : "expense")">
+
+                            @(movimiento.Tipo == TipoMovimientoCaja.Ingreso
+                                ? "+"
+                                : "-")
+
+                            @FormatearMoneda(movimiento.Importe)
+
+                        </strong>
+
+                    </div>
+                }
+
+            </div>
+
+
+            @if (_detalleHistorico.Estado == EstadoCaja.Abierta)
+            {
+                <div class="drawer-footer">
+
+                    <button type="button"
+                            class="primary-action danger-action"
+                            @onclick="CerrarCajaHistorica">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Lock"
+                                 Size="Size.Small" />
+
+                        Cerrar esta caja
+
+                    </button>
+
+                </div>
+            }
+
+        </aside>
+
+    </div>
+}
+
+@* =============================================================
+   DRAWER CONCEPTOS DE CAJA
+   ============================================================= *@
+
+@if (_drawerConceptos)
+{
+    <div class="drawer-overlay"
+         @onclick="CerrarConceptosCaja">
+
+        <aside class="concepts-drawer"
+               @onclick:stopPropagation="true">
+
+            <div class="drawer-header">
+
+                <div>
+
+                    <span>
+                        CONFIGURACIÓN
+                    </span>
+
+                    <h2>
+                        Conceptos de caja
+                    </h2>
+
+                    <p>
+                        Definí los motivos disponibles
+                        para ingresos y egresos manuales.
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarConceptosCaja">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="concepts-toolbar">
+
+                <label class="inactive-toggle">
+
+                    <input type="checkbox"
+                           @bind="_mostrarConceptosInactivos" />
+
+                    <span>
+                        Mostrar inactivos
+                    </span>
+
+                </label>
+
+
+                <button type="button"
+                        class="primary-action"
+                        @onclick="NuevoConceptoCaja">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Add"
+                             Size="Size.Small" />
+
+                    Nuevo concepto
+
+                </button>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(_errorConcepto))
+            {
+                <div class="concept-error">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Error"
+                             Size="Size.Small" />
+
+                    <span>
+                        @_errorConcepto
+                    </span>
+
+                </div>
+            }
+
+
+            <div class="concepts-content">
+
+                @* =============================================
+                   INGRESOS
+                   ============================================= *@
+
+                <section class="concept-group">
+
+                    <div class="concept-group-title">
+
+                        <div class="concept-group-icon income">
+
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowDownward"
+                                     Size="Size.Small" />
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                INGRESOS
+                            </span>
+
+                            <strong>
+                                Entradas de efectivo
+                            </strong>
+
+                        </div>
+
+
+                        <span class="concept-count">
+                            @ConceptosIngresoVisibles.Count
+                        </span>
+
+                    </div>
+
+
+                    @if (ConceptosIngresoVisibles.Count == 0)
+                    {
+                        <div class="empty-concepts">
+
+                            No hay conceptos de ingreso
+                            @( _mostrarConceptosInactivos
+                                ? "cargados."
+                                : "activos." )
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="concept-list">
+
+                            @foreach (var concepto in ConceptosIngresoVisibles)
+                            {
+                                <article class="concept-item @(!concepto.Activo ? "inactive" : "")">
+
+                                    <div class="concept-order">
+                                        @concepto.Orden
+                                    </div>
+
+
+                                    <div class="concept-data">
+
+                                        <strong>
+                                            @concepto.Nombre
+                                        </strong>
+
+                                       <small>
+    @(EsConceptoSistema(concepto)
+        ? "Concepto automático del sistema"
+        : concepto.Activo
+            ? "Disponible para usar"
+            : "Concepto inactivo")
+</small>
+
+                                    </div>
+
+
+                                    <span class="concept-status @(concepto.Activo ? "active" : "inactive")">
+
+                                        @(concepto.Activo
+                                            ? "Activo"
+                                            : "Inactivo")
+
+                                    </span>
+
+
+                                   @if (!EsConceptoSistema(concepto))
+{
+    <button type="button"
+            class="icon-action"
+            title="Editar"
+            @onclick="() => EditarConceptoCaja(concepto)">
+
+        <MudIcon Icon="@Icons.Material.Filled.Edit"
+                 Size="Size.Small" />
+
+    </button>
+
+
+    <button type="button"
+            class="icon-action @(concepto.Activo ? "deactivate" : "activate")"
+            title="@(concepto.Activo ? "Desactivar" : "Activar")"
+            disabled="@_procesandoConcepto"
+            @onclick="() => CambiarEstadoConceptoAsync(concepto)">
+
+        <MudIcon Icon="@(concepto.Activo
+            ? Icons.Material.Filled.Block
+            : Icons.Material.Filled.CheckCircle)"
+                 Size="Size.Small" />
+
+    </button>
+}
+else
+{
+    <span class="system-concept-icon"
+          title="Concepto del sistema">
+
+        <MudIcon Icon="@Icons.Material.Filled.Lock"
+                 Size="Size.Small" />
+
+    </span>
+
+    <span></span>
+}
+
+                                </article>
+                            }
+
+                        </div>
+                    }
+
+                </section>
+
+
+                @* =============================================
+                   EGRESOS
+                   ============================================= *@
+
+                <section class="concept-group">
+
+                    <div class="concept-group-title">
+
+                        <div class="concept-group-icon expense">
+
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowUpward"
+                                     Size="Size.Small" />
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                EGRESOS
+                            </span>
+
+                            <strong>
+                                Salidas de efectivo
+                            </strong>
+
+                        </div>
+
+
+                        <span class="concept-count">
+                            @ConceptosEgresoVisibles.Count
+                        </span>
+
+                    </div>
+
+
+                    @if (ConceptosEgresoVisibles.Count == 0)
+                    {
+                        <div class="empty-concepts">
+
+                            No hay conceptos de egreso
+                            @( _mostrarConceptosInactivos
+                                ? "cargados."
+                                : "activos." )
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="concept-list">
+
+                            @foreach (var concepto in ConceptosEgresoVisibles)
+                            {
+                                <article class="concept-item @(!concepto.Activo ? "inactive" : "")">
+
+                                    <div class="concept-order">
+                                        @concepto.Orden
+                                    </div>
+
+
+                                    <div class="concept-data">
+
+                                        <strong>
+                                            @concepto.Nombre
+                                        </strong>
+
+                                        <small>
+                                            @(concepto.Activo
+                                                ? "Disponible para usar"
+                                                : "Concepto inactivo")
+                                        </small>
+
+                                    </div>
+
+
+                                    <span class="concept-status @(concepto.Activo ? "active" : "inactive")">
+
+                                        @(concepto.Activo
+                                            ? "Activo"
+                                            : "Inactivo")
+
+                                    </span>
+
+
+                                    <button type="button"
+                                            class="icon-action"
+                                            title="Editar"
+                                            @onclick="() => EditarConceptoCaja(concepto)">
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                                 Size="Size.Small" />
+
+                                    </button>
+
+
+                                    <button type="button"
+                                            class="icon-action @(concepto.Activo ? "deactivate" : "activate")"
+                                            title="@(concepto.Activo ? "Desactivar" : "Activar")"
+                                            disabled="@_procesandoConcepto"
+                                            @onclick="() => CambiarEstadoConceptoAsync(concepto)">
+
+                                        <MudIcon Icon="@(concepto.Activo
+                                            ? Icons.Material.Filled.Block
+                                            : Icons.Material.Filled.CheckCircle)"
+                                                 Size="Size.Small" />
+
+                                    </button>
+
+                                </article>
+                            }
+
+                        </div>
+                    }
+
+                </section>
+
+            </div>
+
+        </aside>
+
+    </div>
+}
+
+
+@* =============================================================
+   MODAL NUEVO / EDITAR CONCEPTO
+   ============================================================= *@
+
+@if (_modalConcepto)
+{
+    <div class="modal-overlay concept-modal-overlay"
+         @onclick="CerrarModalConcepto">
+
+        <section class="premium-modal concept-modal"
+                 @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span>
+                        CONFIGURACIÓN DE CAJA
+                    </span>
+
+                    <h2>
+                        @(_editandoConceptoId.HasValue
+                            ? "Editar concepto"
+                            : "Nuevo concepto")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModalConcepto">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="modal-body form-grid">
+
+                <div class="form-field full">
+
+                    <label>
+                        Nombre *
+                    </label>
+
+                    <input type="text"
+                           maxlength="150"
+                           placeholder="Ej. Compra de cloro"
+                           @bind="_conceptoForm.Nombre" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Tipo de movimiento *
+                    </label>
+
+                    <select @bind="_conceptoForm.Tipo">
+
+                        <option value="@TipoMovimientoCaja.Ingreso">
+                            Ingreso
+                        </option>
+
+                        <option value="@TipoMovimientoCaja.Egreso">
+                            Egreso
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Orden
+                    </label>
+
+                    <input type="number"
+                           min="0"
+                           step="1"
+                           @bind="_conceptoForm.Orden" />
+
+                </div>
+
+
+                <div class="concept-type-preview full @(_conceptoForm.Tipo == TipoMovimientoCaja.Ingreso ? "income" : "expense")">
+
+                    <span class="concept-preview-icon">
+
+                        <MudIcon Icon="@(_conceptoForm.Tipo == TipoMovimientoCaja.Ingreso
+                            ? Icons.Material.Filled.ArrowDownward
+                            : Icons.Material.Filled.ArrowUpward)" />
+
+                    </span>
+
+
+                    <div>
+
+                        <strong>
+                            @(_conceptoForm.Tipo ==
+                                TipoMovimientoCaja.Ingreso
+                                    ? "Ingreso de efectivo"
+                                    : "Egreso de efectivo")
+                        </strong>
+
+                        <small>
+                            @(_conceptoForm.Tipo ==
+                                TipoMovimientoCaja.Ingreso
+                                    ? "Este concepto aumentará el saldo esperado de caja."
+                                    : "Este concepto disminuirá el saldo esperado de caja.")
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <label class="active-checkbox full">
+
+                    <input type="checkbox"
+                           @bind="_conceptoForm.Activo" />
+
+                    <span>
+
+                        <strong>
+                            Concepto activo
+                        </strong>
+
+                        <small>
+                            Los conceptos inactivos no aparecen
+                            al registrar movimientos.
+                        </small>
+
+                    </span>
+
+                </label>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(_errorConceptoModal))
+            {
+                <div class="concept-modal-error">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Error"
+                             Size="Size.Small" />
+
+                    @_errorConceptoModal
+
+                </div>
+            }
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModalConcepto">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_procesandoConcepto"
+                        @onclick="GuardarConceptoCajaAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Check"
+                             Size="Size.Small" />
+
+                    @(_procesandoConcepto
+                        ? "Guardando..."
+                        : _editandoConceptoId.HasValue
+                            ? "Guardar cambios"
+                            : "Crear concepto")
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+}

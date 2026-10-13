@@ -1,0 +1,1049 @@
+@page "/bancos/{CuentaId:guid}/movimientos"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador,Administrativa")]
+
+@using BebesNadadores.Application.Bancos
+@using BebesNadadores.Application.Bancos.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject IMovimientoBancarioService MovimientoBancarioService
+@inject NavigationManager Navigation
+
+<PageTitle>Movimientos bancarios | Bebés Nadadores</PageTitle>
+
+
+<div class="bank-movements-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <header class="bank-header">
+
+        <div>
+
+            <span class="page-eyebrow">
+                FINANZAS · BANCOS
+            </span>
+
+            <h1>
+                Movimientos bancarios
+            </h1>
+
+            @if (!string.IsNullOrWhiteSpace(NombreCuenta))
+            {
+                <p>
+                    @NombreBanco · @NombreCuenta
+                </p>
+            }
+            else
+            {
+                <p>
+                    Ingresos y egresos registrados por el sistema.
+                </p>
+            }
+
+        </div>
+
+
+        <div class="header-actions">
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Bancos
+
+            </button>
+
+
+            <button type="button"
+                    class="secondary-action"
+                    disabled="@_cargando"
+                    @onclick="CargarAsync">
+
+                <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                         Size="Size.Small" />
+
+                Actualizar
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    @* =========================================================
+       ERROR
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="bank-message error">
+
+            <MudIcon Icon="@Icons.Material.Filled.Error"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+        </div>
+    }
+
+
+    @if (_cargando)
+    {
+        <div class="loading-state">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            <span>
+                Cargando movimientos...
+            </span>
+
+        </div>
+    }
+    else if (_datos is not null)
+    {
+        @* =====================================================
+           KPIs
+           ===================================================== *@
+
+        <section class="bank-summary">
+
+            <article class="income">
+
+                <span class="summary-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.SouthWest" />
+
+                </span>
+
+
+                <div>
+
+                    <small>
+                        INGRESOS REGISTRADOS
+                    </small>
+
+                    <strong>
+                        @FormatearMoneda(
+                            _datos.TotalIngresos)
+                    </strong>
+
+                    <span>
+                        Según filtros aplicados
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <article class="expense">
+
+                <span class="summary-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.NorthEast" />
+
+                </span>
+
+
+                <div>
+
+                    <small>
+                        EGRESOS REGISTRADOS
+                    </small>
+
+                    <strong>
+                        @FormatearMoneda(
+                            _datos.TotalEgresos)
+                    </strong>
+
+                    <span>
+                        Según filtros aplicados
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <article class="net">
+
+                <span class="summary-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.SwapVert" />
+
+                </span>
+
+
+                <div>
+
+                    <small>
+                        NETO DEL PERÍODO
+                    </small>
+
+                    <strong class="@ObtenerClaseNeto(_datos.NetoPeriodo)">
+                        @FormatearMoneda(
+                            _datos.NetoPeriodo)
+                    </strong>
+
+                    <span>
+                        Ingresos menos egresos
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <span class="summary-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
+
+                </span>
+
+
+                <div>
+
+                    <small>
+                        MOVIMIENTOS
+                    </small>
+
+                    <strong>
+                        @_datos.CantidadMovimientos
+                    </strong>
+
+                    <span>
+                        Registros encontrados
+                    </span>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        @* =====================================================
+           FILTROS
+           ===================================================== *@
+
+        <section class="filters-card">
+
+            <div class="filter-field search-field">
+
+                <label>
+                    Buscar
+                </label>
+
+                <div class="search-control">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Search"
+                             Size="Size.Small" />
+
+                    <input type="text"
+                           placeholder="Bebé, proveedor, concepto, referencia..."
+                           @bind="_buscar" />
+
+                </div>
+
+            </div>
+
+
+            <div class="filter-field">
+
+                <label>
+                    Desde
+                </label>
+
+                <input type="date"
+                       @bind="_desde" />
+
+            </div>
+
+
+            <div class="filter-field">
+
+                <label>
+                    Hasta
+                </label>
+
+                <input type="date"
+                       @bind="_hasta" />
+
+            </div>
+
+
+            <div class="filter-field">
+
+                <label>
+                    Tipo
+                </label>
+
+                <select @bind="_tipo">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    <option value="@TipoMovimientoBancario.Ingreso">
+                        Ingresos
+                    </option>
+
+                    <option value="@TipoMovimientoBancario.Egreso">
+                        Egresos
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="filter-field">
+
+                <label>
+                    Origen
+                </label>
+
+                <select @bind="_origen">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    @foreach (
+                        var origen in
+                        Enum.GetValues<OrigenMovimientoBancario>())
+                    {
+                        <option value="@origen">
+                            @ObtenerOrigenTexto(origen)
+                        </option>
+                    }
+
+                </select>
+
+            </div>
+
+
+            <button type="button"
+                    class="apply-action"
+                    @onclick="AplicarFiltrosAsync">
+
+                <MudIcon Icon="@Icons.Material.Filled.FilterAlt"
+                         Size="Size.Small" />
+
+                Aplicar
+
+            </button>
+
+
+            <button type="button"
+                    class="clear-action"
+                    @onclick="LimpiarFiltrosAsync">
+
+                Limpiar
+
+            </button>
+
+        </section>
+
+
+        @* =====================================================
+           TABLA
+           ===================================================== *@
+
+        <section class="movements-card">
+
+            <div class="table-toolbar">
+
+                <div>
+
+                    <span class="page-eyebrow">
+                        EXTRACTO DEL SISTEMA
+                    </span>
+
+                    <h2>
+                        Movimientos registrados
+                    </h2>
+
+                </div>
+
+
+                <span class="result-count">
+                    @_datos.CantidadMovimientos resultados
+                </span>
+
+            </div>
+
+
+            @if (_datos.Movimientos.Count == 0)
+            {
+                <div class="empty-state">
+
+                    <span class="empty-icon">
+
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                    </span>
+
+                    <strong>
+                        No hay movimientos
+                    </strong>
+
+                    <p>
+                        No encontramos movimientos
+                        para los filtros seleccionados.
+                    </p>
+
+                </div>
+            }
+            else
+            {
+                <div class="movements-table">
+
+                    <div class="movement-row table-header">
+
+                        <span>
+                            Fecha
+                        </span>
+
+                        <span>
+                            Concepto
+                        </span>
+
+                        <span>
+                            Origen
+                        </span>
+
+                        <span>
+                            Referencia
+                        </span>
+
+                        <span class="amount-column">
+                            Importe
+                        </span>
+
+                        <span>
+                        </span>
+
+                    </div>
+
+
+                    @foreach (
+                        var movimiento in
+                        _datos.Movimientos)
+                    {
+                        <div class="movement-row">
+
+                            <div class="movement-date">
+
+                                <strong>
+                                    @FormatearFecha(
+                                        movimiento.FechaUtc)
+                                </strong>
+
+                                <small>
+                                    @FormatearHora(
+                                        movimiento.FechaUtc)
+                                </small>
+
+                            </div>
+
+
+                            <div class="movement-description">
+
+                                <strong>
+                                    @movimiento.Concepto
+                                </strong>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    movimiento.Bebe))
+                                {
+                                    <small>
+                                        @movimiento.Bebe
+                                    </small>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(
+                                    movimiento.Observaciones))
+                                {
+                                    <small>
+                                        @movimiento.Observaciones
+                                    </small>
+                                }
+
+                            </div>
+
+
+                            <span class="origin-badge @ObtenerClaseOrigen(movimiento.Origen)">
+
+                                @ObtenerOrigenTexto(
+                                    movimiento.Origen)
+
+                            </span>
+
+
+                            <div class="reference-text">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    movimiento.ReferenciaExterna)
+                                    ? "—"
+                                    : movimiento.ReferenciaExterna)
+
+                            </div>
+
+
+                            <strong class="movement-amount @(movimiento.Tipo == TipoMovimientoBancario.Ingreso ? "income" : "expense")">
+
+                                @(movimiento.Tipo ==
+                                    TipoMovimientoBancario.Ingreso
+                                        ? "+"
+                                        : "-")
+
+                                @FormatearMoneda(
+                                    movimiento.Importe)
+
+                            </strong>
+
+
+                            <button type="button"
+                                    class="detail-action"
+                                    title="Ver detalle"
+                                    @onclick="() => AbrirDetalleAsync(movimiento.Id)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Visibility"
+                                         Size="Size.Small" />
+
+                            </button>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   DRAWER DETALLE
+   ============================================================= *@
+
+@if (_detalle is not null)
+{
+    <div class="detail-overlay"
+         @onclick="CerrarDetalle">
+
+        <aside class="detail-drawer"
+               @onclick:stopPropagation="true">
+
+            <header class="detail-header">
+
+                <div>
+
+                    <span>
+                        MOVIMIENTO BANCARIO
+                    </span>
+
+                    <h2>
+                        Detalle
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        @onclick="CerrarDetalle">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </header>
+
+
+            @* =================================================
+               IMPORTE
+               ================================================= *@
+
+            <div class="detail-amount @(_detalle.Tipo == TipoMovimientoBancario.Ingreso ? "income" : "expense")">
+
+                <small>
+                    @(_detalle.Tipo ==
+                        TipoMovimientoBancario.Ingreso
+                            ? "INGRESO"
+                            : "EGRESO")
+                </small>
+
+                <strong>
+
+                    @(_detalle.Tipo ==
+                        TipoMovimientoBancario.Ingreso
+                            ? "+"
+                            : "-")
+
+                    @FormatearMoneda(
+                        _detalle.Importe)
+
+                </strong>
+
+            </div>
+
+
+            @* =================================================
+               DATOS DEL MOVIMIENTO
+               ================================================= *@
+
+            <div class="detail-grid">
+
+                <div>
+
+                    <span>
+                        Fecha
+                    </span>
+
+                    <strong>
+                        @FormatearFechaHora(
+                            _detalle.FechaUtc)
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Origen
+                    </span>
+
+                    <strong>
+                        @ObtenerOrigenTexto(
+                            _detalle.Origen)
+                    </strong>
+
+                </div>
+
+
+                <div class="full">
+
+                    <span>
+                        Concepto
+                    </span>
+
+                    <strong>
+                        @_detalle.Concepto
+                    </strong>
+
+                </div>
+
+
+                <div class="full">
+
+                    <span>
+                        Referencia
+                    </span>
+
+                    <strong>
+                        @(string.IsNullOrWhiteSpace(
+                            _detalle.ReferenciaExterna)
+                            ? "—"
+                            : _detalle.ReferenciaExterna)
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                _detalle.Observaciones))
+            {
+                <section class="detail-section">
+
+                    <span class="detail-label">
+                        OBSERVACIONES
+                    </span>
+
+                    <p>
+                        @_detalle.Observaciones
+                    </p>
+
+                </section>
+            }
+
+
+            @* =================================================
+               COBRO DE BEBÉ ASOCIADO
+               ================================================= *@
+
+            @if (_detalle.Pago is not null)
+            {
+                <section class="detail-section">
+
+                    <div class="section-title">
+
+                        <div>
+
+                            <span class="detail-label">
+                                PAGO ASOCIADO
+                            </span>
+
+                            <h3>
+                                Datos del cobro
+                            </h3>
+
+                        </div>
+
+
+                        <span class="linked-badge">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Link"
+                                     Size="Size.Small" />
+
+                            Vinculado
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="associated-person">
+
+                        <span class="person-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
+
+                        </span>
+
+
+                        <div>
+
+                            <strong>
+                                @_detalle.Pago.Bebe
+                            </strong>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                _detalle.Pago.Responsable))
+                            {
+                                <small>
+                                    Responsable:
+                                    @_detalle.Pago.Responsable
+                                </small>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="payment-info-grid">
+
+                        <div>
+
+                            <span>
+                                Medio de pago
+                            </span>
+
+                            <strong>
+                                @ObtenerMedioPagoTexto(
+                                    _detalle.Pago.MedioPago)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Importe
+                            </span>
+
+                            <strong>
+                                @FormatearMoneda(
+                                    _detalle.Pago.Importe)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Fecha
+                            </span>
+
+                            <strong>
+                                @FormatearFechaHora(
+                                    _detalle.Pago.FechaUtc)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Referencia
+                            </span>
+
+                            <strong>
+                                @(string.IsNullOrWhiteSpace(
+                                    _detalle.Pago.ReferenciaExterna)
+                                    ? "—"
+                                    : _detalle.Pago.ReferenciaExterna)
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (_detalle.Pago.Imputaciones.Count > 0)
+                    {
+                        <div class="allocations">
+
+                            <span class="detail-label">
+                                IMPUTADO A CUOTAS
+                            </span>
+
+
+                            @foreach (
+                                var imputacion in
+                                _detalle.Pago.Imputaciones)
+                            {
+                                <div class="allocation-row">
+
+                                    <div>
+
+                                        <span>
+                                            Cuota
+                                        </span>
+
+                                        <strong>
+                                            @FormatearPeriodo(
+                                                imputacion.Periodo)
+                                        </strong>
+
+                                    </div>
+
+
+                                    <strong>
+                                        @FormatearMoneda(
+                                            imputacion.Importe)
+                                    </strong>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </section>
+            }
+
+
+            @* =================================================
+               PAGO A PROVEEDOR ASOCIADO
+               ================================================= *@
+
+            @if (_detalle.PagoProveedor is not null)
+            {
+                <section class="detail-section">
+
+                    <div class="section-title">
+
+                        <div>
+
+                            <span class="detail-label">
+                                PAGO A PROVEEDOR
+                            </span>
+
+                            <h3>
+                                Datos del egreso
+                            </h3>
+
+                        </div>
+
+
+                        <span class="linked-badge">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Link"
+                                     Size="Size.Small" />
+
+                            Vinculado
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="associated-person">
+
+                        <span class="person-icon">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Business" />
+
+                        </span>
+
+
+                        <div>
+
+                            <strong>
+                                @_detalle.PagoProveedor.Proveedor
+                            </strong>
+
+                            <small>
+                                Proveedor
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="payment-info-grid">
+
+                        <div>
+
+                            <span>
+                                Medio de pago
+                            </span>
+
+                            <strong>
+                                @ObtenerMedioPagoTexto(
+                                    _detalle.PagoProveedor.MedioPago)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Importe
+                            </span>
+
+                            <strong>
+                                @FormatearMoneda(
+                                    _detalle.PagoProveedor.Importe)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Fecha
+                            </span>
+
+                            <strong>
+                                @FormatearFechaHora(
+                                    _detalle.PagoProveedor.FechaUtc)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Comprobante
+                            </span>
+
+                            <strong>
+                                @(string.IsNullOrWhiteSpace(
+                                    _detalle.PagoProveedor.NumeroComprobante)
+                                    ? "—"
+                                    : _detalle.PagoProveedor.NumeroComprobante)
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Referencia
+                            </span>
+
+                            <strong>
+                                @(string.IsNullOrWhiteSpace(
+                                    _detalle.PagoProveedor.ReferenciaExterna)
+                                    ? "—"
+                                    : _detalle.PagoProveedor.ReferenciaExterna)
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="allocations">
+
+                        <span class="detail-label">
+                            CONCEPTO DEL PAGO
+                        </span>
+
+                        <div class="allocation-row">
+
+                            <div>
+
+                                <span>
+                                    Motivo
+                                </span>
+
+                                <strong>
+                                    @_detalle.PagoProveedor.Concepto
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        _detalle.PagoProveedor.Observaciones))
+                    {
+                        <div class="allocations">
+
+                            <span class="detail-label">
+                                OBSERVACIONES DEL PAGO
+                            </span>
+
+                            <div class="allocation-row">
+
+                                <div>
+
+                                    <strong>
+                                        @_detalle.PagoProveedor.Observaciones
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+
+                </section>
+            }
+
+        </aside>
+
+    </div>
+}

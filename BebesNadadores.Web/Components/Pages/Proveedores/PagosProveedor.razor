@@ -1,0 +1,672 @@
+@page "/proveedores/{ProveedorId:guid}/pagos"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador,Administrativa")]
+
+@using BebesNadadores.Application.Proveedores.Dtos
+@using BebesNadadores.Application.Bancos.Dtos
+@using BebesNadadores.Domain.Enums
+
+<PageTitle>Pagos a proveedor | Bebés Nadadores</PageTitle>
+
+
+<div class="provider-payments-page">
+
+    @if (_cargando)
+    {
+        <div class="loading-state">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            <span>
+                Cargando proveedor...
+            </span>
+
+        </div>
+    }
+    else if (_proveedor is null)
+    {
+        <div class="empty-state">
+
+            <MudIcon Icon="@Icons.Material.Filled.Error" />
+
+            <strong>
+                Proveedor no encontrado
+            </strong>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+
+                Volver a proveedores
+
+            </button>
+
+        </div>
+    }
+    else
+    {
+        @* =====================================================
+           HEADER
+           ===================================================== *@
+
+        <header class="page-header">
+
+            <div>
+
+                <button type="button"
+                        class="back-link"
+                        @onclick="Volver">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                             Size="Size.Small" />
+
+                    Proveedores
+
+                </button>
+
+
+                <span class="page-eyebrow">
+                    FINANZAS · PROVEEDORES
+                </span>
+
+                <h1>
+                    @_proveedor.RazonSocial
+                </h1>
+
+                <p>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        _proveedor.NombreFantasia))
+                    {
+                        <span>
+                            @_proveedor.NombreFantasia ·
+                        </span>
+                    }
+
+                    CUIT @(_proveedor.Cuit ?? "sin informar")
+
+                </p>
+
+            </div>
+
+
+            <button type="button"
+                    class="primary-action"
+                    disabled="@(!_proveedor.Activo)"
+                    @onclick="AbrirPago">
+
+                <MudIcon Icon="@Icons.Material.Filled.Add"
+                         Size="Size.Small" />
+
+                Registrar pago
+
+            </button>
+
+        </header>
+
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="page-message error">
+
+                <MudIcon Icon="@Icons.Material.Filled.Error"
+                         Size="Size.Small" />
+
+                @_error
+
+            </div>
+        }
+
+
+        @if (!string.IsNullOrWhiteSpace(_mensaje))
+        {
+            <div class="page-message success">
+
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                         Size="Size.Small" />
+
+                @_mensaje
+
+            </div>
+        }
+
+
+        @* =====================================================
+           KPIs
+           ===================================================== *@
+
+        <section class="payment-kpis">
+
+            <article>
+
+                <span class="kpi-icon blue">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" />
+
+                </span>
+
+                <div>
+
+                    <small>
+                        TOTAL PAGADO
+                    </small>
+
+                    <strong>
+                        @FormatearMoneda(TotalPagado)
+                    </strong>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <span class="kpi-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
+
+                </span>
+
+                <div>
+
+                    <small>
+                        PAGOS REGISTRADOS
+                    </small>
+
+                    <strong>
+                        @_pagos.Count
+                    </strong>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <span class="kpi-icon green">
+
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                </span>
+
+                <div>
+
+                    <small>
+                        PAGADO POR BANCO
+                    </small>
+
+                    <strong>
+                        @FormatearMoneda(TotalBancario)
+                    </strong>
+
+                </div>
+
+            </article>
+
+
+            <article>
+
+                <span class="kpi-icon cash">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" />
+
+                </span>
+
+                <div>
+
+                    <small>
+                        PAGADO EN EFECTIVO
+                    </small>
+
+                    <strong>
+                        @FormatearMoneda(TotalEfectivo)
+                    </strong>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        @* =====================================================
+           HISTORIAL
+           ===================================================== *@
+
+        <section class="payments-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <span class="page-eyebrow">
+                        MOVIMIENTOS
+                    </span>
+
+                    <h2>
+                        Historial de pagos
+                    </h2>
+
+                </div>
+
+
+                <span class="record-count">
+                    @_pagos.Count registros
+                </span>
+
+            </div>
+
+
+            @if (_pagos.Count == 0)
+            {
+                <div class="empty-payments">
+
+                    <span class="empty-icon">
+
+                        <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
+
+                    </span>
+
+                    <strong>
+                        Todavía no hay pagos
+                    </strong>
+
+                    <span>
+                        Los pagos registrados al proveedor
+                        aparecerán acá.
+                    </span>
+
+                </div>
+            }
+            else
+            {
+                <div class="payments-table">
+
+                    <div class="payment-row table-header">
+
+                        <span>
+                            Fecha
+                        </span>
+
+                        <span>
+                            Concepto
+                        </span>
+
+                        <span>
+                            Medio
+                        </span>
+
+                        <span>
+                            Origen
+                        </span>
+
+                        <span>
+                            Comprobante
+                        </span>
+
+                        <span class="amount">
+                            Importe
+                        </span>
+
+                    </div>
+
+
+                    @foreach (var pago in _pagos)
+                    {
+                        <div class="payment-row">
+
+                            <div class="date-cell">
+
+                                <strong>
+                                    @FormatearFecha(pago.FechaUtc)
+                                </strong>
+
+                                <small>
+                                    @FormatearHora(pago.FechaUtc)
+                                </small>
+
+                            </div>
+
+
+                            <div class="concept-cell">
+
+                                <strong>
+                                    @pago.Concepto
+                                </strong>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    pago.Observaciones))
+                                {
+                                    <small>
+                                        @pago.Observaciones
+                                    </small>
+                                }
+
+                            </div>
+
+
+                            <span class="payment-method">
+
+                                @ObtenerMedioPagoTexto(
+                                    pago.MedioPago)
+
+                            </span>
+
+
+                            <div class="source-cell">
+
+                                @if (pago.MedioPago ==
+                                    MedioPago.Efectivo)
+                                {
+                                    <span class="cash-source">
+                                        Caja
+                                    </span>
+                                }
+                                else
+                                {
+                                    <strong>
+                                        @(pago.Banco ?? "Cuenta")
+                                    </strong>
+
+                                    <small>
+                                        @pago.CuentaBancaria
+                                    </small>
+                                }
+
+                            </div>
+
+
+                            <div class="receipt-cell">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    pago.NumeroComprobante)
+                                    ? "—"
+                                    : pago.NumeroComprobante)
+
+                            </div>
+
+
+                            <strong class="amount payment-value">
+
+                                - @FormatearMoneda(
+                                    pago.Importe)
+
+                            </strong>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL REGISTRAR PAGO
+   ============================================================= *@
+
+@if (_mostrarPago && _proveedor is not null)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarPago">
+
+        <section class="payment-modal"
+                 @onclick:stopPropagation="true">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <span class="page-eyebrow">
+                        NUEVO EGRESO
+                    </span>
+
+                    <h2>
+                        Registrar pago
+                    </h2>
+
+                    <p>
+                        @_proveedor.RazonSocial
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="close-action"
+                        @onclick="CerrarPago">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </header>
+
+
+            <div class="modal-body">
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _errorModal))
+                {
+                    <div class="page-message error">
+                        @_errorModal
+                    </div>
+                }
+
+
+                <div class="amount-field">
+
+                    <label>
+                        Importe *
+                    </label>
+
+                    <div>
+
+                        <span>
+                            $
+                        </span>
+
+                        <input type="number"
+                               min="0.01"
+                               step="0.01"
+                               placeholder="0,00"
+                               @bind="_form.Importe" />
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-grid">
+
+                    <div class="form-field wide">
+
+                        <label>
+                            Concepto *
+                        </label>
+
+                        <input type="text"
+                               maxlength="300"
+                               placeholder="Ej. Compra de cloro para pileta"
+                               @bind="_form.Concepto" />
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Medio de pago *
+                        </label>
+
+                        <select value="@_form.MedioPago"
+                                @onchange="MedioPagoCambio">
+
+                            <option value="@MedioPago.Efectivo">
+                                Efectivo
+                            </option>
+
+                            <option value="@MedioPago.Transferencia">
+                                Transferencia
+                            </option>
+
+                            <option value="@MedioPago.Tarjeta">
+                                Tarjeta
+                            </option>
+
+                            <option value="@MedioPago.MercadoPago">
+                                Mercado Pago
+                            </option>
+
+                            <option value="@MedioPago.Otro">
+                                Otro
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    @if (RequiereCuentaBancaria)
+                    {
+                        <div class="form-field">
+
+                            <label>
+                                Cuenta de origen *
+                            </label>
+
+                            <select @bind="_form.CuentaBancariaId">
+
+                                <option value="">
+                                    Seleccionar cuenta...
+                                </option>
+
+                                @foreach (
+                                    var cuenta in
+                                    _cuentasBancarias)
+                                {
+                                    <option value="@cuenta.Id">
+
+                                        @cuenta.Banco ·
+                                        @cuenta.Nombre
+
+                                    </option>
+                                }
+
+                            </select>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cash-notice">
+
+                            <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+
+                            <div>
+
+                                <strong>
+                                    Pago en efectivo
+                                </strong>
+
+                                <span>
+                                    Se registrará automáticamente
+                                    como egreso de la caja abierta de hoy.
+                                </span>
+
+                            </div>
+
+                        </div>
+                    }
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Nº comprobante
+                        </label>
+
+                        <input type="text"
+                               maxlength="100"
+                               placeholder="Factura / recibo"
+                               @bind="_form.NumeroComprobante" />
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Referencia
+                        </label>
+
+                        <input type="text"
+                               maxlength="200"
+                               placeholder="Transferencia / operación"
+                               @bind="_form.ReferenciaExterna" />
+
+                    </div>
+
+
+                    <div class="form-field wide">
+
+                        <label>
+                            Observaciones
+                        </label>
+
+                        <textarea rows="3"
+                                  maxlength="1000"
+                                  @bind="_form.Observaciones">
+                        </textarea>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <footer class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarPago">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="RegistrarPagoAsync">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Check"
+                                 Size="Size.Small" />
+                    }
+
+                    Registrar pago
+
+                </button>
+
+            </footer>
+
+        </section>
+
+    </div>
+}

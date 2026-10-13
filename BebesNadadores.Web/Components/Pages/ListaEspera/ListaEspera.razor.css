@@ -18,7 +18,22 @@
     font-family:
         var(--bn-font-body);
 }
+.icon-action.whatsapp {
+    color: #21c063;
+    border-color: rgba(33, 192, 99, .25);
+    background: rgba(33, 192, 99, .08);
+}
 
+.icon-action.whatsapp:hover:not(:disabled) {
+    color: #29d86f;
+    border-color: rgba(33, 192, 99, .45);
+    background: rgba(33, 192, 99, .15);
+}
+
+.icon-action.whatsapp:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+}
 
 /* ============================================================
    HEADER

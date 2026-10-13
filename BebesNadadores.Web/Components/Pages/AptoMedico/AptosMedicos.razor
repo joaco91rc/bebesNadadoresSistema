@@ -1,0 +1,739 @@
+@page "/aptos-medicos"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = "GestionMedica")]
+
+@using BebesNadadores.Application.AptosMedicos.Dtos
+@using BebesNadadores.Domain.Enums
+@using BebesNadadores.Web.Components.Shared.Utils
+
+<PageTitle>Aptos médicos | Bebés Nadadores</PageTitle>
+
+<div class="medical-page">
+
+    <section class="medical-header">
+        <div>
+            <span class="medical-eyebrow">SALUD Y SEGUIMIENTO</span>
+            <h1>Aptos médicos</h1>
+            <p>
+                Revisá los bebés próximos a ingresar a clase,
+                registrá controles y detectá aptos faltantes o vencidos.
+            </p>
+        </div>
+
+        <div class="medical-header-actions">
+            <button type="button"
+                    class="secondary-action"
+                    disabled="@_cargando"
+                    @onclick="RefrescarAsync">
+                <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                         Size="Size.Small" />
+                Actualizar
+            </button>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+                Volver
+            </button>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+            <span>@_error</span>
+            <button type="button" @onclick="() => _error = null">
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+            <span>@_mensaje</span>
+            <button type="button" @onclick="() => _mensaje = null">
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+            </button>
+        </div>
+    }
+
+    <section class="medical-summary">
+        <button type="button"
+                class="summary-card danger"
+                @onclick="() => AbrirControlConFiltro(SituacionAptoMedico.SinApto)">
+            <span class="summary-icon">
+                <MudIcon Icon="@Icons.Material.Filled.PersonSearch" />
+            </span>
+            <div>
+                <strong>@(_resumen?.SinApto ?? 0)</strong>
+                <span>Sin apto</span>
+            </div>
+        </button>
+
+        <button type="button"
+                class="summary-card expired"
+                @onclick="() => AbrirControlConFiltro(SituacionAptoMedico.Vencido)">
+            <span class="summary-icon">
+                <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+            </span>
+            <div>
+                <strong>@(_resumen?.Vencidos ?? 0)</strong>
+                <span>Vencidos</span>
+            </div>
+        </button>
+
+        <button type="button"
+                class="summary-card warning"
+                @onclick="() => AbrirControlConFiltro(SituacionAptoMedico.PorVencer)">
+            <span class="summary-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+            </span>
+            <div>
+                <strong>@(_resumen?.PorVencer ?? 0)</strong>
+                <span>Por vencer</span>
+            </div>
+        </button>
+
+        <button type="button"
+                class="summary-card observed"
+                @onclick="() => AbrirControlConFiltro(SituacionAptoMedico.Observado)">
+            <span class="summary-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" />
+            </span>
+            <div>
+                <strong>@(_resumen?.Observados ?? 0)</strong>
+                <span>Observados</span>
+            </div>
+        </button>
+
+        <button type="button"
+                class="summary-card blocked"
+                @onclick="() => AbrirControlConFiltro(SituacionAptoMedico.NoApto)">
+            <span class="summary-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Block" />
+            </span>
+            <div>
+                <strong>@(_resumen?.NoAptos ?? 0)</strong>
+                <span>No aptos</span>
+            </div>
+        </button>
+
+        <button type="button"
+                class="summary-card ok"
+                @onclick="() => AbrirControlConFiltro(SituacionAptoMedico.Vigente)">
+            <span class="summary-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Verified" />
+            </span>
+            <div>
+                <strong>@(_resumen?.Vigentes ?? 0)</strong>
+                <span>Vigentes</span>
+            </div>
+        </button>
+    </section>
+
+    <section class="medical-tabs">
+        <button type="button"
+                class="@(!_vistaControlGeneral ? "active" : "")"
+                @onclick="MostrarAgenda">
+            <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
+                     Size="Size.Small" />
+            Revisaciones de hoy
+        </button>
+
+        <button type="button"
+                class="@(_vistaControlGeneral ? "active" : "")"
+                @onclick="MostrarControlGeneral">
+            <MudIcon Icon="@Icons.Material.Filled.FactCheck"
+                     Size="Size.Small" />
+            Control general
+        </button>
+    </section>
+
+    @if (_cargando)
+    {
+        <div class="medical-loading">
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+            <span>Cargando información médica...</span>
+        </div>
+    }
+    else if (!_vistaControlGeneral)
+    {
+        <section class="agenda-view">
+
+            <div class="agenda-toolbar">
+                <div>
+                    <span class="section-eyebrow">AGENDA MÉDICA</span>
+                    <h2>@ObtenerTituloFecha(_fechaAgenda)</h2>
+                    <p>
+                        Se muestran los horarios más cercanos a la hora actual,
+                        agrupando las clases que comienzan al mismo tiempo.
+                    </p>
+                </div>
+
+                <div class="date-navigation">
+                    <button type="button" @onclick="DiaAnteriorAsync" title="Día anterior">
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" />
+                    </button>
+
+                    <button type="button"
+                            class="today-button"
+                            @onclick="IrAHoyAsync">
+                        Hoy
+                    </button>
+
+                    <button type="button" @onclick="DiaSiguienteAsync" title="Día siguiente">
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+                    </button>
+                </div>
+            </div>
+
+            @if (_agenda.Count == 0)
+            {
+                <div class="empty-state large">
+                    <div class="empty-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.EventAvailable" />
+                    </div>
+                    <strong>No hay clases para revisar</strong>
+                    <span>
+                        No encontramos clases programadas para la fecha seleccionada.
+                    </span>
+                </div>
+            }
+            else
+            {
+                <div class="time-strip">
+                    @foreach (var franja in _agenda)
+                    {
+                        <div class="time-pill @(franja.EsActual ? "current" : "")">
+                            <span>@franja.Posicion</span>
+                            <strong>@franja.HoraInicio.ToString("HH:mm")</strong>
+                            <small>
+                                @franja.Clases.Count
+                                @(franja.Clases.Count == 1 ? "clase" : "clases")
+                            </small>
+                        </div>
+                    }
+                </div>
+
+                <div class="medical-slots">
+                    @foreach (var franja in _agenda)
+                    {
+                        <article class="slot-card @(franja.EsActual ? "current" : "")">
+                            <div class="slot-heading">
+                                <div class="slot-time">
+                                    <span>@franja.Posicion</span>
+                                    <strong>@franja.HoraInicio.ToString("HH:mm")</strong>
+                                </div>
+
+                                @if (franja.EsActual)
+                                {
+                                    <span class="live-badge">
+                                        <i></i>
+                                        EN CURSO
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="slot-classes">
+                                @foreach (var clase in franja.Clases)
+                                {
+                                    <div class="class-block">
+                                        <div class="class-heading">
+                                            <div>
+                                                <span>@clase.Turno</span>
+                                                <h3>@clase.Nivel</h3>
+                                                <p>
+                                                    @clase.HoraInicio.ToString("HH:mm") — @clase.HoraFin.ToString("HH:mm")
+                                                    @if (clase.Profesores.Count > 0)
+                                                    {
+                                                        <text> · @string.Join(" · ", clase.Profesores)</text>
+                                                    }
+                                                </p>
+                                            </div>
+
+                                            <strong class="class-count">
+                                                @clase.Bebes.Count
+                                            </strong>
+                                        </div>
+
+                                        @if (clase.Bebes.Count == 0)
+                                        {
+                                            <div class="empty-class">
+                                                No hay bebés esperados en esta clase.
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="medical-students">
+                                                @foreach (var bebe in clase.Bebes)
+                                                {
+                                                    <div class="medical-student">
+                                                        <div class="student-avatar">
+                                                            @ObtenerIniciales(bebe.Bebe)
+                                                        </div>
+
+                                                        <div class="student-data">
+                                                            <strong>@bebe.Bebe</strong>
+                                                            <span>
+                                                                @ObtenerEdadTexto(bebe.FechaNacimiento)
+                                                                @if (!string.IsNullOrWhiteSpace(bebe.Nivel))
+                                                                {
+                                                                    <text> · @bebe.Nivel</text>
+                                                                }
+                                                            </span>
+                                                        </div>
+
+                                                        <div class="student-medical-state">
+                                                            <span class="medical-status @ObtenerClaseSituacion(bebe.Situacion)">
+                                                                <MudIcon Icon="@ObtenerIconoSituacion(bebe.Situacion)"
+                                                                         Size="Size.Small" />
+                                                                @ObtenerTextoSituacion(bebe)
+                                                            </span>
+                                                        </div>
+
+                                                        <button type="button"
+        class="review-button compact"
+        @onclick="() => AbrirRevisionAsync(bebe)">
+
+    <MudIcon Icon="@Icons.Material.Filled.MedicalInformation"
+             Size="Size.Small" />
+
+    <span class="review-button-text">
+        Revisar
+    </span>
+</button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="general-view">
+            <div class="general-toolbar">
+                <div>
+                    <span class="section-eyebrow">CONTROL GENERAL</span>
+                    <h2>Estado de aptos médicos</h2>
+                    <p>
+                        Buscá bebés sin apto, vencidos, observados o próximos a renovar.
+                    </p>
+                </div>
+
+                <div class="general-total">
+                    <span>RESULTADOS</span>
+                    <strong>@BebesFiltrados.Count</strong>
+                </div>
+            </div>
+
+            <div class="filters-bar">
+                <div class="search-box">
+                    <MudIcon Icon="@Icons.Material.Filled.Search"
+                             Size="Size.Small" />
+                    <input type="text"
+                           placeholder="Buscar bebé o nivel..."
+                           @bind="_busqueda"
+                           @bind:event="oninput" />
+                </div>
+
+                <div class="filter-field">
+                    <label>ESTADO</label>
+                    <select value="@ObtenerValorFiltroSituacion()"
+                            @onchange="CambiarFiltroSituacion">
+                        <option value="">Todos</option>
+                        @foreach (var situacion in Enum.GetValues<SituacionAptoMedico>())
+                        {
+                            <option value="@((int)situacion)">
+                                @ObtenerNombreSituacion(situacion)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label>NIVEL</label>
+                    <select value="@(_filtroNivelId?.ToString() ?? string.Empty)"
+                            @onchange="CambiarFiltroNivel">
+                        <option value="">Todos los niveles</option>
+                        @foreach (var nivel in NivelesDisponibles)
+                        {
+                            <option value="@nivel.Id">@nivel.Nombre</option>
+                        }
+                    </select>
+                </div>
+
+                @if (_filtroSituacion.HasValue ||
+                    _filtroNivelId.HasValue ||
+                    !string.IsNullOrWhiteSpace(_busqueda))
+                {
+                    <button type="button"
+                            class="clear-filters"
+                            @onclick="LimpiarFiltros">
+                        <MudIcon Icon="@Icons.Material.Filled.FilterAltOff"
+                                 Size="Size.Small" />
+                        Limpiar
+                    </button>
+                }
+            </div>
+
+            @if (BebesFiltrados.Count == 0)
+            {
+                <div class="empty-state large">
+                    <div class="empty-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" />
+                    </div>
+                    <strong>No hay resultados</strong>
+                    <span>
+                        No encontramos bebés que coincidan con los filtros seleccionados.
+                    </span>
+                </div>
+            }
+            else
+            {
+                <div class="medical-table-wrap">
+                    <table class="medical-table">
+                        <thead>
+                            <tr>
+                                <th>Bebé</th>
+                                <th>Nivel</th>
+                                <th>Estado</th>
+                                <th>Última revisión</th>
+                                <th>Vigencia</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var bebe in BebesFiltrados)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="table-person">
+                                            <div class="student-avatar small">
+                                                @ObtenerIniciales(bebe.Bebe)
+                                            </div>
+                                            <div>
+                                                <strong>@bebe.Bebe</strong>
+                                                <span>@ObtenerEdadTexto(bebe.FechaNacimiento)</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @(string.IsNullOrWhiteSpace(bebe.Nivel)
+                                            ? "Sin nivel"
+                                            : bebe.Nivel)
+                                    </td>
+                                    <td>
+                                       <span class="medical-status @ObtenerClaseSituacion(bebe.Situacion)">
+    <MudIcon Icon="@ObtenerIconoSituacion(bebe.Situacion)"
+             Size="Size.Small" />
+
+    <span class="medical-status-text">
+        @ObtenerNombreSituacion(bebe.Situacion)
+    </span>
+</span>
+                                    </td>
+                                    <td>
+                                        @(bebe.FechaRevision.HasValue
+                                            ? bebe.FechaRevision.Value.ToString("dd/MM/yyyy")
+                                            : "—")
+                                    </td>
+                                    <td>
+                                        @if (bebe.VigenciaHasta.HasValue)
+                                        {
+                                            <strong>@bebe.VigenciaHasta.Value.ToString("dd/MM/yyyy")</strong>
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </td>
+                                    <td class="table-actions">
+                                       <button type="button"
+        class="review-button compact"
+        title="Revisar apto médico"
+        @onclick="() => AbrirRevisionAsync(bebe)">
+
+    <MudIcon Icon="@Icons.Material.Filled.MedicalInformation"
+             Size="Size.Small" />
+
+    <span class="review-button-text">
+        Revisar
+    </span>
+</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+</div>
+
+@if (_bebeSeleccionado is not null)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarRevision">
+
+        <div class="medical-modal"
+             @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+                <div>
+                    <span class="modal-eyebrow">REVISACIÓN MÉDICA</span>
+                    <h2>@_bebeSeleccionado.Bebe</h2>
+                    <p>
+                        Registrá el resultado del control y su vigencia.
+                    </p>
+                </div>
+
+                <button type="button"
+                        class="modal-close"
+                        disabled="@_guardando"
+                        @onclick="CerrarRevision">
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+                </button>
+            </div>
+
+            <div class="medical-modal-body">
+
+                <aside class="patient-panel">
+                    <div class="patient-profile">
+                        <div class="patient-avatar">
+                            @ObtenerIniciales(_bebeSeleccionado.Bebe)
+                        </div>
+
+                        <div>
+                            <span>BEBÉ</span>
+                            <strong>@_bebeSeleccionado.Bebe</strong>
+                            <small>
+                                @ObtenerEdadTexto(_bebeSeleccionado.FechaNacimiento)
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="patient-data-grid">
+                        <div>
+                            <span>Fecha de nacimiento</span>
+                            <strong>@_bebeSeleccionado.FechaNacimiento.ToString("dd/MM/yyyy")</strong>
+                        </div>
+
+                        <div>
+                            <span>Nivel actual</span>
+                            <strong>
+                                @(string.IsNullOrWhiteSpace(_bebeSeleccionado.Nivel)
+                                    ? "Sin nivel asignado"
+                                    : _bebeSeleccionado.Nivel)
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="current-medical-card">
+                        <span>ESTADO ACTUAL</span>
+
+                        <div class="current-medical-state">
+                            <span class="medical-status @ObtenerClaseSituacion(_bebeSeleccionado.Situacion)">
+                                <MudIcon Icon="@ObtenerIconoSituacion(_bebeSeleccionado.Situacion)"
+                                         Size="Size.Small" />
+                                @ObtenerNombreSituacion(_bebeSeleccionado.Situacion)
+                            </span>
+                        </div>
+
+                        @if (_bebeSeleccionado.FechaRevision.HasValue)
+                        {
+                            <p>
+                                Última revisión:
+                                <strong>@_bebeSeleccionado.FechaRevision.Value.ToString("dd/MM/yyyy")</strong>
+                            </p>
+                        }
+
+                        @if (_bebeSeleccionado.VigenciaHasta.HasValue)
+                        {
+                            <p>
+                                Vigencia hasta:
+                                <strong>@_bebeSeleccionado.VigenciaHasta.Value.ToString("dd/MM/yyyy")</strong>
+                            </p>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(_bebeSeleccionado.Observaciones))
+                        {
+                            <div class="current-observation">
+                                @_bebeSeleccionado.Observaciones
+                            </div>
+                        }
+                    </div>
+
+                    <div class="history-panel">
+                        <div class="history-title">
+                            <span>HISTORIAL</span>
+                            <strong>@_historial.Count</strong>
+                        </div>
+
+                        @if (_cargandoHistorial)
+                        {
+                            <div class="history-loading">
+                                <MudProgressCircular Indeterminate="true"
+                                                     Size="Size.Small" />
+                                Cargando...
+                            </div>
+                        }
+                        else if (_historial.Count == 0)
+                        {
+                            <div class="history-empty">
+                                Todavía no registra revisaciones.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="history-list">
+                                @foreach (var item in _historial.Take(4))
+                                {
+                                    <div class="history-item">
+                                        <div>
+                                            <strong>@item.FechaRevision.ToString("dd/MM/yyyy")</strong>
+                                            <span>
+                                                hasta @item.VigenciaHasta.ToString("dd/MM/yyyy")
+                                            </span>
+                                        </div>
+                                        <span class="result-badge @ObtenerClaseResultado(item.Resultado)">
+                                            @ObtenerTextoResultado(item.Resultado)
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </aside>
+
+                <section class="review-form">
+                    <div class="form-section-heading">
+                        <span>NUEVA REVISACIÓN</span>
+                        <h3>Resultado del control</h3>
+                        <p>
+                            Seleccioná expresamente el resultado de esta revisación.
+                        </p>
+                    </div>
+
+                    <div class="result-options">
+                        <button type="button"
+                                class="result-option fit @(_form.Resultado == ResultadoAptoMedico.Apto ? "selected" : "")"
+                                @onclick="() => _form.Resultado = ResultadoAptoMedico.Apto">
+                            <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" />
+                            <strong>APTO</strong>
+                            <span>Puede realizar actividad</span>
+                        </button>
+
+                        <button type="button"
+                                class="result-option observed @(_form.Resultado == ResultadoAptoMedico.Observado ? "selected" : "")"
+                                @onclick="() => _form.Resultado = ResultadoAptoMedico.Observado">
+                            <MudIcon Icon="@Icons.Material.Filled.Visibility" />
+                            <strong>OBSERVADO</strong>
+                            <span>Requiere seguimiento</span>
+                        </button>
+
+                        <button type="button"
+                                class="result-option unfit @(_form.Resultado == ResultadoAptoMedico.NoApto ? "selected" : "")"
+                                @onclick="() => _form.Resultado = ResultadoAptoMedico.NoApto">
+                            <MudIcon Icon="@Icons.Material.Filled.Block" />
+                            <strong>NO APTO</strong>
+                            <span>No puede realizar actividad</span>
+                        </button>
+                    </div>
+
+                  <div class="form-grid">
+
+    <div class="form-field">
+        <label>Fecha de revisión</label>
+
+        <BnDatePicker Value="@_form.FechaRevision"
+                      ValueChanged="CambiarFechaRevisionAsync"
+                      Placeholder="Seleccionar fecha" />
+    </div>
+
+
+    <div class="form-field">
+        <label>Vigencia hasta</label>
+
+        <BnDatePicker Value="@_form.VigenciaHasta"
+                      ValueChanged="CambiarVigenciaHastaAsync"
+                      MinDate="@_form.FechaRevision"
+                      Placeholder="Seleccionar vigencia" />
+    </div>
+
+
+    <div class="form-field full">
+        <label>Observaciones</label>
+
+        <textarea rows="5"
+                  maxlength="2000"
+                  placeholder="Antecedentes, indicaciones, restricciones o comentarios de la revisión..."
+                  @bind="_form.Observaciones">
+        </textarea>
+    </div>
+
+</div>
+
+                    @if (!string.IsNullOrWhiteSpace(_errorModal))
+                    {
+                        <div class="form-error">
+                            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                                     Size="Size.Small" />
+                            @_errorModal
+                        </div>
+                    }
+
+                    <div class="medical-note">
+                        <MudIcon Icon="@Icons.Material.Filled.Info"
+                                 Size="Size.Small" />
+                        <span>
+                            Cada control crea un nuevo registro y conserva el historial anterior.
+                        </span>
+                    </div>
+                </section>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button"
+                        class="secondary-action"
+                        disabled="@_guardando"
+                        @onclick="CerrarRevision">
+                    Cancelar
+                </button>
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="GuardarRevisionAsync">
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+                    Guardar revisación
+                </button>
+            </div>
+        </div>
+    </div>
+}

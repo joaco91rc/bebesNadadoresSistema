@@ -58,9 +58,12 @@
     <nav class="menu-navigation">
 
 
-        @* -----------------------------------------------------
-           GENERAL
-           ----------------------------------------------------- *@
+      @* -----------------------------------------------------
+   PRINCIPAL
+   ----------------------------------------------------- *@
+
+<AuthorizeView Roles="Administrador,Administrativa,Profesor,SoloLectura">
+    <Authorized>
 
         @if (!Collapsed)
         {
@@ -68,7 +71,6 @@
                 PRINCIPAL
             </div>
         }
-
 
         <NavLink href="/"
                  Match="NavLinkMatch.All"
@@ -87,6 +89,9 @@
             }
 
         </NavLink>
+
+    </Authorized>
+</AuthorizeView>
 
 
         @* =====================================================
@@ -189,67 +194,126 @@
         </AuthorizeView>
 
 
-        @* -----------------------------------------------------
-           FINANZAS
-           ----------------------------------------------------- *@
+      @* -----------------------------------------------------
+   FINANZAS
+   ----------------------------------------------------- *@
 
-        <AuthorizeView Roles="Administrador,Administrativa">
+<AuthorizeView Roles="Administrador,Administrativa">
 
-            <Authorized>
+    <Authorized>
 
-                @if (!Collapsed)
-                {
-                    <div class="menu-section-title">
-                        GESTIÓN
-                    </div>
-                }
-
-
-                <NavLink href="/pagos"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Pagos
-                        </span>
-                    }
-
-                </NavLink>
+        @if (!Collapsed)
+        {
+            <div class="menu-section-title">
+                GESTIÓN
+            </div>
+        }
 
 
-                <NavLink href="/caja"
-                         class="menu-link"
-                         ActiveClass="active">
+        @* =====================================================
+           PAGOS
+           ===================================================== *@
 
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
-                    </span>
+        <NavLink href="/pagos"
+                 class="menu-link"
+                 ActiveClass="active">
 
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Caja
-                        </span>
-                    }
+            <span class="menu-icon">
 
-                </NavLink>
+                <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
 
-            </Authorized>
+            </span>
 
-        </AuthorizeView>
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Pagos
+                </span>
+            }
+
+        </NavLink>
+
+
+        @* =====================================================
+           BANCOS
+           ===================================================== *@
+
+        <NavLink href="/bancos"
+                 class="menu-link"
+                 ActiveClass="active">
+
+            <span class="menu-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+            </span>
+
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Bancos
+                </span>
+            }
+
+        </NavLink>
+
+
+        @* =====================================================
+           CAJA
+           ===================================================== *@
+
+        <NavLink href="/caja"
+                 class="menu-link"
+                 ActiveClass="active">
+
+            <span class="menu-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+
+            </span>
+
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Caja
+                </span>
+            }
+
+        </NavLink>
+
+        @* =====================================================
+   PROVEEDORES
+   ===================================================== *@
+
+<NavLink href="/proveedores"
+         class="menu-link"
+         ActiveClass="active">
+
+    <span class="menu-icon">
+
+        <MudIcon Icon="@Icons.Material.Filled.LocalShipping" />
+
+    </span>
+
+    @if (!Collapsed)
+    {
+        <span class="menu-text">
+            Proveedores
+        </span>
+    }
+
+</NavLink>
+
+    </Authorized>
+
+</AuthorizeView>
 
 
         @* -----------------------------------------------------
            PERSONAS
            ----------------------------------------------------- *@
 
-        <AuthorizeView Roles="Administrador,Administrativa,Medica,SoloLectura">
+        <AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
 
             <Authorized>
 
@@ -281,6 +345,11 @@
             </Authorized>
 
         </AuthorizeView>
+
+@* -----------------------------------------------------
+   SALUD
+   ----------------------------------------------------- *@
+
 
 
       
@@ -336,6 +405,36 @@
 
     </Authorized>
 
+</AuthorizeView>
+
+<AuthorizeView Roles="Administrador,Medica">
+    <Authorized>
+
+        @if (!Collapsed)
+        {
+            <div class="menu-section-title">
+                SALUD
+            </div>
+        }
+
+        <NavLink href="/aptos-medicos"
+                 class="menu-link"
+                 ActiveClass="active">
+
+            <span class="menu-icon">
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+            </span>
+
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Aptos médicos
+                </span>
+            }
+
+        </NavLink>
+
+    </Authorized>
 </AuthorizeView>
 
 

@@ -1859,17 +1859,42 @@
                 Publicar grilla
             </button>
         }
-        else
-        {
-            <div class="published-grid-badge">
+       else
+{
+    <div class="published-grid-actions">
 
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+        <div class="published-grid-badge">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            Grilla publicada
+
+        </div>
+
+
+        <button type="button"
+                class="secondary-action"
+                disabled="@_generandoSesionesFaltantes"
+                @onclick="GenerarSesionesFaltantes">
+
+            @if (_generandoSesionesFaltantes)
+            {
+                <MudProgressCircular Indeterminate="true"
+                                     Size="Size.Small" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Sync"
                          Size="Size.Small" />
+            }
 
-                Grilla publicada
+            Generar clases faltantes
 
-            </div>
-        }
+        </button>
+
+    </div>
+}
 
     }
 
@@ -2235,6 +2260,7 @@ private EditarClaseFormModel _claseForm =
 private CicloLectivoDto? _cicloLectivoSeleccionado;
 
 private bool _publicandoCiclo;
+    private bool _generandoSesionesFaltantes;
 
     private bool _mostrarGrillaSemanal;
 
@@ -3232,6 +3258,7 @@ private static string ObtenerMesCorto(
                 DateTime.Today));
 
 
+
     await CargarInicialAsync();
 
 
@@ -3251,6 +3278,7 @@ private static string ObtenerMesCorto(
 
             _cicloLectivoSeleccionado =
                 ciclo;
+                
         }
     }
 
@@ -3759,6 +3787,64 @@ if (_volverAGrillaDespuesDeGuardar)
         }
     }
 
+
+    private async Task GenerarSesionesFaltantes()
+    {
+        if (!_cicloLectivoId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            _generandoSesionesFaltantes =
+                true;
+
+            _error =
+                null;
+
+            _mensaje =
+                null;
+
+
+            var resultado =
+                await TurneraService
+                    .GenerarSesionesFaltantesCicloAsync(
+                        _cicloLectivoId.Value);
+
+
+            if (resultado.Generadas == 0)
+            {
+                _mensaje =
+                    "La grilla ya estaba completa. No faltaban clases por generar.";
+            }
+            else
+            {
+                _mensaje =
+                    $"Se generaron {resultado.Generadas} clases faltantes. " +
+                    $"{resultado.YaExistentes} clases ya existían.";
+            }
+
+
+            /*
+             * Refrescamos tanto la configuración como
+             * la semana visible de la turnera.
+             */
+            await CargarGrillaSemanalAsync();
+
+            await CargarAgendaAsync();
+        }
+        catch (Exception ex)
+        {
+            _error =
+                ex.Message;
+        }
+        finally
+        {
+            _generandoSesionesFaltantes =
+                false;
+        }
+    }
 
     private void CerrarFormulario()
     {

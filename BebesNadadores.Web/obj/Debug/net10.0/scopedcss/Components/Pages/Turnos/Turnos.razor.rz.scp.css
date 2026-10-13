@@ -19,6 +19,13 @@
 }
 
 
+.published-grid-actions[b-gln493tt6d] {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 /* ============================================================
    HEADER
    ============================================================ */

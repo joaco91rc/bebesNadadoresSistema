@@ -1,7 +1,8 @@
 @page "/clientes"
 @page "/bebes"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador,Administrativa,SoloLectura")]
 
 @using BebesNadadores.Application.Bebes
 @using BebesNadadores.Application.Bebes.Dtos
@@ -42,12 +43,9 @@
         </div>
 
 
-        <button type="button"
-                class="primary-action"
-                @onclick="NuevoBebe">
+        <button type="button" class="primary-action" @onclick="NuevoBebe">
 
-            <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
-                     Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" />
 
             Inscribir bebé
 
@@ -64,18 +62,15 @@
     {
         <div class="message-box message-error">
 
-            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
-                     Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
 
             <span>
                 @_error
             </span>
 
-            <button type="button"
-                    @onclick="() => _error = null">
+            <button type="button" @onclick="() => _error = null">
 
-                <MudIcon Icon="@Icons.Material.Filled.Close"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
 
             </button>
 
@@ -87,18 +82,15 @@
     {
         <div class="message-box message-success">
 
-            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                     Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
 
             <span>
                 @_mensaje
             </span>
 
-            <button type="button"
-                    @onclick="() => _mensaje = null">
+            <button type="button" @onclick="() => _mensaje = null">
 
-                <MudIcon Icon="@Icons.Material.Filled.Close"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
 
             </button>
 
@@ -218,22 +210,17 @@
 
         <div class="search-box">
 
-            <MudIcon Icon="@Icons.Material.Filled.Search"
-                     Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
 
-            <input type="text"
-                   placeholder="Buscar bebé, DNI, responsable, teléfono, WhatsApp o email..."
-                   @bind="_busqueda"
-                   @bind:event="oninput" />
+            <input type="text" placeholder="Buscar bebé, DNI, responsable, teléfono, WhatsApp o email..."
+                   @bind="_busqueda" @bind:event="oninput" />
 
         </div>
 
 
         <label class="show-disabled">
 
-            <input type="checkbox"
-                   @bind="_mostrarBajas"
-                   @bind:after="RecargarAsync" />
+            <input type="checkbox" @bind="_mostrarBajas" @bind:after="RecargarAsync" />
 
             <span>
                 Mostrar bajas
@@ -252,8 +239,7 @@
     {
         <section class="loading-panel">
 
-            <MudProgressCircular Indeterminate="true"
-                                 Size="Size.Large" />
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" />
 
             <span>
                 Cargando bebés...
@@ -282,12 +268,9 @@
             </p>
 
 
-            <button type="button"
-                    class="primary-action"
-                    @onclick="NuevoBebe">
+            <button type="button" class="primary-action" @onclick="NuevoBebe">
 
-                <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" />
 
                 Inscribir bebé
 
@@ -307,9 +290,9 @@
 
 
                 <article class="baby-card
-                                @(bebe.Estado == EstadoBebe.Baja
-                                    ? "inactive"
-                                    : "")">
+                    @(bebe.Estado == EstadoBebe.Baja
+                                  ? "inactive"
+                                  : "")">
 
                     @* =========================================
                        HEADER
@@ -367,13 +350,9 @@
                         </div>
 
 
-                        <button type="button"
-                                class="edit-button"
-                                title="Editar bebé"
-                                @onclick="() => EditarBebe(bebe.Id)">
+                        <button type="button" class="edit-button" title="Editar bebé" @onclick="() => EditarBebe(bebe.Id)">
 
-                            <MudIcon Icon="@Icons.Material.Filled.Edit"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
 
                         </button>
 
@@ -390,8 +369,7 @@
 
                             <div class="info-icon">
 
-                                <MudIcon Icon="@Icons.Material.Filled.Cake"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" />
 
                             </div>
 
@@ -416,8 +394,7 @@
 
                             <div class="info-icon">
 
-                                <MudIcon Icon="@Icons.Material.Filled.Badge"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" />
 
                             </div>
 
@@ -446,8 +423,7 @@
 
                             <div class="info-icon">
 
-                                <MudIcon Icon="@Icons.Material.Filled.Pool"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Pool" Size="Size.Small" />
 
                             </div>
 
@@ -474,8 +450,7 @@
 
                             <div class="info-icon">
 
-                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" />
 
                             </div>
 
@@ -528,8 +503,7 @@
                         {
                             <div class="no-responsible">
 
-                                <MudIcon Icon="@Icons.Material.Filled.PersonOff"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" />
 
                                 Sin responsable principal
 
@@ -570,8 +544,7 @@
                                 {
                                     <span>
 
-                                        <MudIcon Icon="@Icons.Material.Filled.Chat"
-                                                 Size="Size.Small" />
+                                        <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
 
                                         @responsable.WhatsApp
 
@@ -584,8 +557,7 @@
                                 {
                                     <span>
 
-                                        <MudIcon Icon="@Icons.Material.Filled.Email"
-                                                 Size="Size.Small" />
+                                        <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
 
                                         @responsable.Email
 
@@ -606,8 +578,7 @@
                     {
                         <div class="age-warning">
 
-                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" />
 
                             <span>
                                 Alcanzó la edad máxima de 7 años.
@@ -648,12 +619,9 @@
 
                     <div class="baby-card-footer">
 
-                        <button type="button"
-                                class="profile-button"
-                                @onclick="() => AbrirFicha(bebe.Id)">
+                        <button type="button" class="profile-button" @onclick="() => AbrirFicha(bebe.Id)">
 
-                            <MudIcon Icon="@Icons.Material.Filled.Description"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
 
                             Ver ficha
 
@@ -663,12 +631,9 @@
                         @if (bebe.Estado ==
                             EstadoBebe.Activo)
                         {
-                            <button type="button"
-                                    class="toggle-status disable"
-                                    @onclick="() => AbrirBaja(bebe)">
+                            <button type="button" class="toggle-status disable" @onclick="() => AbrirBaja(bebe)">
 
-                                <MudIcon Icon="@Icons.Material.Filled.PersonOff"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" />
 
                                 Dar de baja
 
@@ -676,12 +641,9 @@
                         }
                         else
                         {
-                            <button type="button"
-                                    class="toggle-status enable"
-                                    @onclick="() => ReactivarAsync(bebe)">
+                            <button type="button" class="toggle-status enable" @onclick="() => ReactivarAsync(bebe)">
 
-                                <MudIcon Icon="@Icons.Material.Filled.Restore"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Restore" Size="Size.Small" />
 
                                 Reactivar
 
@@ -726,9 +688,7 @@
                 </div>
 
 
-                <button type="button"
-                        class="modal-close"
-                        @onclick="CerrarBaja">
+                <button type="button" class="modal-close" @onclick="CerrarBaja">
 
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
 
@@ -777,8 +737,7 @@
                         Fecha de baja
                     </label>
 
-                    <input type="date"
-                           @bind="_fechaBaja" />
+                    <input type="date" @bind="_fechaBaja" />
 
                 </div>
 
@@ -789,10 +748,7 @@
                         Motivo *
                     </label>
 
-                    <textarea rows="4"
-                              maxlength="300"
-                              placeholder="Indicá el motivo de la baja..."
-                              @bind="_motivoBaja">
+                    <textarea rows="4" maxlength="300" placeholder="Indicá el motivo de la baja..." @bind="_motivoBaja">
                     </textarea>
 
                 </div>
@@ -803,8 +759,7 @@
                 {
                     <div class="modal-error">
 
-                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
-                                 Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
 
                         @_errorBaja
 
@@ -816,30 +771,22 @@
 
             <footer class="modal-actions">
 
-                <button type="button"
-                        class="secondary-action"
-                        disabled="@_guardando"
-                        @onclick="CerrarBaja">
+                <button type="button" class="secondary-action" disabled="@_guardando" @onclick="CerrarBaja">
 
                     Cancelar
 
                 </button>
 
 
-                <button type="button"
-                        class="danger-action"
-                        disabled="@_guardando"
-                        @onclick="ConfirmarBajaAsync">
+                <button type="button" class="danger-action" disabled="@_guardando" @onclick="ConfirmarBajaAsync">
 
                     @if (_guardando)
                     {
-                        <MudProgressCircular Indeterminate="true"
-                                             Size="Size.Small" />
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.PersonOff"
-                                 Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" />
                     }
 
                     Confirmar baja

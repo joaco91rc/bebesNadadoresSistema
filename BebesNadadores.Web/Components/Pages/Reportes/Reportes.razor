@@ -1,0 +1,1664 @@
+@page "/reportes"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador,Administrativa,SoloLectura")]
+
+@using BebesNadadores.Application.Reportes.Dtos
+@using BebesNadadores.Web.Components.Shared.Utils
+
+<PageTitle>Reportes | Bebés Nadadores</PageTitle>
+
+<div class="reports-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="reports-header">
+
+        <div>
+            <span class="reports-eyebrow">
+                ANÁLISIS Y SEGUIMIENTO
+            </span>
+
+            <h1>
+                Reportes
+            </h1>
+
+            <p>
+                Analizá asistencia, ocupación, recuperos,
+                cobranzas, deuda, caja y estado médico
+                desde un único lugar.
+            </p>
+        </div>
+
+        <div class="reports-header-actions">
+
+            <button type="button"
+                    class="secondary-action"
+                    disabled="@_cargando"
+                    @onclick="CargarAsync">
+
+                <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                         Size="Size.Small" />
+
+                Actualizar
+            </button>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Volver
+            </button>
+
+        </div>
+
+    </section>
+
+
+    @* =========================================================
+       FILTROS
+       ========================================================= *@
+
+    <section class="report-filter-card">
+
+        <div class="report-filter-main">
+
+            <div class="filter-field">
+                <label>Desde</label>
+
+                <BnDatePicker Value="@_desde"
+                              ValueChanged="CambiarDesdeAsync"
+                              MaxDate="@_hasta"
+                              Placeholder="Desde" />
+            </div>
+
+            <div class="filter-field">
+                <label>Hasta</label>
+
+                <BnDatePicker Value="@_hasta"
+                              ValueChanged="CambiarHastaAsync"
+                              MinDate="@_desde"
+                              Placeholder="Hasta" />
+            </div>
+
+            <div class="report-main-actions">
+
+                <button type="button"
+                        class="primary-action apply-button"
+                        disabled="@_cargando"
+                        @onclick="CargarAsync">
+
+                    @if (_cargando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.QueryStats"
+                                 Size="Size.Small" />
+                    }
+
+                    Aplicar período
+                </button>
+
+                <button type="button"
+                        class="export-action excel"
+                        disabled="@_cargando"
+                        @onclick="DescargarExcel">
+
+                    <MudIcon Icon="@Icons.Material.Filled.TableView"
+                             Size="Size.Small" />
+
+                    Excel
+                </button>
+
+                <button type="button"
+                        class="export-action pdf"
+                        disabled="@_cargando"
+                        @onclick="DescargarPdf">
+
+                    <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf"
+                             Size="Size.Small" />
+
+                    PDF
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="quick-periods">
+
+            <button type="button"
+                    @onclick="PeriodoMesActualAsync">
+                Mes actual
+            </button>
+
+            <button type="button"
+                    @onclick="PeriodoMesAnteriorAsync">
+                Mes anterior
+            </button>
+
+            <button type="button"
+                    @onclick="PeriodoUltimos30Async">
+                Últimos 30 días
+            </button>
+
+            <button type="button"
+                    @onclick="PeriodoAnioActualAsync">
+                Año actual
+            </button>
+
+        </div>
+
+    </section>
+
+
+    @* =========================================================
+       ERROR
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(
+        _error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (_cargando &&
+         _reporte is null)
+    {
+        <div class="reports-loading">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <strong>
+                Generando reporte...
+            </strong>
+
+            <span>
+                Consultando información operativa y financiera.
+            </span>
+
+        </div>
+    }
+    else if (_reporte is not null)
+    {
+        @* =====================================================
+           KPI PRINCIPALES
+           ===================================================== *@
+
+        <section class="report-kpis">
+
+            <article class="report-kpi">
+
+                <span class="kpi-icon blue">
+                    <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
+                </span>
+
+                <div>
+                    <span>Bebés activos</span>
+
+                    <strong>
+                        @_reporte.Resumen.BebesActivos
+                    </strong>
+
+                    <small>
+                        @_reporte.Resumen.AltasPeriodo altas en el período
+                    </small>
+                </div>
+
+            </article>
+
+            <article class="report-kpi">
+
+                <span class="kpi-icon cyan">
+                    <MudIcon Icon="@Icons.Material.Filled.FactCheck" />
+                </span>
+
+                <div>
+                    <span>Asistencia</span>
+
+                    <strong>
+                        @FormatoPorcentaje(
+                            _reporte.Resumen.AsistenciaPromedio)
+                    </strong>
+
+                    <small>
+                        sobre asistencias registradas
+                    </small>
+                </div>
+
+            </article>
+
+            <article class="report-kpi">
+
+                <span class="kpi-icon success">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" />
+                </span>
+
+                <div>
+                    <span>Ocupación</span>
+
+                    <strong>
+                        @FormatoPorcentaje(
+                            _reporte.Resumen.OcupacionPromedio)
+                    </strong>
+
+                    <small>
+                        @_reporte.Resumen.ClasesDictables clases
+                    </small>
+                </div>
+
+            </article>
+
+            <article class="report-kpi">
+
+                <span class="kpi-icon money">
+                    <MudIcon Icon="@Icons.Material.Filled.Payments" />
+                </span>
+
+                <div>
+                    <span>Cobrado</span>
+
+                    <strong class="money-value">
+                        @FormatoMoneda(
+                            _reporte.Resumen.CobradoPeriodo)
+                    </strong>
+
+                    <small>
+                        dentro del período
+                    </small>
+                </div>
+
+            </article>
+
+            <article class="report-kpi">
+
+                <span class="kpi-icon danger">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" />
+                </span>
+
+                <div>
+                    <span>Deuda actual</span>
+
+                    <strong class="money-value">
+                        @FormatoMoneda(
+                            _reporte.Resumen.DeudaActual)
+                    </strong>
+
+                    <small>
+                        saldo pendiente total
+                    </small>
+                </div>
+
+            </article>
+
+        </section>
+
+
+        @* =====================================================
+           TABS
+           ===================================================== *@
+
+        <nav class="report-tabs">
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Resumen)"
+                    @onclick="() => SeleccionarTab(TabReporte.Resumen)">
+                <MudIcon Icon="@Icons.Material.Filled.Dashboard"
+                         Size="Size.Small" />
+                Resumen
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Asistencia)"
+                    @onclick="() => SeleccionarTab(TabReporte.Asistencia)">
+                <MudIcon Icon="@Icons.Material.Filled.FactCheck"
+                         Size="Size.Small" />
+                Asistencia
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Ocupacion)"
+                    @onclick="() => SeleccionarTab(TabReporte.Ocupacion)">
+                <MudIcon Icon="@Icons.Material.Filled.Groups"
+                         Size="Size.Small" />
+                Ocupación
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Recuperos)"
+                    @onclick="() => SeleccionarTab(TabReporte.Recuperos)">
+                <MudIcon Icon="@Icons.Material.Filled.Autorenew"
+                         Size="Size.Small" />
+                Recuperos
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Finanzas)"
+                    @onclick="() => SeleccionarTab(TabReporte.Finanzas)">
+                <MudIcon Icon="@Icons.Material.Filled.Payments"
+                         Size="Size.Small" />
+                Finanzas
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Caja)"
+                    @onclick="() => SeleccionarTab(TabReporte.Caja)">
+                <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
+                         Size="Size.Small" />
+                Caja
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Bancos)"
+                    @onclick="() => SeleccionarTab(TabReporte.Bancos)">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance"
+                         Size="Size.Small" />
+                Bancos
+            </button>
+
+            <button type="button"
+                    class="@ClaseTab(TabReporte.Salud)"
+                    @onclick="() => SeleccionarTab(TabReporte.Salud)">
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
+                         Size="Size.Small" />
+                Salud
+            </button>
+
+        </nav>
+
+
+        @* =====================================================
+           RESUMEN
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Resumen)
+        {
+            <section class="reports-grid">
+
+                <article class="report-card span-2">
+
+                    <div class="card-heading">
+
+                        <div>
+                            <span class="section-eyebrow">
+                                ACTIVIDAD
+                            </span>
+
+                            <h2>
+                                Rendimiento del período
+                            </h2>
+                        </div>
+
+                        <span class="period-badge">
+                            @_reporte.Desde.ToString("dd/MM/yyyy")
+                            —
+                            @_reporte.Hasta.ToString("dd/MM/yyyy")
+                        </span>
+
+                    </div>
+
+                    <div class="summary-metrics">
+
+                        <div>
+                            <span>Clases dictables</span>
+                            <strong>
+                                @_reporte.Resumen.ClasesDictables
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Canceladas</span>
+                            <strong>
+                                @_reporte.Resumen.ClasesCanceladas
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Recuperos generados</span>
+                            <strong>
+                                @_reporte.Recuperos.Generados
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Pagos registrados</span>
+                            <strong>
+                                @_reporte.Finanzas.PagosPeriodo
+                            </strong>
+                        </div>
+
+                    </div>
+
+                    <div class="dual-progress">
+
+                        <div class="progress-panel">
+                            <div class="progress-label">
+                                <span>Asistencia registrada</span>
+                                <strong>
+                                    @FormatoPorcentaje(
+                                        _reporte.Resumen.AsistenciaPromedio)
+                                </strong>
+                            </div>
+
+                            <div class="progress-track">
+                                <span style="@AnchoBarra(_reporte.Resumen.AsistenciaPromedio)"></span>
+                            </div>
+                        </div>
+
+                        <div class="progress-panel">
+                            <div class="progress-label">
+                                <span>Ocupación de clases</span>
+                                <strong>
+                                    @FormatoPorcentaje(
+                                        _reporte.Resumen.OcupacionPromedio)
+                                </strong>
+                            </div>
+
+                            <div class="progress-track">
+                                <span style="@AnchoBarra(_reporte.Resumen.OcupacionPromedio)"></span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <article class="report-card">
+
+                    <div class="card-heading">
+
+                        <div>
+                            <span class="section-eyebrow">
+                                FINANZAS
+                            </span>
+
+                            <h2>
+                                Resultado
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    <div class="finance-mini">
+
+                        <div>
+                            <span>Facturado</span>
+                            <strong>
+                                @FormatoMoneda(
+                                    _reporte.Finanzas.FacturadoPeriodo)
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Cobrado</span>
+                            <strong class="positive">
+                                @FormatoMoneda(
+                                    _reporte.Finanzas.CobradoPeriodo)
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Deuda actual</span>
+                            <strong class="negative">
+                                @FormatoMoneda(
+                                    _reporte.Finanzas.DeudaActual)
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <article class="report-card">
+
+                    <div class="card-heading">
+
+                        <div>
+                            <span class="section-eyebrow">
+                                MAYOR OCUPACIÓN
+                            </span>
+
+                            <h2>
+                                Niveles
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    @if (_reporte.OcupacionPorNivel.Count == 0)
+                    {
+                        <div class="empty-state compact">
+                            Sin clases en este período.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="ranking-list">
+
+                            @foreach (var item in
+                                _reporte.OcupacionPorNivel.Take(5))
+                            {
+                                <div class="ranking-row">
+
+                                    <div>
+                                        <strong>
+                                            @item.Nivel
+                                        </strong>
+
+                                        <span>
+                                            @item.Ocupados/@item.CuposTotales lugares
+                                        </span>
+                                    </div>
+
+                                    <b>
+                                        @FormatoPorcentaje(
+                                            item.PorcentajeOcupacion)
+                                    </b>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </article>
+
+
+                <article class="report-card span-2">
+
+                    <div class="card-heading">
+
+                        <div>
+                            <span class="section-eyebrow">
+                                DEUDA
+                            </span>
+
+                            <h2>
+                                Mayores saldos pendientes
+                            </h2>
+                        </div>
+
+                        <button type="button"
+                                class="link-action"
+                                @onclick="() => SeleccionarTab(TabReporte.Finanzas)">
+                            Ver finanzas
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                     Size="Size.Small" />
+                        </button>
+
+                    </div>
+
+                    @if (_reporte.Finanzas.MayoresDeudores.Count == 0)
+                    {
+                        <div class="empty-state compact success-empty">
+                            No hay deuda pendiente.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="debt-summary-list">
+
+                            @foreach (var item in
+                                _reporte.Finanzas.MayoresDeudores.Take(5))
+                            {
+                                <div class="debt-summary-row">
+
+                                    <div>
+                                        <strong>
+                                            @item.Bebe
+                                        </strong>
+
+                                        <span>
+                                            @item.CuotasPendientes cuotas con saldo
+                                        </span>
+                                    </div>
+
+                                    <b>
+                                        @FormatoMoneda(
+                                            item.Deuda)
+                                    </b>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </article>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           ASISTENCIA
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Asistencia)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            CONTROL DE ASISTENCIA
+                        </span>
+
+                        <h2>
+                            Evolución diaria
+                        </h2>
+
+                        <p>
+                            El porcentaje se calcula sobre asistencias
+                            efectivamente registradas. Los pendientes
+                            se muestran por separado.
+                        </p>
+                    </div>
+
+                    <strong class="section-total">
+                        @FormatoPorcentaje(
+                            _reporte.Resumen.AsistenciaPromedio)
+                    </strong>
+
+                </div>
+
+                @if (_reporte.AsistenciaPorDia.Count == 0)
+                {
+                    <div class="empty-state">
+                        No hay asistencias registradas
+                        para el período seleccionado.
+                    </div>
+                }
+                else
+                {
+                    <div class="attendance-list">
+
+                        @foreach (var dia in
+                            _reporte.AsistenciaPorDia)
+                        {
+                            <article class="attendance-day">
+
+                                <div class="attendance-date">
+                                    <strong>
+                                        @NombreDia(dia.Fecha)
+                                    </strong>
+
+                                    <span>
+                                        @dia.Fecha.ToString("dd/MM/yyyy")
+                                    </span>
+                                </div>
+
+                                <div class="attendance-bar-area">
+
+                                    <div class="progress-label">
+                                        <span>
+                                            @dia.Presentes presentes
+                                            ·
+                                            @dia.Ausentes ausentes
+                                            ·
+                                            @dia.ConAviso con aviso
+                                        </span>
+
+                                        <strong>
+                                            @FormatoPorcentaje(
+                                                dia.PorcentajeAsistencia)
+                                        </strong>
+                                    </div>
+
+                                    <div class="progress-track">
+                                        <span style="@AnchoBarra(dia.PorcentajeAsistencia)"></span>
+                                    </div>
+
+                                </div>
+
+                                <div class="attendance-pending">
+                                    <span>Pendientes</span>
+                                    <strong>
+                                        @dia.Pendientes
+                                    </strong>
+                                </div>
+
+                            </article>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        @* =====================================================
+           OCUPACIÓN
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Ocupacion)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            USO DE CUPOS
+                        </span>
+
+                        <h2>
+                            Ocupación por nivel
+                        </h2>
+
+                        <p>
+                            Incluye alumnos regulares, primeras clases
+                            y recuperos que ocupan lugar.
+                        </p>
+                    </div>
+
+                    <strong class="section-total">
+                        @FormatoPorcentaje(
+                            _reporte.Resumen.OcupacionPromedio)
+                    </strong>
+
+                </div>
+
+                @if (_reporte.OcupacionPorNivel.Count == 0)
+                {
+                    <div class="empty-state">
+                        No hay clases para el período seleccionado.
+                    </div>
+                }
+                else
+                {
+                    <div class="occupation-grid">
+
+                        @foreach (var item in
+                            _reporte.OcupacionPorNivel)
+                        {
+                            <article class="occupation-card">
+
+                                <div class="occupation-card-head">
+
+                                    <div>
+                                        <strong>
+                                            @item.Nivel
+                                        </strong>
+
+                                        <span>
+                                            @item.Clases clases
+                                        </span>
+                                    </div>
+
+                                    <b>
+                                        @FormatoPorcentaje(
+                                            item.PorcentajeOcupacion)
+                                    </b>
+
+                                </div>
+
+                                <div class="progress-track large">
+                                    <span style="@AnchoBarra(item.PorcentajeOcupacion)"></span>
+                                </div>
+
+                                <div class="occupation-details">
+
+                                    <span>
+                                        <b>@item.Ocupados</b>
+                                        ocupados
+                                    </span>
+
+                                    <span>
+                                        <b>@item.Vacantes</b>
+                                        vacantes
+                                    </span>
+
+                                    <span>
+                                        <b>@item.CuposTotales</b>
+                                        cupos
+                                    </span>
+
+                                </div>
+
+                            </article>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        @* =====================================================
+           RECUPEROS
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Recuperos)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            RECUPERACIONES
+                        </span>
+
+                        <h2>
+                            Recuperos generados
+                        </h2>
+
+                        <p>
+                            Estados actuales de los recuperos que
+                            nacieron dentro del período seleccionado.
+                        </p>
+                    </div>
+
+                    <strong class="section-total">
+                        @_reporte.Recuperos.Generados
+                    </strong>
+
+                </div>
+
+                <div class="status-kpis">
+
+                    <article>
+                        <span>Disponibles</span>
+                        <strong class="status-available">
+                            @_reporte.Recuperos.Disponibles
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Reservados</span>
+                        <strong class="status-reserved">
+                            @_reporte.Recuperos.Reservados
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Utilizados</span>
+                        <strong class="status-used">
+                            @_reporte.Recuperos.Utilizados
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Vencidos</span>
+                        <strong class="status-expired">
+                            @_reporte.Recuperos.Vencidos
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Anulados</span>
+                        <strong class="status-cancelled">
+                            @_reporte.Recuperos.Anulados
+                        </strong>
+                    </article>
+
+                </div>
+
+                <article class="report-card standalone">
+
+                    <div class="card-heading">
+
+                        <div>
+                            <span class="section-eyebrow">
+                                ORIGEN
+                            </span>
+
+                            <h2>
+                                Recuperos por motivo
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    @if (_reporte.Recuperos.PorTipo.Count == 0)
+                    {
+                        <div class="empty-state compact">
+                            No se generaron recuperos en el período.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="simple-list">
+
+                            @foreach (var item in
+                                _reporte.Recuperos.PorTipo)
+                            {
+                                <div>
+                                    <span>
+                                        @item.Tipo
+                                    </span>
+
+                                    <strong>
+                                        @item.Cantidad
+                                    </strong>
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </article>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           FINANZAS
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Finanzas)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            COBRANZAS Y DEUDA
+                        </span>
+
+                        <h2>
+                            Reporte financiero
+                        </h2>
+
+                        <p>
+                            Facturación y pagos corresponden al período.
+                            La deuda muestra el saldo pendiente actual.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="finance-kpis">
+
+                    <article>
+                        <span>Facturado</span>
+                        <strong>
+                            @FormatoMoneda(
+                                _reporte.Finanzas.FacturadoPeriodo)
+                        </strong>
+                        <small>
+                            @_reporte.Finanzas.CuotasPeriodo cuotas
+                        </small>
+                    </article>
+
+                    <article>
+                        <span>Cobrado</span>
+                        <strong class="positive">
+                            @FormatoMoneda(
+                                _reporte.Finanzas.CobradoPeriodo)
+                        </strong>
+                        <small>
+                            @_reporte.Finanzas.PagosPeriodo pagos
+                        </small>
+                    </article>
+
+                    <article>
+                        <span>Deuda actual</span>
+                        <strong class="negative">
+                            @FormatoMoneda(
+                                _reporte.Finanzas.DeudaActual)
+                        </strong>
+                        <small>
+                            @_reporte.Finanzas.BebesConDeuda bebés
+                        </small>
+                    </article>
+
+                </div>
+
+                <div class="reports-grid finance-layout">
+
+                    <article class="report-card">
+
+                        <div class="card-heading">
+
+                            <div>
+                                <span class="section-eyebrow">
+                                    MEDIOS DE PAGO
+                                </span>
+
+                                <h2>
+                                    Cobros por medio
+                                </h2>
+                            </div>
+
+                        </div>
+
+                        @if (_reporte.Finanzas.PorMedio.Count == 0)
+                        {
+                            <div class="empty-state compact">
+                                No hay pagos en el período.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="payment-method-list">
+
+                                @foreach (var item in
+                                    _reporte.Finanzas.PorMedio)
+                                {
+                                    <div class="payment-method-row">
+
+                                        <div>
+                                            <strong>
+                                                @item.Medio
+                                            </strong>
+
+                                            <span>
+                                                @item.Cantidad operaciones
+                                            </span>
+                                        </div>
+
+                                        <b>
+                                            @FormatoMoneda(
+                                                item.Importe)
+                                        </b>
+
+                                    </div>
+                                }
+
+                            </div>
+                        }
+
+                    </article>
+
+                    <article class="report-card span-2">
+
+                        <div class="card-heading">
+
+                            <div>
+                                <span class="section-eyebrow">
+                                    CUENTA CORRIENTE
+                                </span>
+
+                                <h2>
+                                    Mayores deudores
+                                </h2>
+                            </div>
+
+                        </div>
+
+                        @if (_reporte.Finanzas.MayoresDeudores.Count == 0)
+                        {
+                            <div class="empty-state compact success-empty">
+                                No hay deuda pendiente.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="report-table-wrap">
+
+                                <table class="report-table debt-table">
+
+                                    <thead>
+                                        <tr>
+                                            <th>Bebé</th>
+                                            <th>Cuotas con saldo</th>
+                                            <th>Deuda</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        @foreach (var item in
+                                            _reporte.Finanzas.MayoresDeudores)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>
+                                                        @item.Bebe
+                                                    </strong>
+                                                </td>
+
+                                                <td>
+                                                    @item.CuotasPendientes
+                                                </td>
+
+                                                <td class="money-cell negative">
+                                                    @FormatoMoneda(
+                                                        item.Deuda)
+                                                </td>
+
+                                                <td class="table-action">
+                                                    <button type="button"
+                                                            title="Abrir pagos del bebé"
+                                                            @onclick="() => AbrirPagos(item.BebeId)">
+                                                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                                                 Size="Size.Small" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+                        }
+
+                    </article>
+
+                </div>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           CAJA
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Caja)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            EFECTIVO
+                        </span>
+
+                        <h2>
+                            Movimientos de caja
+                        </h2>
+
+                        <p>
+                            Sólo se consideran movimientos que afectan
+                            realmente el saldo de efectivo.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="finance-kpis">
+
+                    <article>
+                        <span>Ingresos</span>
+                        <strong class="positive">
+                            @FormatoMoneda(
+                                _reporte.Caja.Ingresos)
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Egresos</span>
+                        <strong class="negative">
+                            @FormatoMoneda(
+                                _reporte.Caja.Egresos)
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Neto</span>
+                        <strong class="@ClaseImporte(_reporte.Caja.Neto)">
+                            @FormatoMoneda(
+                                _reporte.Caja.Neto)
+                        </strong>
+                        <small>
+                            @_reporte.Caja.Movimientos movimientos
+                        </small>
+                    </article>
+
+                </div>
+
+                <article class="report-card standalone">
+
+                    <div class="card-heading">
+
+                        <div>
+                            <span class="section-eyebrow">
+                                DETALLE
+                            </span>
+
+                            <h2>
+                                Por categoría
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    @if (_reporte.Caja.PorCategoria.Count == 0)
+                    {
+                        <div class="empty-state compact">
+                            No hubo movimientos de caja
+                            en el período.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="report-table-wrap">
+
+                            <table class="report-table cash-table">
+
+                                <thead>
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th>Movimientos</th>
+                                        <th>Ingresos</th>
+                                        <th>Egresos</th>
+                                        <th>Neto</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    @foreach (var item in
+                                        _reporte.Caja.PorCategoria)
+                                    {
+                                        var neto =
+                                            item.Ingresos -
+                                            item.Egresos;
+
+                                        <tr>
+                                            <td>
+                                                <strong>
+                                                    @item.Categoria
+                                                </strong>
+                                            </td>
+
+                                            <td>
+                                                @item.Cantidad
+                                            </td>
+
+                                            <td class="positive">
+                                                @FormatoMoneda(
+                                                    item.Ingresos)
+                                            </td>
+
+                                            <td class="negative">
+                                                @FormatoMoneda(
+                                                    item.Egresos)
+                                            </td>
+
+                                            <td class="@ClaseImporte(neto)">
+                                                @FormatoMoneda(
+                                                    neto)
+                                            </td>
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+                    }
+
+                </article>
+
+            </section>
+        }
+
+
+        @* =====================================================
+           BANCOS
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Bancos)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            CUENTAS BANCARIAS
+                        </span>
+
+                        <h2>
+                            Movimientos por cuenta
+                        </h2>
+
+                        <p>
+                            Ingresos y egresos bancarios registrados
+                            dentro del período seleccionado.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="finance-kpis">
+
+                    <article>
+                        <span>Ingresos bancarios</span>
+                        <strong class="positive">
+                            @FormatoMoneda(
+                                _reporte.Bancos.Ingresos)
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Egresos bancarios</span>
+                        <strong class="negative">
+                            @FormatoMoneda(
+                                _reporte.Bancos.Egresos)
+                        </strong>
+                    </article>
+
+                    <article>
+                        <span>Neto bancario</span>
+                        <strong class="@ClaseImporte(_reporte.Bancos.Neto)">
+                            @FormatoMoneda(
+                                _reporte.Bancos.Neto)
+                        </strong>
+                        <small>
+                            @_reporte.Bancos.Movimientos movimientos
+                        </small>
+                    </article>
+
+                </div>
+
+                @if (_reporte.Bancos.Cuentas.Count == 0)
+                {
+                    <div class="empty-state">
+                        No hay cuentas bancarias cargadas.
+                    </div>
+                }
+                else
+                {
+                    <div class="bank-report-list">
+
+                        @foreach (var cuenta in
+                            _reporte.Bancos.Cuentas)
+                        {
+                            <article class="bank-report-card">
+
+                                <div class="bank-report-head">
+
+                                    <div class="bank-account-title">
+
+                                        <span class="bank-icon">
+                                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance"
+                                                     Size="Size.Small" />
+                                        </span>
+
+                                        <div>
+                                            <strong>
+                                                @cuenta.Banco
+                                            </strong>
+
+                                            <span>
+                                                @cuenta.Cuenta
+                                            </span>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="bank-account-totals">
+
+                                        <div>
+                                            <span>Ingresos</span>
+                                            <strong class="positive">
+                                                @FormatoMoneda(
+                                                    cuenta.Ingresos)
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>Egresos</span>
+                                            <strong class="negative">
+                                                @FormatoMoneda(
+                                                    cuenta.Egresos)
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>Neto</span>
+                                            <strong class="@ClaseImporte(cuenta.Neto)">
+                                                @FormatoMoneda(
+                                                    cuenta.Neto)
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>Movimientos</span>
+                                            <strong>
+                                                @cuenta.Movimientos
+                                            </strong>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                @if (cuenta.Detalle.Count == 0)
+                                {
+                                    <div class="bank-no-movements">
+                                        Sin movimientos en el período.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="report-table-wrap">
+
+                                        <table class="report-table bank-table">
+
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Tipo</th>
+                                                    <th>Origen</th>
+                                                    <th>Concepto</th>
+                                                    <th>Referencia</th>
+                                                    <th>Importe</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                @foreach (var movimiento in
+                                                    cuenta.Detalle)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @FormatoFechaHora(
+                                                                movimiento.FechaUtc)
+                                                        </td>
+
+                                                        <td>
+                                                            <span class="movement-type @(movimiento.Tipo == "Ingreso" ? "income" : "expense")">
+                                                                @movimiento.Tipo
+                                                            </span>
+                                                        </td>
+
+                                                        <td>
+                                                            @movimiento.Origen
+                                                        </td>
+
+                                                        <td>
+                                                            <strong>
+                                                                @movimiento.Concepto
+                                                            </strong>
+
+                                                            @if (!string.IsNullOrWhiteSpace(
+                                                                movimiento.Observaciones))
+                                                            {
+                                                                <small class="movement-observation">
+                                                                    @movimiento.Observaciones
+                                                                </small>
+                                                            }
+                                                        </td>
+
+                                                        <td>
+                                                            @(string.IsNullOrWhiteSpace(
+                                                                movimiento.Referencia)
+                                                                ? "—"
+                                                                : movimiento.Referencia)
+                                                        </td>
+
+                                                        <td class="money-cell @(movimiento.Tipo == "Ingreso" ? "positive" : "negative")">
+                                                            @(movimiento.Tipo == "Ingreso" ? "+" : "-")
+                                                            @FormatoMoneda(
+                                                                movimiento.Importe)
+                                                        </td>
+                                                    </tr>
+                                                }
+
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+                                }
+
+                            </article>
+                        }
+
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        @* =====================================================
+           SALUD
+           ===================================================== *@
+
+        @if (_tab ==
+             TabReporte.Salud)
+        {
+            <section class="report-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <span class="section-eyebrow">
+                            ESTADO ACTUAL
+                        </span>
+
+                        <h2>
+                            Aptos médicos
+                        </h2>
+
+                        <p>
+                            Esta sección es una foto del estado médico
+                            actual; no cambia según el rango de fechas.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="medical-report-grid">
+
+                    <article class="medical-report-card valid">
+                        <MudIcon Icon="@Icons.Material.Filled.Verified" />
+                        <span>Vigentes</span>
+                        <strong>
+                            @_reporte.Salud.Vigentes
+                        </strong>
+                    </article>
+
+                    <article class="medical-report-card warning">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+                        <span>Por vencer</span>
+                        <strong>
+                            @_reporte.Salud.PorVencer
+                        </strong>
+                    </article>
+
+                    <article class="medical-report-card danger">
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+                        <span>Vencidos</span>
+                        <strong>
+                            @_reporte.Salud.Vencidos
+                        </strong>
+                    </article>
+
+                    <article class="medical-report-card danger">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" />
+                        <span>Sin apto</span>
+                        <strong>
+                            @_reporte.Salud.SinApto
+                        </strong>
+                    </article>
+
+                    <article class="medical-report-card observed">
+                        <MudIcon Icon="@Icons.Material.Filled.Visibility" />
+                        <span>Observados</span>
+                        <strong>
+                            @_reporte.Salud.Observados
+                        </strong>
+                    </article>
+
+                    <article class="medical-report-card danger">
+                        <MudIcon Icon="@Icons.Material.Filled.Block" />
+                        <span>No aptos</span>
+                        <strong>
+                            @_reporte.Salud.NoAptos
+                        </strong>
+                    </article>
+
+                </div>
+
+                <AuthorizeView Roles="Administrador">
+                    <Authorized>
+
+                        <div class="medical-report-action">
+
+                            <button type="button"
+                                    class="secondary-action"
+                                    @onclick="IrAAptosMedicos">
+
+                                Gestionar aptos médicos
+
+                                <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                         Size="Size.Small" />
+
+                            </button>
+
+                        </div>
+
+                    </Authorized>
+                </AuthorizeView>
+
+            </section>
+        }
+
+    }
+
+</div>

@@ -1,0 +1,503 @@
+@page "/proveedores"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador,Administrativa")]
+
+@using BebesNadadores.Application.Proveedores
+@using BebesNadadores.Application.Proveedores.Dtos
+
+
+
+<PageTitle>Proveedores | Bebés Nadadores</PageTitle>
+
+
+<div class="providers-page">
+
+    <header class="page-header">
+
+        <div>
+
+            <span class="page-eyebrow">
+                FINANZAS · PROVEEDORES
+            </span>
+
+            <h1>
+                Proveedores
+            </h1>
+
+            <p>
+                Administración de proveedores y pagos
+                operativos del natatorio.
+            </p>
+
+        </div>
+
+
+        <button type="button"
+                class="primary-action"
+                @onclick="NuevoProveedor">
+
+            <MudIcon Icon="@Icons.Material.Filled.Add"
+                     Size="Size.Small" />
+
+            Nuevo proveedor
+
+        </button>
+
+    </header>
+
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="page-message error">
+
+            <MudIcon Icon="@Icons.Material.Filled.Error"
+                     Size="Size.Small" />
+
+            @_error
+
+        </div>
+    }
+
+
+    <section class="provider-toolbar">
+
+        <div class="search-box">
+
+            <MudIcon Icon="@Icons.Material.Filled.Search"
+                     Size="Size.Small" />
+
+            <input type="search"
+                   placeholder="Buscar razón social, fantasía, CUIT..."
+                   @bind="_buscar"
+                   @bind:event="oninput" />
+
+        </div>
+
+
+        <label class="inactive-toggle">
+
+            <input type="checkbox"
+                   @bind="_mostrarInactivos"
+                   @bind:after="RecargarAsync" />
+
+            <span>
+                Mostrar inactivos
+            </span>
+
+        </label>
+
+    </section>
+
+
+    <section class="provider-kpis">
+
+        <article>
+
+            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" />
+
+            <div>
+
+                <span>
+                    PROVEEDORES
+                </span>
+
+                <strong>
+                    @_proveedores.Count
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+
+            <div>
+
+                <span>
+                    ACTIVOS
+                </span>
+
+                <strong>
+                    @_proveedores.Count(x => x.Activo)
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article>
+
+            <MudIcon Icon="@Icons.Material.Filled.PauseCircle" />
+
+            <div>
+
+                <span>
+                    INACTIVOS
+                </span>
+
+                <strong>
+                    @_proveedores.Count(x => !x.Activo)
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    @if (_cargando)
+    {
+        <div class="loading-state">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            <span>
+                Cargando proveedores...
+            </span>
+
+        </div>
+    }
+    else if (ProveedoresFiltrados.Count == 0)
+    {
+        <div class="empty-state">
+
+            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" />
+
+            <strong>
+                No encontramos proveedores
+            </strong>
+
+            <span>
+                Podés crear uno desde
+                "Nuevo proveedor".
+            </span>
+
+        </div>
+    }
+    else
+    {
+        <section class="providers-grid">
+
+            @foreach (var proveedor in ProveedoresFiltrados)
+            {
+                <article class="provider-card @(!proveedor.Activo ? "inactive" : "")">
+
+                    <div class="provider-card-header">
+
+                        <div class="provider-avatar">
+
+                            @ObtenerIniciales(
+                                proveedor)
+
+                        </div>
+
+
+                        <div class="provider-title">
+
+                            <strong>
+                                @proveedor.RazonSocial
+                            </strong>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                proveedor.NombreFantasia))
+                            {
+                                <span>
+                                    @proveedor.NombreFantasia
+                                </span>
+                            }
+
+                        </div>
+
+
+                        <span class="status-badge @(proveedor.Activo ? "active" : "inactive")">
+
+                            @(proveedor.Activo
+                                ? "Activo"
+                                : "Inactivo")
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="provider-data">
+
+                        <div>
+
+                            <span>
+                                CUIT
+                            </span>
+
+                            <strong>
+                                @(proveedor.Cuit ?? "—")
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Teléfono
+                            </span>
+
+                            <strong>
+                                @(proveedor.Telefono ?? "—")
+                            </strong>
+
+                        </div>
+
+
+                        <div class="wide">
+
+                            <span>
+                                Email
+                            </span>
+
+                            <strong>
+                                @(proveedor.Email ?? "—")
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="provider-footer">
+
+                        <button type="button"
+                                class="payment-action"
+                                disabled="@(!proveedor.Activo)"
+                                @onclick="() => VerPagos(proveedor.Id)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Payments"
+                                     Size="Size.Small" />
+
+                            Pagos
+
+                        </button>
+
+
+                        <button type="button"
+                                class="icon-action"
+                                title="Editar"
+                                @onclick="() => EditarProveedorAsync(proveedor.Id)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                     Size="Size.Small" />
+
+                        </button>
+
+
+                        <button type="button"
+                                class="icon-action"
+                                title="Activar / desactivar"
+                                @onclick="() => CambiarEstadoAsync(proveedor)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew"
+                                     Size="Size.Small" />
+
+                        </button>
+
+                    </div>
+
+                </article>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@if (_mostrarModal)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarModal">
+
+        <section class="provider-modal"
+                 @onclick:stopPropagation="true">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <span class="page-eyebrow">
+                        @(_editandoId.HasValue
+                            ? "EDITAR PROVEEDOR"
+                            : "NUEVO PROVEEDOR")
+                    </span>
+
+                    <h2>
+                        @(_editandoId.HasValue
+                            ? "Modificar proveedor"
+                            : "Registrar proveedor")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="close-action"
+                        @onclick="CerrarModal">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </header>
+
+
+            <div class="modal-body">
+
+                @if (!string.IsNullOrWhiteSpace(
+                    _errorModal))
+                {
+                    <div class="page-message error">
+                        @_errorModal
+                    </div>
+                }
+
+
+                <div class="form-grid">
+
+                    <div class="form-field wide">
+
+                        <label>
+                            Razón social *
+                        </label>
+
+                        <input type="text"
+                               maxlength="200"
+                               @bind="_form.RazonSocial" />
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Nombre de fantasía
+                        </label>
+
+                        <input type="text"
+                               maxlength="200"
+                               @bind="_form.NombreFantasia" />
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            CUIT
+                        </label>
+
+                        <input type="text"
+                               maxlength="20"
+                               placeholder="30-12345678-9"
+                               @bind="_form.Cuit" />
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Teléfono
+                        </label>
+
+                        <input type="text"
+                               maxlength="50"
+                               @bind="_form.Telefono" />
+
+                    </div>
+
+
+                    <div class="form-field">
+
+                        <label>
+                            Email
+                        </label>
+
+                        <input type="email"
+                               maxlength="200"
+                               @bind="_form.Email" />
+
+                    </div>
+
+
+                    <div class="form-field wide">
+
+                        <label>
+                            Dirección
+                        </label>
+
+                        <input type="text"
+                               maxlength="300"
+                               @bind="_form.Direccion" />
+
+                    </div>
+
+
+                    <div class="form-field wide">
+
+                        <label>
+                            Observaciones
+                        </label>
+
+                        <textarea rows="4"
+                                  maxlength="1000"
+                                  @bind="_form.Observaciones">
+                        </textarea>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <footer class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModal">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="GuardarAsync">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Save"
+                                 Size="Size.Small" />
+                    }
+
+                    Guardar proveedor
+
+                </button>
+
+            </footer>
+
+        </section>
+
+    </div>
+}

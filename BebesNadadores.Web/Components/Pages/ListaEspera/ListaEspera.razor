@@ -436,30 +436,51 @@
                             </div>
 
 
-                            <div class="wait-actions">
+                           <div class="wait-actions">
 
-                                <button type="button"
-                                        class="icon-action edit"
-                                        title="Editar preferencia"
-                                        @onclick="() => AbrirEditar(item)">
+    @if (
+        item.Estado ==
+            EstadoListaEspera.Activa
+        ||
+        item.Estado ==
+            EstadoListaEspera.Notificada)
+    {
+        <button type="button"
+                class="icon-action whatsapp"
+                title="Avisar por WhatsApp"
+                disabled="@string.IsNullOrWhiteSpace(item.WhatsApp)"
+                @onclick="async () =>
+                    await AvisarWhatsAppAsync(item)">
 
-                                    <MudIcon Icon="@Icons.Material.Filled.Edit"
-                                             Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.Chat"
+                     Size="Size.Small" />
 
-                                </button>
+        </button>
+    }
 
 
-                                <button type="button"
-                                        class="icon-action cancel"
-                                        title="Quitar de lista"
-                                        @onclick="() => SolicitarCancelar(item)">
+    <button type="button"
+            class="icon-action edit"
+            title="Editar preferencia"
+            @onclick="() => AbrirEditar(item)">
 
-                                    <MudIcon Icon="@Icons.Material.Filled.Close"
-                                             Size="Size.Small" />
+        <MudIcon Icon="@Icons.Material.Filled.Edit"
+                 Size="Size.Small" />
 
-                                </button>
+    </button>
 
-                            </div>
+
+    <button type="button"
+            class="icon-action cancel"
+            title="Quitar de lista"
+            @onclick="() => SolicitarCancelar(item)">
+
+        <MudIcon Icon="@Icons.Material.Filled.Close"
+                 Size="Size.Small" />
+
+    </button>
+
+</div>
 
 
                             @if (!string.IsNullOrWhiteSpace(

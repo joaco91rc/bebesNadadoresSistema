@@ -25,6 +25,81 @@
 }
 
 
+.health-question-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 9px;
+}
+
+
+.health-detail {
+    margin-top: 3px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+
+.health-detail label {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+
+.health-detail textarea {
+    width: 100%;
+    min-height: 78px;
+
+    padding: 10px 11px;
+
+    resize: vertical;
+
+    border:
+        1px solid var(--mud-palette-divider);
+
+    border-radius: 9px;
+
+    outline: none;
+
+    color:
+        var(--mud-palette-text-primary);
+
+    background:
+        var(--mud-palette-background);
+
+    font-family:
+        var(--bn-font-body);
+
+    font-size: 11px;
+
+    transition: .16s ease;
+}
+
+
+.health-detail textarea:focus {
+    border-color:
+        rgba(47, 196, 234, .55);
+
+    box-shadow:
+        0 0 0 3px rgba(47, 196, 234, .07);
+}
+
+
+.health-detail>span {
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 8px;
+}
+
 /* ============================================================
    HEADER
    ============================================================ */
@@ -1887,6 +1962,135 @@
 }
 
 
+.schedule-mode-section {
+    margin-top: 18px;
+    margin-bottom: 18px;
+}
+
+.schedule-mode-heading {
+    margin-bottom: 12px;
+}
+
+.schedule-mode-heading h3 {
+    margin: 3px 0 4px;
+}
+
+.schedule-mode-heading p {
+    margin: 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: 9px;
+}
+
+.schedule-mode-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.schedule-mode-card {
+    position: relative;
+
+    min-height: 92px;
+    padding: 15px;
+
+    display: grid;
+    grid-template-columns: 42px 1fr 24px;
+    align-items: center;
+    gap: 11px;
+
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 14px;
+
+    color: var(--mud-palette-text-primary);
+    background: var(--mud-palette-surface);
+
+    text-align: left;
+    cursor: pointer;
+
+    transition:
+        border-color .18s ease,
+        background .18s ease,
+        transform .18s ease;
+}
+
+.schedule-mode-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(44, 196, 233, .28);
+}
+
+.schedule-mode-card.selected {
+    border-color: var(--mud-palette-primary);
+    background: rgba(44, 196, 233, .055);
+}
+
+.schedule-mode-icon {
+    width: 42px;
+    height: 42px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 11px;
+
+    color: var(--mud-palette-primary);
+    background: rgba(44, 196, 233, .08);
+}
+
+.schedule-mode-card strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10px;
+}
+
+.schedule-mode-card span {
+    display: block;
+    color: var(--mud-palette-text-secondary);
+    font-size: 8px;
+    line-height: 1.45;
+}
+
+.schedule-mode-check {
+    color: var(--mud-palette-primary);
+}
+
+.pending-schedule-info {
+    margin: 16px 0;
+
+    padding: 12px 14px;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+
+    border: 1px solid rgba(234, 182, 91, .18);
+    border-radius: 11px;
+
+    color: #eab65b;
+    background: rgba(234, 182, 91, .04);
+}
+
+.pending-schedule-info strong,
+.pending-schedule-info span {
+    display: block;
+}
+
+.pending-schedule-info span {
+    margin-top: 3px;
+    color: var(--mud-palette-text-secondary);
+    font-size: 8px;
+}
+
+.first-class-option,
+.first-class-picker {
+    margin-top: 15px;
+}
+
+@media (max-width: 750px) {
+    .schedule-mode-options {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 700px) {
 
     .discount-fields,
@@ -1907,4 +2111,139 @@
             var(--mud-palette-divider);
     }
 
+}
+
+/* ============================================================
+   ANTECEDENTES DE SALUD
+   ============================================================ */
+
+.health-declaration {
+    margin-top: 18px;
+    padding: 14px;
+    border: 1px solid rgba(47, 196, 234, .14);
+    border-radius: 12px;
+    background:
+        color-mix(
+            in srgb,
+            var(--mud-palette-surface) 97%,
+            var(--mud-palette-primary) 3%);
+}
+
+.health-declaration-heading {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.health-declaration-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    color: var(--mud-palette-primary);
+    background: rgba(47, 196, 234, .08);
+}
+
+.health-declaration-heading > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.health-declaration-heading strong {
+    color: var(--mud-palette-text-primary);
+    font-family: var(--bn-font-title);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.health-declaration-heading small {
+    margin-top: 2px;
+    color: var(--mud-palette-text-secondary);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.health-question-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.health-question {
+    min-width: 0;
+    padding: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 10px;
+    background: var(--mud-palette-surface);
+}
+
+.health-question-label {
+    color: var(--mud-palette-text-primary);
+    font-family: var(--bn-font-title);
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.health-answer-options {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 5px;
+}
+
+.health-answer {
+    min-width: 48px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 8px;
+    color: var(--mud-palette-text-secondary);
+    background: transparent;
+    font-family: var(--bn-font-title);
+    font-size: 10px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: .16s ease;
+}
+
+.health-answer:hover {
+    color: var(--mud-palette-primary);
+    border-color: rgba(47, 196, 234, .30);
+    background: rgba(47, 196, 234, .04);
+}
+
+.health-answer.selected {
+    color: var(--mud-palette-primary);
+    border-color: rgba(47, 196, 234, .40);
+    background: rgba(47, 196, 234, .10);
+    box-shadow:
+        inset 0 0 0 1px rgba(47, 196, 234, .05);
+}
+
+@media (max-width: 760px) {
+
+    .health-question-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .health-question {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .health-answer-options {
+        width: 100%;
+    }
+
+    .health-answer {
+        flex: 1;
+    }
 }

@@ -1,0 +1,390 @@
+@page "/pagos/cuotas"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(
+    Roles = "Administrador")]
+
+@using BebesNadadores.Application.Cuotas.Dtos
+
+<PageTitle>Generación de cuotas | Bebés Nadadores</PageTitle>
+
+
+<div class="quota-generation-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <header class="generation-header">
+
+        <div>
+
+            <span class="page-eyebrow">
+                FINANZAS · CUOTAS
+            </span>
+
+            <h1>
+                Generación de cuotas
+            </h1>
+
+            <p>
+                Generá las cuotas mensuales de las inscripciones
+                vigentes y controlá el resultado del proceso.
+            </p>
+
+        </div>
+
+
+        <button type="button"
+                class="secondary-action"
+                @onclick="Volver">
+
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                     Size="Size.Small" />
+
+            Volver a pagos
+
+        </button>
+
+    </header>
+
+
+    @* =========================================================
+       MENSAJES
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="page-message error">
+
+            <MudIcon Icon="@Icons.Material.Filled.Error"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="page-message success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       AUTOMATIZACIÓN
+       ========================================================= *@
+
+    <section class="automation-card">
+
+        <div class="automation-icon">
+
+            <MudIcon Icon="@Icons.Material.Filled.Autorenew" />
+
+        </div>
+
+
+        <div class="automation-copy">
+
+            <span class="automation-eyebrow">
+                PROCESO AUTOMÁTICO
+            </span>
+
+            <strong>
+                Generación mensual activa
+            </strong>
+
+            <p>
+                El sistema controla automáticamente el período
+                actual al iniciar y luego todos los días a las
+                <b>03:05 hs.</b>
+            </p>
+
+        </div>
+
+
+        <div class="automation-meta">
+
+            <div>
+                <span>
+                    VENCIMIENTO
+                </span>
+
+                <strong>
+                    Día 10
+                </strong>
+            </div>
+
+            <div>
+                <span>
+                    CONTROL
+                </span>
+
+                <strong>
+                    Diario
+                </strong>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    @* =========================================================
+       GENERACIÓN MANUAL
+       ========================================================= *@
+
+    <section class="generation-card">
+
+        <div class="generation-card-header">
+
+            <div>
+
+                <span class="section-eyebrow">
+                    EJECUCIÓN MANUAL
+                </span>
+
+                <h2>
+                    Generar período
+                </h2>
+
+                <p>
+                    Podés ejecutar manualmente cualquier período.
+                    Si las cuotas ya existen, no se duplican.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="generation-form">
+
+            <div class="period-field">
+
+                <label>
+                    Período
+                </label>
+
+               <input type="month"
+       value="@_periodoTexto"
+       @onchange="CambiarPeriodo"
+       disabled="@_generando" />
+
+                <small>
+                    Las cuotas vencerán el día 10 del mes seleccionado.
+                </small>
+
+            </div>
+
+
+            <button type="button"
+                    class="primary-action generate-button"
+                    disabled="@_generando"
+                    @onclick="GenerarAsync">
+
+                @if (_generando)
+                {
+                    <MudProgressCircular Indeterminate="true"
+                                         Size="Size.Small" />
+
+                    <span>
+                        Generando...
+                    </span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Autorenew"
+                             Size="Size.Small" />
+
+                    <span>
+                        Generar cuotas
+                    </span>
+                }
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+    @* =========================================================
+       RESULTADO
+       ========================================================= *@
+
+    @if (_resultado is not null)
+    {
+        <section class="result-section">
+
+            <div class="result-heading">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        RESULTADO
+                    </span>
+
+                    <h2>
+                        Período
+                        @(_resultado.Periodo.ToString("MM/yyyy"))
+                    </h2>
+
+                </div>
+
+
+                <div class="result-status">
+
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                             Size="Size.Small" />
+
+                    Procesado
+
+                </div>
+
+            </div>
+
+
+            <div class="result-kpis">
+
+                <article>
+
+                    <div class="result-icon blue">
+                        <MudIcon Icon="@Icons.Material.Filled.Groups" />
+                    </div>
+
+                    <div>
+                        <span>
+                            Inscripciones evaluadas
+                        </span>
+
+                        <strong>
+                            @_resultado.InscripcionesEvaluadas
+                        </strong>
+                    </div>
+
+                </article>
+
+
+                <article>
+
+                    <div class="result-icon green">
+                        <MudIcon Icon="@Icons.Material.Filled.AddTask" />
+                    </div>
+
+                    <div>
+                        <span>
+                            Cuotas generadas
+                        </span>
+
+                        <strong>
+                            @_resultado.CuotasGeneradas
+                        </strong>
+                    </div>
+
+                </article>
+
+
+                <article>
+
+                    <div class="result-icon gray">
+                        <MudIcon Icon="@Icons.Material.Filled.DoneAll" />
+                    </div>
+
+                    <div>
+                        <span>
+                            Ya existentes
+                        </span>
+
+                        <strong>
+                            @_resultado.CuotasYaExistentes
+                        </strong>
+                    </div>
+
+                </article>
+
+
+                <article class="@(_resultado.SinTarifa > 0
+                                    ? "warning"
+                                    : "")">
+
+                    <div class="result-icon orange">
+                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber" />
+                    </div>
+
+                    <div>
+                        <span>
+                            Sin tarifa
+                        </span>
+
+                        <strong>
+                            @_resultado.SinTarifa
+                        </strong>
+                    </div>
+
+                </article>
+
+            </div>
+
+
+            @if (_resultado.Advertencias.Count > 0)
+            {
+                <div class="warnings-card">
+
+                    <div class="warnings-header">
+
+                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber"
+                                 Size="Size.Small" />
+
+                        <div>
+
+                            <strong>
+                                Revisiones necesarias
+                            </strong>
+
+                            <span>
+                                Algunas inscripciones no pudieron procesarse
+                                completamente.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="warnings-list">
+
+                        @foreach (var advertencia
+                            in _resultado.Advertencias)
+                        {
+                            <div class="warning-item">
+
+                                <span></span>
+
+                                <p>
+                                    @advertencia
+                                </p>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>

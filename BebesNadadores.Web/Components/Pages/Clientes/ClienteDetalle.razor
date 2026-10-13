@@ -17,8 +17,7 @@
 {
     <div class="legajo-loading">
 
-        <MudProgressCircular Indeterminate="true"
-                             Size="Size.Large" />
+        <MudProgressCircular Indeterminate="true" Size="Size.Large" />
 
         <span>
             Cargando legajo...
@@ -40,9 +39,7 @@ else if (!string.IsNullOrWhiteSpace(_error))
             @_error
         </p>
 
-        <button type="button"
-                class="secondary-action"
-                @onclick="Volver">
+        <button type="button" class="secondary-action" @onclick="Volver">
 
             Volver a bebés
 
@@ -65,12 +62,9 @@ else if (_legajo is not null)
 
             <div class="hero-top">
 
-                <button type="button"
-                        class="back-button"
-                        @onclick="Volver">
+                <button type="button" class="back-button" @onclick="Volver">
 
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
-                             Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" />
 
                     Bebés y familias
 
@@ -84,16 +78,13 @@ else if (_legajo is not null)
                          !string.IsNullOrWhiteSpace(
                              _legajo.ResponsablePrincipal.WhatsApp))
                     {
-                        <button type="button"
-                                class="whatsapp-button"
-                                @onclick="AbrirWhatsApp">
+                        <a class="whatsapp-button" href="@ObtenerWhatsAppUrl()" target="_blank" rel="noopener noreferrer">
 
-                            <MudIcon Icon="@Icons.Material.Filled.Chat"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
 
                             WhatsApp
 
-                        </button>
+                        </a>
                     }
 
                 </div>
@@ -141,8 +132,7 @@ else if (_legajo is not null)
 
                         <span>
 
-                            <MudIcon Icon="@Icons.Material.Filled.Cake"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" />
 
                             @ObtenerEdadTexto()
 
@@ -151,8 +141,7 @@ else if (_legajo is not null)
 
                         <span>
 
-                            <MudIcon Icon="@Icons.Material.Filled.Pool"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Pool" Size="Size.Small" />
 
                             @(_legajo.NivelActual
                                 ?? "Sin nivel asignado")
@@ -162,8 +151,7 @@ else if (_legajo is not null)
 
                         <span>
 
-                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" />
 
                             Alta
                             @_legajo.FechaAlta.ToString("dd/MM/yyyy")
@@ -176,8 +164,7 @@ else if (_legajo is not null)
                         {
                             <span>
 
-                                <MudIcon Icon="@Icons.Material.Filled.Badge"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" />
 
                                 DNI @_legajo.Dni
 
@@ -199,8 +186,7 @@ else if (_legajo is not null)
                     {
                         <div class="hero-alert @alerta.Css">
 
-                            <MudIcon Icon="@alerta.Icono"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@alerta.Icono" Size="Size.Small" />
 
                             <span>
                                 @alerta.Texto
@@ -221,22 +207,18 @@ else if (_legajo is not null)
 
         <nav class="profile-tabs">
 
-            <button class="@TabCss(TabLegajo.Resumen)"
-                    @onclick="() => _tab = TabLegajo.Resumen">
+            <button class="@TabCss(TabLegajo.Resumen)" @onclick="() => _tab = TabLegajo.Resumen">
 
-                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="Size.Small" />
 
                 Resumen
 
             </button>
 
 
-            <button class="@TabCss(TabLegajo.Responsables)"
-                    @onclick="() => _tab = TabLegajo.Responsables">
+            <button class="@TabCss(TabLegajo.Responsables)" @onclick="() => _tab = TabLegajo.Responsables">
 
-                <MudIcon Icon="@Icons.Material.Filled.Groups"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" />
 
                 Responsables
 
@@ -247,44 +229,36 @@ else if (_legajo is not null)
             </button>
 
 
-            <button class="@TabCss(TabLegajo.Inscripcion)"
-                    @onclick="() => _tab = TabLegajo.Inscripcion">
+            <button class="@TabCss(TabLegajo.Inscripcion)" @onclick="() => _tab = TabLegajo.Inscripcion">
 
-                <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small" />
 
                 Inscripción
 
             </button>
 
 
-            <button class="@TabCss(TabLegajo.AptoMedico)"
-                    @onclick="() => _tab = TabLegajo.AptoMedico">
+            <button class="@TabCss(TabLegajo.AptoMedico)" @onclick="() => _tab = TabLegajo.AptoMedico">
 
-                <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" Size="Size.Small" />
 
                 Apto médico
 
             </button>
 
 
-            <button class="@TabCss(TabLegajo.Asistencia)"
-                    @onclick="() => _tab = TabLegajo.Asistencia">
+            <button class="@TabCss(TabLegajo.Asistencia)" @onclick="() => _tab = TabLegajo.Asistencia">
 
-                <MudIcon Icon="@Icons.Material.Filled.FactCheck"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small" />
 
                 Asistencia
 
             </button>
 
 
-            <button class="@TabCss(TabLegajo.Recuperos)"
-                    @onclick="() => _tab = TabLegajo.Recuperos">
+            <button class="@TabCss(TabLegajo.Recuperos)" @onclick="() => _tab = TabLegajo.Recuperos">
 
-                <MudIcon Icon="@Icons.Material.Filled.Autorenew"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.Autorenew" Size="Size.Small" />
 
                 Recuperos
 
@@ -298,11 +272,9 @@ else if (_legajo is not null)
             </button>
 
 
-            <button class="@TabCss(TabLegajo.Pagos)"
-                    @onclick="() => _tab = TabLegajo.Pagos">
+            <button class="@TabCss(TabLegajo.Pagos)" @onclick="() => _tab = TabLegajo.Pagos">
 
-                <MudIcon Icon="@Icons.Material.Filled.Payments"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" />
 
                 Pagos
 
@@ -478,8 +450,7 @@ else if (_legajo is not null)
 
                             </div>
 
-                            <MudIcon Icon="@Icons.Material.Filled.Pool"
-                                     Class="header-icon" />
+                            <MudIcon Icon="@Icons.Material.Filled.Pool" Class="header-icon" />
 
                         </div>
 
@@ -499,11 +470,11 @@ else if (_legajo is not null)
                                 <div class="next-class-date">
 
                                     <span>
-    @(_legajo.ProximaClase.Fecha
-        .ToString("ddd", Cultura)
-        .TrimEnd('.')
-        .ToUpperInvariant())
-</span>
+                                        @(_legajo.ProximaClase.Fecha
+                                            .ToString("ddd", Cultura)
+                                            .TrimEnd('.')
+                                            .ToUpperInvariant())
+                                    </span>
 
                                     <strong>
                                         @_legajo.ProximaClase.Fecha.Day
@@ -592,14 +563,11 @@ else if (_legajo is not null)
                         </div>
 
 
-                        <button type="button"
-                                class="card-link"
-                                @onclick="() => _tab = TabLegajo.Asistencia">
+                        <button type="button" class="card-link" @onclick="() => _tab = TabLegajo.Asistencia">
 
                             Ver historial completo
 
-                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
                         </button>
 
@@ -671,8 +639,7 @@ else if (_legajo is not null)
 
                                 <span>
 
-                                    <MudIcon Icon="@Icons.Material.Filled.Phone"
-                                             Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" />
 
                                     @responsable.Telefono
 
@@ -680,8 +647,7 @@ else if (_legajo is not null)
 
                                 <span>
 
-                                    <MudIcon Icon="@Icons.Material.Filled.Chat"
-                                             Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
 
                                     @responsable.WhatsApp
 
@@ -689,8 +655,7 @@ else if (_legajo is not null)
 
                                 <span>
 
-                                    <MudIcon Icon="@Icons.Material.Filled.Email"
-                                             Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
 
                                     @responsable.Email
 
@@ -739,7 +704,7 @@ else if (_legajo is not null)
 
                                 <span>
                                     @_legajo.InscripcionActual.VecesPorSemana
-                                    @( _legajo.InscripcionActual.VecesPorSemana == 1
+                                    @(_legajo.InscripcionActual.VecesPorSemana == 1
                                         ? "vez"
                                         : "veces")
                                     por semana
@@ -765,17 +730,151 @@ else if (_legajo is not null)
                             </div>
 
 
-                            <button type="button"
-                                    class="card-link"
-                                    @onclick="() => _tab = TabLegajo.Inscripcion">
+                            <button type="button" class="card-link" @onclick="() => _tab = TabLegajo.Inscripcion">
 
                                 Ver inscripción
 
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-                                         Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
                             </button>
                         }
+
+                    </article>
+                    @* =====================================================
+   ANTECEDENTES DE SALUD
+   ===================================================== *@
+
+                    <article class="content-card health-history-card">
+
+                        <div class="content-card-header">
+
+                            <div>
+
+                                <span class="section-eyebrow">
+                                    SALUD
+                                </span>
+
+                                <h2>
+                                    Antecedentes de salud
+                                </h2>
+
+                            </div>
+
+                            <MudIcon Icon="@Icons.Material.Filled.MedicalInformation" Class="header-icon" />
+
+                        </div>
+
+
+                        <div class="health-history-list">
+
+                            @* HOSPITALIZACIÓN *@
+
+                            <div class="health-history-item">
+
+                                <div class="health-history-question">
+
+                                    <span class="health-history-status
+                                        @EstadoSaludCss(
+                                              _legajo.PermanecioHospitalMasDe5Dias)">
+
+                                        <MudIcon Icon="@IconoEstadoSalud(
+                                                                                       _legajo.PermanecioHospitalMasDe5Dias)" Size="Size.Small" />
+
+                                    </span>
+
+
+                                    <div>
+
+                                        <span>
+                                            ¿Permaneció en el hospital más de 5 días?
+                                        </span>
+
+                                        <strong>
+                                            @TextoEstadoSalud(
+                                                _legajo.PermanecioHospitalMasDe5Dias)
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+
+                                @if (
+                                    _legajo.PermanecioHospitalMasDe5Dias == true
+                                    &&
+                                    !string.IsNullOrWhiteSpace(
+                                        _legajo.DetalleHospitalizacion))
+                                {
+                                    <div class="health-history-detail">
+
+                                        <span>
+                                            Detalle
+                                        </span>
+
+                                        <p>
+                                            @_legajo.DetalleHospitalizacion
+                                        </p>
+
+                                    </div>
+                                }
+
+                            </div>
+
+
+                            @* TRATAMIENTO *@
+
+                            <div class="health-history-item">
+
+                                <div class="health-history-question">
+
+                                    <span class="health-history-status
+                                        @EstadoSaludCss(
+                                              _legajo.RecibeTratamiento)">
+
+                                        <MudIcon Icon="@IconoEstadoSalud(
+                                                                                       _legajo.RecibeTratamiento)" Size="Size.Small" />
+
+                                    </span>
+
+
+                                    <div>
+
+                                        <span>
+                                            ¿Recibe algún tratamiento?
+                                        </span>
+
+                                        <strong>
+                                            @TextoEstadoSalud(
+                                                _legajo.RecibeTratamiento)
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+
+                                @if (
+                                    _legajo.RecibeTratamiento == true
+                                    &&
+                                    !string.IsNullOrWhiteSpace(
+                                        _legajo.DetalleTratamiento))
+                                {
+                                    <div class="health-history-detail">
+
+                                        <span>
+                                            Detalle
+                                        </span>
+
+                                        <p>
+                                            @_legajo.DetalleTratamiento
+                                        </p>
+
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
 
                     </article>
 
@@ -819,9 +918,9 @@ else if (_legajo is not null)
                         _legajo.Responsables)
                     {
                         <article class="responsible-card
-                                        @(responsable.EsContactoPrincipal
-                                            ? "principal"
-                                            : "")">
+                            @(responsable.EsContactoPrincipal
+                                     ? "principal"
+                                     : "")">
 
                             <div class="responsible-card-header">
 
@@ -898,14 +997,13 @@ else if (_legajo is not null)
 
 
                             <div class="communication-status
-                                        @(responsable.AutorizaComunicaciones
-                                            ? "allowed"
-                                            : "disabled")">
+                                @(responsable.AutorizaComunicaciones
+                                     ? "allowed"
+                                     : "disabled")">
 
                                 <MudIcon Icon="@(responsable.AutorizaComunicaciones
-                                    ? Icons.Material.Filled.CheckCircle
-                                    : Icons.Material.Filled.Block)"
-                                         Size="Size.Small" />
+                                                                             ? Icons.Material.Filled.CheckCircle
+                                                                         : Icons.Material.Filled.Block)" Size="Size.Small" />
 
                                 @(responsable.AutorizaComunicaciones
                                     ? "Autoriza comunicaciones"
@@ -930,70 +1028,64 @@ else if (_legajo is not null)
         {
             <section class="tab-section">
 
-               <div class="tab-heading tab-heading-actions">
+                <div class="tab-heading tab-heading-actions">
 
-    <div>
+                    <div>
 
-        <span class="section-eyebrow">
-            ACTIVIDAD
-        </span>
+                        <span class="section-eyebrow">
+                            ACTIVIDAD
+                        </span>
 
-        <h2>
-            Inscripción y turnos
-        </h2>
+                        <h2>
+                            Inscripción y turnos
+                        </h2>
 
-        <p>
-            Plan, nivel y horarios semanales asignados.
-        </p>
+                        <p>
+                            Plan, nivel y horarios semanales asignados.
+                        </p>
 
-    </div>
-
-
-    @if (_legajo.InscripcionActual is not null)
-    {
-        <button type="button"
-                class="manage-enrollment-button"
-                @onclick="GestionarInscripcion">
-
-            <MudIcon Icon="@Icons.Material.Filled.EditCalendar"
-                     Size="Size.Small" />
-
-            Gestionar inscripción
-
-        </button>
-    }
-
-</div>
+                    </div>
 
 
-               @if (_legajo.InscripcionActual is null)
-{
-    <div class="large-empty">
+                    @if (_legajo.InscripcionActual is not null)
+                    {
+                        <button type="button" class="manage-enrollment-button" @onclick="GestionarInscripcion">
 
-        <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+                            <MudIcon Icon="@Icons.Material.Filled.EditCalendar" Size="Size.Small" />
 
-        <h3>
-            Sin inscripción activa
-        </h3>
+                            Gestionar inscripción
 
-        <p>
-            Actualmente no tiene un plan ni horario semanal asignado.
-        </p>
+                        </button>
+                    }
+
+                </div>
 
 
-        <button type="button"
-                class="create-enrollment-button"
-                @onclick="GestionarInscripcion">
+                @if (_legajo.InscripcionActual is null)
+                {
+                    <div class="large-empty">
 
-            <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
-                     Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
 
-            Crear inscripción
+                        <h3>
+                            Sin inscripción activa
+                        </h3>
 
-        </button>
+                        <p>
+                            Actualmente no tiene un plan ni horario semanal asignado.
+                        </p>
 
-    </div>
-}
+
+                        <button type="button" class="create-enrollment-button" @onclick="GestionarInscripcion">
+
+                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" />
+
+                            Crear inscripción
+
+                        </button>
+
+                    </div>
+                }
                 else
                 {
                     <div class="subscription-card">
@@ -1019,8 +1111,8 @@ else if (_legajo is not null)
                             <div>
                                 <span>Inicio</span>
                                 <strong>
-    @(_legajo.InscripcionActual.FechaInicio.ToString("dd/MM/yyyy"))
-</strong>
+                                    @(_legajo.InscripcionActual.FechaInicio.ToString("dd/MM/yyyy"))
+                                </strong>
                             </div>
 
                             <div>
@@ -1148,9 +1240,9 @@ else if (_legajo is not null)
                 @if (_legajo.AptoActual is not null)
                 {
                     <article class="medical-current
-                                    @(_legajo.AptoActual.Vigente
-                                        ? "valid"
-                                        : "expired")">
+                        @(_legajo.AptoActual.Vigente
+                                 ? "valid"
+                                 : "expired")">
 
                         <div class="medical-icon">
 
@@ -1198,11 +1290,11 @@ else if (_legajo is not null)
                                 </strong>
 
                                 <span>
-    @(apto.FechaRevision
-        .ToString("MMM", Cultura)
-        .TrimEnd('.')
-        .ToUpperInvariant())
-</span>
+                                    @(apto.FechaRevision
+                                        .ToString("MMM", Cultura)
+                                        .TrimEnd('.')
+                                        .ToUpperInvariant())
+                                </span>
 
                             </div>
 
@@ -1230,9 +1322,9 @@ else if (_legajo is not null)
 
 
                             <span class="history-status
-                                        @(apto.Vigente
-                                            ? "valid"
-                                            : "expired")">
+                                @(apto.Vigente
+                                      ? "valid"
+                                      : "expired")">
 
                                 @(apto.Vigente
                                     ? "VIGENTE"
@@ -1310,9 +1402,8 @@ else if (_legajo is not null)
                     @foreach (var asistencia in
                         _legajo.Asistencias)
                     {
-                        <article class="history-row clickable"
-                                 @onclick="() => AbrirAsistencia(
-                                     asistencia.SesionClaseId)">
+                        <article class="history-row clickable" @onclick="() => AbrirAsistencia(
+                            asistencia.SesionClaseId)">
 
                             <div class="history-date">
 
@@ -1320,12 +1411,12 @@ else if (_legajo is not null)
                                     @asistencia.Fecha.Day.ToString("00")
                                 </strong>
 
-                               <span>
-    @(asistencia.Fecha
-        .ToString("MMM", Cultura)
-        .TrimEnd('.')
-        .ToUpperInvariant())
-</span>
+                                <span>
+                                    @(asistencia.Fecha
+                                        .ToString("MMM", Cultura)
+                                        .TrimEnd('.')
+                                        .ToUpperInvariant())
+                                </span>
 
                             </div>
 
@@ -1355,8 +1446,8 @@ else if (_legajo is not null)
 
 
                             <span class="attendance-history-status
-                                        @EstadoAsistenciaCss(
-                                            asistencia.Estado)">
+                                @EstadoAsistenciaCss(
+                                      asistencia.Estado)">
 
                                 @EstadoAsistenciaTexto(
                                     asistencia.Estado)
@@ -1410,8 +1501,8 @@ else if (_legajo is not null)
                             <div class="recovery-header">
 
                                 <span class="recovery-status
-                                            @EstadoRecuperoCss(
-                                                recupero.Estado)">
+                                    @EstadoRecuperoCss(
+                                          recupero.Estado)">
 
                                     @EstadoRecuperoTexto(
                                         recupero.Estado)
@@ -1478,8 +1569,7 @@ else if (_legajo is not null)
                             {
                                 <div class="recovery-used">
 
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                             Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
 
                                     Utilizado el
                                     @recupero.FechaUso.Value.ToString("dd/MM/yyyy")
@@ -1578,9 +1668,9 @@ else if (_legajo is not null)
                             <div class="payment-row">
 
                                 <span>
-                                    @pago.FechaUtc
+                                    @(@pago.FechaUtc
                                         .ToLocalTime()
-                                        .ToString("dd/MM/yyyy")
+                                        .ToString("dd/MM/yyyy"))
                                 </span>
 
                                 <span>
@@ -1866,6 +1956,56 @@ else if (_legajo is not null)
             Cultura);
     }
 
+    private static string TextoEstadoSalud(
+    bool? valor)
+    {
+        return valor switch
+        {
+            true =>
+                "Sí",
+
+            false =>
+                "No",
+
+            null =>
+                "Sin informar"
+        };
+    }
+
+
+    private static string EstadoSaludCss(
+        bool? valor)
+    {
+        return valor switch
+        {
+            true =>
+                "warning",
+
+            false =>
+                "ok",
+
+            null =>
+                "unknown"
+        };
+    }
+
+
+    private static string IconoEstadoSalud(
+        bool? valor)
+    {
+        return valor switch
+        {
+            true =>
+                Icons.Material.Filled.PriorityHigh,
+
+            false =>
+                Icons.Material.Filled.Check,
+
+            null =>
+                Icons.Material.Filled.QuestionMark
+        };
+    }
+
 
     private static string EstadoAsistenciaCss(
         EstadoAsistencia estado)
@@ -1980,26 +2120,24 @@ else if (_legajo is not null)
             $"/asistencia?sesionId={sesionId}");
     }
 
-private void GestionarInscripcion()
-{
-    Navigation.NavigateTo(
-        $"/clientes/{BebeId}/inscripcion/editar");
-}
+    private void GestionarInscripcion()
+    {
+        Navigation.NavigateTo(
+            $"/clientes/{BebeId}/inscripcion/editar");
+    }
 
-    private void AbrirWhatsApp()
+    private string ObtenerWhatsAppUrl()
     {
         var numero =
             _legajo?
                 .ResponsablePrincipal?
                 .WhatsApp;
 
-
         if (string.IsNullOrWhiteSpace(
             numero))
         {
-            return;
+            return "#";
         }
-
 
         var limpio =
             new string(
@@ -2007,17 +2145,13 @@ private void GestionarInscripcion()
                     .Where(char.IsDigit)
                     .ToArray());
 
-
         if (string.IsNullOrWhiteSpace(
             limpio))
         {
-            return;
+            return "#";
         }
 
-
-        Navigation.NavigateTo(
-            $"https://wa.me/{limpio}",
-            forceLoad: true);
+        return $"https://wa.me/{limpio}";
     }
 
 

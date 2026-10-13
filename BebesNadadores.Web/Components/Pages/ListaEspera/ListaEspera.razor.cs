@@ -2,7 +2,9 @@ using BebesNadadores.Application.ListaEspera;
 using BebesNadadores.Application.ListaEspera.Dtos;
 using BebesNadadores.Domain.Enums;
 using Microsoft.AspNetCore.Components;
+using BebesNadadores.Application.Comunicaciones;
 using MudBlazor;
+using Microsoft.JSInterop;
 
 namespace BebesNadadores.Web.Components.Pages.ListaEspera;
 
@@ -16,6 +18,15 @@ public partial class ListaEspera : ComponentBase
     [Inject]
     protected NavigationManager Navigation { get; set; }
         = null!;
+
+        [Inject]
+protected IWhatsAppService WhatsAppService { get; set; }
+    = null!;
+
+
+[Inject]
+protected IJSRuntime JS { get; set; }
+    = null!;
 
 
     // =========================================================
@@ -664,7 +675,79 @@ public partial class ListaEspera : ComponentBase
                 false;
         }
     }
+// =========================================================
+// WHATSAPP
+// =========================================================
 
+protected async Task AvisarWhatsAppAsync(
+    ListaEsperaItemDto item)
+{
+    try
+    {
+        _error =
+            null;
+
+
+        if (string.IsNullOrWhiteSpace(
+            item.WhatsApp))
+        {
+            _error =
+                $"{item.Bebe} no tiene un número de WhatsApp cargado.";
+
+            return;
+        }
+
+
+        if (string.IsNullOrWhiteSpace(
+            item.ResponsablePrincipal))
+        {
+            _error =
+                $"{item.Bebe} no tiene un contacto principal configurado.";
+
+            return;
+        }
+
+
+        var preferenciaDia =
+            ObtenerDiaTexto(
+                item.DiaPreferido);
+
+
+        var preferenciaFranja =
+            ObtenerFranjaTexto(
+                item.FranjaHoraria);
+
+
+        var mensaje =
+            $"¡Hola {item.ResponsablePrincipal}! 👋\n\n" +
+            $"Te escribimos de Bebés Nadadores porque " +
+            $"tenemos una vacante disponible para que " +
+            $"{item.Bebe} pueda utilizar su recupero.\n\n" +
+            $"🏊 Nivel: {item.Nivel}\n" +
+            $"📅 Preferencia registrada: {preferenciaDia}\n" +
+            $"🕒 Horario: {preferenciaFranja}\n\n" +
+            $"Si te interesa, respondé este mensaje " +
+            $"y coordinamos el lugar.\n\n" +
+            $"Bebés Nadadores";
+
+
+        var url =
+            WhatsAppService.CrearUrl(
+                item.WhatsApp,
+                mensaje);
+
+
+        await JS.InvokeVoidAsync(
+            "open",
+            url,
+            "_blank");
+    }
+    catch (Exception ex)
+    {
+        _error =
+            ex.Message;
+    }
+}
 
     // =========================================================
     // ESTADOS

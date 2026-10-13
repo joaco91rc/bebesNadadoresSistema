@@ -11,13 +11,18 @@
 @using BebesNadadores.Domain.Enums
 @using BebesNadadores.Application.Bebes
 @using BebesNadadores.Application.Bebes.Dtos
-
+@using BebesNadadores.Application.Comunicaciones
+@using BebesNadadores.Application.Dashboard
+@using BebesNadadores.Application.Dashboard.Dtos
 @inject IBebeService BebeService
-
+@inject IJSRuntime JS
 @inject IAsistenciaService AsistenciaService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IServiceScopeFactory ScopeFactory
+
+@inject IWhatsAppService WhatsAppService
+@inject IDashboardService DashboardService
 
 <PageTitle>Dashboard | Bebés Nadadores</PageTitle>
 
@@ -50,11 +55,9 @@
 
         <div class="header-actions">
 
-            <button class="quick-primary"
-                    @onclick='() => Navigation.NavigateTo("/clientes")'>
+            <button class="quick-primary" @onclick="IrAClientes">
 
-                <MudIcon Icon="@Icons.Material.Filled.ChildCare"
-                         Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.ChildCare" Size="Size.Small" />
 
                 Inscribir bebé
 
@@ -72,406 +75,184 @@
     <section class="kpi-grid">
 
         <article class="kpi-card">
-
-            <div class="kpi-icon blue">
-                <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
-            </div>
-
+            <div class="kpi-icon blue"><MudIcon Icon="@Icons.Material.Filled.ChildCare" /></div>
             <div class="kpi-body">
-
-                <span>
-                    Bebés activos
-                </span>
-
-                <strong>
-                    186
-                </strong>
-
-                <small class="positive">
-                    +8 este mes
+                <span>Bebés activos</span>
+                <strong>@_dashboard.BebesActivos</strong>
+                <small class="@(_dashboard.AltasMes > 0 ? "positive" : "")">
+                    @if (_dashboard.AltasMes > 0)
+                    {
+                        <text>+@_dashboard.AltasMes este mes</text>
+                    }
+                    else
+                    {
+                        <text>Sin altas este mes</text>
+                    }
                 </small>
-
             </div>
-
         </article>
 
-
         <article class="kpi-card">
-
-            <div class="kpi-icon warning">
-                <MudIcon Icon="@Icons.Material.Filled.Payments" />
-            </div>
-
+            <div class="kpi-icon warning"><MudIcon Icon="@Icons.Material.Filled.Payments" /></div>
             <div class="kpi-body">
-
-                <span>
-                    Cuotas pendientes
-                </span>
-
-                <strong>
-                    23
-                </strong>
-
-                <small>
-                    $ 1.284.000
-                </small>
-
+                <span>Cuotas pendientes</span>
+                <strong>@_dashboard.CuotasPendientes</strong>
+                <small>@FormatoMoneda(_dashboard.ImportePendiente)</small>
             </div>
-
         </article>
 
-
         <article class="kpi-card">
-
-            <div class="kpi-icon cyan">
-                <MudIcon Icon="@Icons.Material.Filled.Autorenew" />
-            </div>
-
+            <div class="kpi-icon cyan"><MudIcon Icon="@Icons.Material.Filled.Autorenew" /></div>
             <div class="kpi-body">
-
-                <span>
-                    Recuperos disponibles
-                </span>
-
-                <strong>
-                    31
-                </strong>
-
+                <span>Recuperos disponibles</span>
+                <strong>@_dashboard.RecuperosDisponibles</strong>
                 <small>
-                    7 vencen esta semana
+                    @_dashboard.RecuperosVencenProximos
+                    @(_dashboard.RecuperosVencenProximos == 1
+                        ? "vence en los próximos 7 días"
+                        : "vencen en los próximos 7 días")
                 </small>
-
             </div>
-
         </article>
 
-
         <article class="kpi-card">
-
-            <div class="kpi-icon danger">
-                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
-            </div>
-
+            <div class="kpi-icon danger"><MudIcon Icon="@Icons.Material.Filled.MedicalServices" /></div>
             <div class="kpi-body">
-
-                <span>
-                    Aptos vencidos
-                </span>
-
-                <strong>
-                    9
-                </strong>
-
-                <small>
-                    Requieren revisión
-                </small>
-
+                <span>Aptos a revisar</span>
+                <strong>@_dashboard.AlertasMedicas</strong>
+                <small>@_dashboard.AptosVencidos vencidos · @_dashboard.AptosSinApto sin apto</small>
             </div>
-
         </article>
 
-
         <article class="kpi-card">
-
-            <div class="kpi-icon success">
-                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" />
-            </div>
-
+            <div class="kpi-icon success"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" /></div>
             <div class="kpi-body">
-
-                <span>
-                    Vacantes hoy
-                </span>
-
-                <strong>
-                    6
-                </strong>
-
+                <span>Vacantes hoy</span>
+                <strong>@_dashboard.VacantesHoy</strong>
                 <small>
-                    3 con lista de espera
+                    @_dashboard.ClasesConVacantesHoy
+                    @(_dashboard.ClasesConVacantesHoy == 1 ? "clase con lugar" : "clases con lugar")
                 </small>
-
             </div>
-
         </article>
 
     </section>
+
 
     @* =========================================================
    CLASE EN CURSO
    ========================================================= *@
 
-@if (_claseActual is not null)
-{
-    <section class="current-class-card">
-
-        <div class="current-class-glow"></div>
-
-        <div class="current-class-header">
-
-            <div class="current-class-heading">
-
-                <div class="live-badge">
-                    <span class="live-dot"></span>
-                    CLASE EN CURSO
-                </div>
-
-                <h2>
-                    @_claseActual.Nivel
-                </h2>
-
-                <div class="current-class-meta">
-
-                    <span>
-                        <MudIcon Icon="@Icons.Material.Filled.Schedule"
-                                 Size="Size.Small" />
-
-                        @_claseActual.HoraInicio.ToString("HH:mm")
-                        —
-                        @_claseActual.HoraFin.ToString("HH:mm")
-                    </span>
-
-                    <span>
-                        <MudIcon Icon="@Icons.Material.Filled.Groups"
-                                 Size="Size.Small" />
-
-                        @_claseActual.Alumnos.Count alumnos
-                    </span>
-
-                    <span>
-                        <MudIcon Icon="@Icons.Material.Filled.Sports"
-                                 Size="Size.Small" />
-
-                        @(_claseActual.Profesores is { Count: > 0 }
-    ? string.Join(
-        " + ",
-        _claseActual.Profesores)
-    : "Sin profesor")
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <div class="current-class-clock">
-
-                <span>
-                    AHORA
-                </span>
-
-                <strong>
-                    @_ahora.ToString("HH:mm")
-                </strong>
-
-            </div>
-
-        </div>
-
-
-       <div class="attendance-summary">
-
-    <div class="attendance-stat">
-
-        <span class="attendance-dot present"></span>
-
-        <div>
-            <strong>@CantidadPresentes</strong>
-            <span>Presentes</span>
-        </div>
-
-    </div>
-
-
-    <div class="attendance-stat">
-
-        <span class="attendance-dot notified"></span>
-
-        <div>
-            <strong>@CantidadAusentesConAviso</strong>
-            <span>Con aviso</span>
-        </div>
-
-    </div>
-
-
-    <div class="attendance-stat">
-
-        <span class="attendance-dot absent"></span>
-
-        <div>
-            <strong>@CantidadAusentes</strong>
-            <span>Ausentes</span>
-        </div>
-
-    </div>
-
-
-    <div class="attendance-stat">
-
-        <span class="attendance-dot pending"></span>
-
-        <div>
-            <strong>@CantidadPendientes</strong>
-            <span>Pendientes</span>
-        </div>
-
-    </div>
-
-</div>
-
-
-        <div class="student-list">
-
-    @foreach (var alumno in _claseActual.Alumnos)
+    @if (_claseActual is not null)
     {
-        <div @key="alumno.BebeId"
-             class="student-row
-                    @(alumno.Estado == EstadoAsistencia.Presente
-                        ? "student-present"
-                        : alumno.Estado == EstadoAsistencia.AusenteConAviso
-                            ? "student-notified"
-                            : alumno.Estado == EstadoAsistencia.Ausente
-                                ? "student-absent"
-                                : "")">
+        <section class="current-class-card">
 
-            <div class="student-main">
+            <div class="current-class-glow"></div>
 
-                <div class="student-avatar">
+            <div class="current-class-header">
 
-                    @ObtenerIniciales(
-                        alumno.NombreCompleto)
+                <div class="current-class-heading">
+
+                    <div class="live-badge">
+                        <span class="live-dot"></span>
+                        CLASE EN CURSO
+                    </div>
+
+                    <h2>
+                        @_claseActual.Nivel
+                    </h2>
+
+                    <div class="current-class-meta">
+
+                        <span>
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+
+                            @_claseActual.HoraInicio.ToString("HH:mm")
+                            —
+                            @_claseActual.HoraFin.ToString("HH:mm")
+                        </span>
+
+                        <span>
+                            <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" />
+
+                            @_claseActual.Alumnos.Count alumnos
+                        </span>
+
+                        <span>
+                            <MudIcon Icon="@Icons.Material.Filled.Sports" Size="Size.Small" />
+
+                            @(_claseActual.Profesores is { Count: > 0 }
+        ? string.Join(
+            " + ",
+            _claseActual.Profesores)
+        : "Sin profesor")
+                        </span>
+
+                    </div>
 
                 </div>
 
 
-                <div class="student-info">
-
-                    <strong>
-                        @alumno.NombreCompleto
-                    </strong>
+                <div class="current-class-clock">
 
                     <span>
-                        @(alumno.EsRecupero
-                            ? "Asiste por recupero"
-                            : "Alumno regular")
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <div class="student-status">
-
-                @if (alumno.Estado ==
-                     EstadoAsistencia.Presente)
-                {
-                    <span class="status-label status-present">
-                        PRESENTE
-                    </span>
-                }
-                else if (alumno.Estado ==
-                         EstadoAsistencia.AusenteConAviso)
-                {
-                    <span class="status-label status-notified">
-                        AUSENTE C/ AVISO
-                    </span>
-                }
-                else if (alumno.Estado ==
-                         EstadoAsistencia.Ausente)
-                {
-                    <span class="status-label status-absent">
-                        AUSENTE
-                    </span>
-                }
-                else
-                {
-                    <span class="status-label status-pending">
-                        SIN MARCAR
-                    </span>
-                }
-
-            </div>
-
-
-            <div class="student-actions">
-
-                <button type="button"
-                        class="attendance-button present-button
-                               @(alumno.Estado == EstadoAsistencia.Presente
-                                   ? "selected"
-                                   : "")"
-                        title="Marcar presente"
-                        @onclick="async () => await MarcarAsistencia(
-                            alumno,
-                            EstadoAsistencia.Presente)">
-
-                    <MudIcon Icon="@Icons.Material.Filled.Check"
-                             Size="Size.Small" />
-
-                </button>
-
-
-                <button type="button"
-                        class="attendance-button notified-button
-                               @(alumno.Estado == EstadoAsistencia.AusenteConAviso
-                                   ? "selected"
-                                   : "")"
-                        title="Ausente con aviso - genera recupero"
-                        @onclick="async () => await MarcarAsistencia(
-                            alumno,
-                            EstadoAsistencia.AusenteConAviso)">
-
-                    <MudIcon Icon="@Icons.Material.Filled.NotificationsActive"
-                             Size="Size.Small" />
-
-                </button>
-
-
-                <button type="button"
-                        class="attendance-button absent-button
-                               @(alumno.Estado == EstadoAsistencia.Ausente
-                                   ? "selected"
-                                   : "")"
-                        title="Marcar ausente"
-                        @onclick="async () => await MarcarAsistencia(
-                            alumno,
-                            EstadoAsistencia.Ausente)">
-
-                    <MudIcon Icon="@Icons.Material.Filled.Close"
-                             Size="Size.Small" />
-
-                </button>
-
-            </div>
-
-        </div>
-    }
-
-</div>
-
-
-        <div class="current-class-footer">
-
-            <div class="attendance-progress">
-
-                <div class="attendance-progress-info">
-
-                    <span>
-                        Asistencia controlada
+                        AHORA
                     </span>
 
                     <strong>
-                        @CantidadMarcados / @_claseActual.Alumnos.Count
+                        @_ahora.ToString("HH:mm")
                     </strong>
 
                 </div>
 
-                <div class="progress-track">
+            </div>
 
-                    <div class="progress-value"
-                         style="@($"width:{PorcentajeMarcado}%")">
+
+            <div class="attendance-summary">
+
+                <div class="attendance-stat">
+
+                    <span class="attendance-dot present"></span>
+
+                    <div>
+                        <strong>@CantidadPresentes</strong>
+                        <span>Presentes</span>
+                    </div>
+
+                </div>
+
+
+                <div class="attendance-stat">
+
+                    <span class="attendance-dot notified"></span>
+
+                    <div>
+                        <strong>@CantidadAusentesConAviso</strong>
+                        <span>Con aviso</span>
+                    </div>
+
+                </div>
+
+
+                <div class="attendance-stat">
+
+                    <span class="attendance-dot absent"></span>
+
+                    <div>
+                        <strong>@CantidadAusentes</strong>
+                        <span>Ausentes</span>
+                    </div>
+
+                </div>
+
+
+                <div class="attendance-stat">
+
+                    <span class="attendance-dot pending"></span>
+
+                    <div>
+                        <strong>@CantidadPendientes</strong>
+                        <span>Pendientes</span>
                     </div>
 
                 </div>
@@ -479,168 +260,332 @@
             </div>
 
 
-           <button type="button"
-        class="open-attendance-button"
-        @onclick="AbrirAsistenciaCompleta">
+            <div class="student-list">
 
-    Ver asistencia completa
+                @foreach (var alumno in _claseActual.Alumnos)
+                {
+                    <div @key="alumno.BebeId" class="student-row
+                        @(alumno.Estado == EstadoAsistencia.Presente
+                                 ? "student-present"
+                                 : alumno.Estado == EstadoAsistencia.AusenteConAviso
+                                     ? "student-notified"
+                                     : alumno.Estado == EstadoAsistencia.Ausente
+                                         ? "student-absent"
+                                         : "")">
 
-    <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-             Size="Size.Small" />
+                        <div class="student-main">
 
-</button>
+                            <div class="student-avatar">
 
-        </div>
+                                @ObtenerIniciales(
+                                    alumno.NombreCompleto)
 
-    </section>
-}
+                            </div>
 
-@* =========================================================
+
+                            <div class="student-info">
+
+                                <strong>
+                                    @alumno.NombreCompleto
+                                </strong>
+
+                                <span>
+                                    @(alumno.EsRecupero
+                                        ? "Asiste por recupero"
+                                        : "Alumno regular")
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="student-status">
+
+                            @if (alumno.Estado ==
+                                 EstadoAsistencia.Presente)
+                            {
+                                <span class="status-label status-present">
+                                    PRESENTE
+                                </span>
+                            }
+                            else if (alumno.Estado ==
+                                     EstadoAsistencia.AusenteConAviso)
+                            {
+                                <span class="status-label status-notified">
+                                    AUSENTE C/ AVISO
+                                </span>
+                            }
+                            else if (alumno.Estado ==
+                                     EstadoAsistencia.Ausente)
+                            {
+                                <span class="status-label status-absent">
+                                    AUSENTE
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-label status-pending">
+                                    SIN MARCAR
+                                </span>
+                            }
+
+                        </div>
+
+
+                        <div class="student-actions">
+
+                            <button type="button" class="attendance-button present-button
+                                @(alumno.Estado == EstadoAsistencia.Presente
+                                                        ? "selected"
+                                                        : "")" title="Marcar presente" @onclick="async () => await MarcarAsistencia(
+                                alumno,
+                                EstadoAsistencia.Presente)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" />
+
+                            </button>
+
+
+                            <button type="button" class="attendance-button notified-button
+                                @(alumno.Estado == EstadoAsistencia.AusenteConAviso
+                                                        ? "selected"
+                                                        : "")" title="Ausente con aviso - genera recupero" @onclick="async () => await MarcarAsistencia(
+                                alumno,
+                                EstadoAsistencia.AusenteConAviso)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Size="Size.Small" />
+
+                            </button>
+
+
+                            <button type="button" class="attendance-button absent-button
+                                @(alumno.Estado == EstadoAsistencia.Ausente
+                                                        ? "selected"
+                                                        : "")" title="Marcar ausente" @onclick="async () => await MarcarAsistencia(
+                                alumno,
+                                EstadoAsistencia.Ausente)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+
+                            </button>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+
+            <div class="current-class-footer">
+
+                <div class="attendance-progress">
+
+                    <div class="attendance-progress-info">
+
+                        <span>
+                            Asistencia controlada
+                        </span>
+
+                        <strong>
+                            @CantidadMarcados / @_claseActual.Alumnos.Count
+                        </strong>
+
+                    </div>
+
+                    <div class="progress-track">
+
+                        <div class="progress-value" style="@($"width:{PorcentajeMarcado}%")">
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
+
+                    Ver asistencia completa
+
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+
+                </button>
+
+            </div>
+
+        </section>
+    }
+
+    @* =========================================================
    CUMPLEAÑOS DEL MES
    ========================================================= *@
 
-<section class="birthdays-card">
+    <section class="birthdays-card">
 
-    <div class="birthdays-header">
+        <div class="birthdays-header">
 
-        <div>
-            <span class="birthdays-eyebrow">
-                COMUNIDAD
-            </span>
+            <div>
+                <span class="birthdays-eyebrow">
+                    COMUNIDAD
+                </span>
 
-            <h2>
-                Cumpleaños de @_ahora.ToString("MMMM",
-                    new System.Globalization.CultureInfo("es-AR"))
-            </h2>
-        </div>
-
-        <div class="birthdays-icon">
-            <MudIcon Icon="@Icons.Material.Filled.Cake" />
-        </div>
-
-    </div>
-
-
-    @if (CumpleaniosHoy.Any())
-    {
-        <div class="birthday-today">
-
-            <div class="birthday-today-icon">
-                🎉
+                <h2>
+                    Cumpleaños de @_ahora.ToString(
+                                                                                                    "MMMM",
+                                                                                                    new System.Globalization.CultureInfo("es-AR"))
+                </h2>
             </div>
 
-            <div class="birthday-today-text">
-
-                @if (CumpleaniosHoy.Count == 1)
-                {
-                    var cumple = CumpleaniosHoy.First();
-
-                    <strong>
-                        ¡Hoy es el cumple de @cumple.Nombre!
-                    </strong>
-
-                    <span>
-                        Cumple @cumple.EdadQueCumple años
-                    </span>
-                }
-                else
-                {
-                    <strong>
-                        ¡Hoy hay @CumpleaniosHoy.Count cumpleaños!
-                    </strong>
-
-                    <span>
-                        @string.Join(
-                            ", ",
-                            CumpleaniosHoy.Select(x => x.Nombre))
-                    </span>
-                }
-
+            <div class="birthdays-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Cake" />
             </div>
 
         </div>
-    }
 
 
-    <div class="birthday-list">
-
-        @foreach (var cumple in CumpleaniosDelMes)
+        @if (CumpleaniosHoy.Any())
         {
-           var esHoy = cumple.EsHoy;
+            <div class="birthday-today">
 
-            <div class="birthday-row @(esHoy ? "birthday-row-today" : "")">
-
-               <div class="birthday-date">
-
-    <strong>
-        @cumple.FechaNacimiento.Day.ToString("00")
-    </strong>
-
-    <span>
-        @ObtenerMesAbreviado(cumple.FechaNacimiento)
-    </span>
-
-</div>
-
-
-                <div class="birthday-avatar">
-                    @ObtenerIniciales(cumple.NombreCompleto)
-                   
+                <div class="birthday-today-icon">
+                    🎉
                 </div>
 
+                <div class="birthday-today-text">
 
+                    @if (CumpleaniosHoy.Count == 1)
+                    {
+                        var cumpleHoy =
+                            CumpleaniosHoy.First();
 
-                <div class="birthday-info">
+                        <strong>
+                            ¡Hoy es el cumple de @cumpleHoy.Nombre!
+                        </strong>
 
-                    <strong>
-                        @cumple.NombreCompleto
-                    </strong>
+                        <span>
+                            Cumple @cumpleHoy.EdadQueCumple años
+                        </span>
+                    }
+                    else
+                    {
+                        <strong>
+                            ¡Hoy hay @CumpleaniosHoy.Count cumpleaños!
+                        </strong>
 
-                    <span>
-                        Cumple @cumple.EdadQueCumple años
-                    </span>
+                        <span>
+                            @string.Join(
+                                ", ",
+                                CumpleaniosHoy.Select(x => x.Nombre))
+                        </span>
+                    }
 
                 </div>
-
-
-                @if (esHoy)
-                {
-                    <span class="birthday-today-badge">
-                        HOY
-                    </span>
-                }
-                else
-                {
-                    <div class="birthday-days">
-
-                        @{
-                            var faltan = cumple.DiasFaltantes;
-                        }
-
-                        @if (faltan > 0)
-                        {
-                            <span>
-                                en
-                            </span>
-
-                            <strong>
-                                @faltan
-                            </strong>
-
-                            <span>
-                                @(faltan == 1 ? "día" : "días")
-                            </span>
-                        }
-
-                    </div>
-                }
 
             </div>
         }
 
-    </div>
 
-</section>
+        <div class="birthday-list">
+
+            @foreach (var cumple in CumpleaniosDelMes)
+            {
+                var esHoy =
+                    cumple.EsHoy;
+
+                <div class="birthday-row @(esHoy ? "birthday-row-today" : "")">
+
+                    <div class="birthday-date">
+
+                        <strong>
+                            @cumple.FechaNacimiento.Day.ToString("00")
+                        </strong>
+
+                        <span>
+                            @ObtenerMesAbreviado(
+                                cumple.FechaNacimiento)
+                        </span>
+
+                    </div>
+
+
+                    <div class="birthday-avatar">
+
+                        @ObtenerIniciales(
+                            cumple.NombreCompleto)
+
+                    </div>
+
+
+                    <div class="birthday-info">
+
+                        <strong>
+                            @cumple.NombreCompleto
+                        </strong>
+
+                        <span>
+                            Cumple @cumple.EdadQueCumple años
+                        </span>
+
+                    </div>
+
+
+                    @if (esHoy)
+                    {
+                        <div class="birthday-actions">
+
+                            <span class="birthday-today-badge">
+                                HOY
+                            </span>
+
+
+                            <button type="button" class="birthday-whatsapp-button" title="Saludar por WhatsApp" @onclick="async () =>
+                                await SaludarCumpleaniosAsync(
+                                cumple)">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
+
+                                Saludar
+
+                            </button>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="birthday-days">
+
+                            @{
+                                var faltan =
+                                    cumple.DiasFaltantes;
+                            }
+
+                            @if (faltan > 0)
+                            {
+                                <span>
+                                    en
+                                </span>
+
+                                <strong>
+                                    @faltan
+                                </strong>
+
+                                <span>
+                                    @(faltan == 1
+                                        ? "día"
+                                        : "días")
+                                </span>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+
+    </section>
 
     @* =========================================================
        GRID PRINCIPAL
@@ -670,13 +615,11 @@
                 </div>
 
 
-                <button class="text-action"
-                        @onclick='() => Navigation.NavigateTo("/turnos")'>
+                <button class="text-action" @onclick="IrATurnos">
 
                     Ver turnera
 
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-                             Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
                 </button>
 
@@ -685,7 +628,7 @@
 
             <div class="class-list">
 
-                @foreach (var clase in _clasesHoy)
+                @foreach (var clase in _dashboard.ClasesHoy)
                 {
                     <div class="class-row">
 
@@ -727,11 +670,10 @@
 
 
                         <button class="row-action"
-                                title="Ver clase"
-                                @onclick='() => Navigation.NavigateTo("/asistencia")'>
+                            title="Ver clase"
+                            @onclick="() => AbrirAsistencia(clase.SesionClaseId)">
 
-                            <MudIcon Icon="@Icons.Material.Filled.ArrowForwardIos"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForwardIos" Size="Size.Small" />
 
                         </button>
 
@@ -750,90 +692,74 @@
         <article class="dashboard-card alerts-card">
 
             <div class="card-header">
-
                 <div>
-
-                    <span class="card-eyebrow">
-                        ATENCIÓN
-                    </span>
-
-                    <h2>
-                        Alertas
-                    </h2>
-
+                    <span class="card-eyebrow">ATENCIÓN</span>
+                    <h2>Alertas</h2>
                 </div>
-
-
-                <span class="alert-counter">
-                    12
-                </span>
-
+                <span class="alert-counter">@_dashboard.AlertasTotal</span>
             </div>
-
 
             <div class="alert-list">
 
-                <div class="alert-row danger-alert">
-
-                    <div class="alert-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+                @if (_dashboard.AlertasMedicas > 0)
+                {
+                    <div class="alert-row danger-alert">
+                        <div class="alert-icon"><MudIcon Icon="@Icons.Material.Filled.MedicalServices" /></div>
+                        <div>
+                            <strong>@_dashboard.AlertasMedicas aptos médicos requieren atención</strong>
+                            <span>
+                                @_dashboard.AptosSinApto sin apto ·
+                                @_dashboard.AptosVencidos vencidos ·
+                                @_dashboard.AptosPorVencer por vencer ·
+                                @_dashboard.AptosObservados observados ·
+                                @_dashboard.AptosNoAptos no aptos
+                            </span>
+                        </div>
                     </div>
+                }
 
-                    <div>
-
-                        <strong>
-                            9 aptos médicos vencidos
-                        </strong>
-
-                        <span>
-                            Requieren nueva revisación.
-                        </span>
-
+                @if (_dashboard.RecuperosVencenProximos > 0)
+                {
+                    <div class="alert-row warning-alert">
+                        <div class="alert-icon"><MudIcon Icon="@Icons.Material.Filled.HourglassBottom" /></div>
+                        <div>
+                            <strong>
+                                @_dashboard.RecuperosVencenProximos
+                                @(_dashboard.RecuperosVencenProximos == 1
+                                    ? "recupero próximo a vencer"
+                                    : "recuperos próximos a vencer")
+                            </strong>
+                            <span>Vencen dentro de los próximos 7 días.</span>
+                        </div>
                     </div>
+                }
 
-                </div>
-
-
-                <div class="alert-row warning-alert">
-
-                    <div class="alert-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.HourglassBottom" />
+                @if (_dashboard.BebesProximosSiete > 0)
+                {
+                    <div class="alert-row blue-alert">
+                        <div class="alert-icon"><MudIcon Icon="@Icons.Material.Filled.Cake" /></div>
+                        <div>
+                            <strong>
+                                @_dashboard.BebesProximosSiete
+                                @(_dashboard.BebesProximosSiete == 1
+                                    ? "bebé próximo a cumplir 7 años"
+                                    : "bebés próximos a cumplir 7 años")
+                            </strong>
+                            <span>Cumplen 7 dentro de los próximos 30 días.</span>
+                        </div>
                     </div>
+                }
 
-                    <div>
-
-                        <strong>
-                            7 recuperos próximos a vencer
-                        </strong>
-
-                        <span>
-                            Vencen dentro de los próximos 7 días.
-                        </span>
-
+                @if (_dashboard.AlertasTotal == 0)
+                {
+                    <div class="alert-row blue-alert">
+                        <div class="alert-icon"><MudIcon Icon="@Icons.Material.Filled.CheckCircle" /></div>
+                        <div>
+                            <strong>Sin alertas pendientes</strong>
+                            <span>No hay situaciones que requieran atención inmediata.</span>
+                        </div>
                     </div>
-
-                </div>
-
-
-                <div class="alert-row blue-alert">
-
-                    <div class="alert-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Cake" />
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            2 bebés próximos a cumplir 7 años
-                        </strong>
-
-                        <span>
-                            Revisar continuidad o baja.
-                        </span>
-
-                    </div>
-
-                </div>
+                }
 
             </div>
 
@@ -865,7 +791,7 @@
 
             <div class="vacancy-list">
 
-                @foreach (var vacante in _vacantes)
+                @foreach (var vacante in _dashboard.Vacantes)
                 {
                     <div class="vacancy-row">
 
@@ -889,17 +815,15 @@
                             </strong>
 
                             <span>
-                                @vacante.Espera en lista de espera
+                                @vacante.Lugares @(vacante.Lugares == 1 ? "lugar disponible" : "lugares disponibles")
                             </span>
 
                         </div>
 
 
-                        <button class="notify-button"
-                                @onclick='() => Navigation.NavigateTo("/lista-espera")'>
+                        <button class="notify-button" @onclick="IrAListaEspera">
 
-                            <MudIcon Icon="@Icons.Material.Filled.Send"
-                                     Size="Size.Small" />
+                            <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small" />
 
                             Avisar
 
@@ -920,91 +844,52 @@
         <article class="dashboard-card cash-card">
 
             <div class="card-header">
-
                 <div>
-
-                    <span class="card-eyebrow">
-                        CAJA
-                    </span>
-
-                    <h2>
-                        Movimiento del día
-                    </h2>
-
+                    <span class="card-eyebrow">CAJA</span>
+                    <h2>Movimiento del día</h2>
                 </div>
-
 
                 <span class="cash-status">
-                    Abierta
+                    @if (!_dashboard.Caja.Existe)
+                    {
+                        <text>Sin abrir</text>
+                    }
+                    else if (_dashboard.Caja.EstaAbierta)
+                    {
+                        <text>Abierta</text>
+                    }
+                    else
+                    {
+                        <text>Cerrada</text>
+                    }
                 </span>
-
             </div>
-
 
             <div class="cash-total">
-
-                <span>
-                    Saldo efectivo
-                </span>
-
-                <strong>
-                    $ 286.400
-                </strong>
-
+                <span>Saldo efectivo</span>
+                <strong>@FormatoMoneda(_dashboard.Caja.SaldoEsperado)</strong>
             </div>
-
 
             <div class="cash-details">
-
                 <div>
-
-                    <span>
-                        Ingresos
-                    </span>
-
-                    <strong class="positive">
-                        + $ 418.000
-                    </strong>
-
+                    <span>Ingresos</span>
+                    <strong class="positive">+ @FormatoMoneda(_dashboard.Caja.Ingresos)</strong>
                 </div>
 
-
                 <div>
-
-                    <span>
-                        Egresos
-                    </span>
-
-                    <strong class="negative">
-                        - $ 82.600
-                    </strong>
-
+                    <span>Egresos</span>
+                    <strong class="negative">- @FormatoMoneda(_dashboard.Caja.Egresos)</strong>
                 </div>
 
-
                 <div>
-
-                    <span>
-                        Transferencias
-                    </span>
-
-                    <strong>
-                        $ 195.000
-                    </strong>
-
+                    <span>Saldo inicial</span>
+                    <strong>@FormatoMoneda(_dashboard.Caja.SaldoInicial)</strong>
                 </div>
-
             </div>
 
-
-            <button class="card-bottom-action"
-                    @onclick='() => Navigation.NavigateTo("/caja")'>
-
+            <button class="card-bottom-action" @onclick="IrACaja">
                 Ir a Caja
-
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-                         Size="Size.Small" />
-
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
             </button>
 
         </article>
@@ -1032,7 +917,7 @@
 
 
                 <strong class="attendance-value">
-                    91%
+                    @($"{_dashboard.PorcentajeAsistenciaSemanal}%")
                 </strong>
 
             </div>
@@ -1040,14 +925,13 @@
 
             <div class="chart-bars">
 
-                @foreach (var item in _asistenciaSemanal)
+                @foreach (var item in _dashboard.AsistenciaSemanal)
                 {
                     <div class="chart-column">
 
                         <div class="chart-track">
 
-                            <div class="chart-bar"
-                                 style="@($"height:{item.Porcentaje}%")">
+                            <div class="chart-bar" style="@($"height:{item.Porcentaje}%")">
                             </div>
 
                         </div>
@@ -1089,7 +973,7 @@
 
             <div class="quick-grid">
 
-                <button @onclick='() => Navigation.NavigateTo("/clientes")'>
+                <button @onclick="IrAClientes">
 
                     <span class="quick-icon">
                         <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
@@ -1102,7 +986,7 @@
                 </button>
 
 
-                <button @onclick='() => Navigation.NavigateTo("/pagos")'>
+                <button @onclick="IrAPagos">
 
                     <span class="quick-icon">
                         <MudIcon Icon="@Icons.Material.Filled.Payments" />
@@ -1115,19 +999,16 @@
                 </button>
 
 
-                <button type="button"
-        class="open-attendance-button"
-        @onclick="AbrirAsistenciaCompleta">
+                <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
 
-    Ver asistencia completa
+                    Ver asistencia completa
 
-    <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-             Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
-</button>
+                </button>
 
 
-                <button @onclick='() => Navigation.NavigateTo("/aptos-medicos")'>
+                <button @onclick="IrAAptosMedicos">
 
                     <span class="quick-icon">
                         <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
@@ -1146,416 +1027,3 @@
     </section>
 
 </div>
-
-
-@code {
-private string _nombreCompleto = "Usuario";
-
-
-private DateTime _ahora = DateTime.Now;
-
-private Timer? _relojTimer;
-
-private AsistenciaSesionDto? _claseActual;
-private Guid? _usuarioId;
-
-private List<CumpleaniosBebeDto> _cumpleanios = [];
-private int CantidadPresentes =>
-    _claseActual?.Presentes
-    ?? 0;
-
-
-private int CantidadAusentesConAviso =>
-    _claseActual?.AusentesConAviso
-    ?? 0;
-
-
-private int CantidadAusentes =>
-    _claseActual?.Ausentes
-    ?? 0;
-
-
-private int CantidadPendientes =>
-    _claseActual?.Pendientes
-    ?? 0;
-
-
-private int CantidadMarcados =>
-    CantidadPresentes
-    + CantidadAusentesConAviso
-    + CantidadAusentes;
-
-
-private int PorcentajeMarcado =>
-    _claseActual is null
-    ||
-    _claseActual.TotalEsperados == 0
-        ? 0
-        : (int)Math.Round(
-            CantidadMarcados
-            * 100d
-            /
-            _claseActual.TotalEsperados);
-
-private void AbrirAsistenciaCompleta()
-{
-    if (_claseActual is null)
-    {
-        Navigation.NavigateTo(
-            "/asistencia");
-
-        return;
-    }
-
-
-    Navigation.NavigateTo(
-        $"/asistencia?sesionId={_claseActual.SesionClaseId}");
-}
-protected override async Task OnInitializedAsync()
-{
-
-   
-    var authenticationState =
-        await AuthenticationStateProvider
-            .GetAuthenticationStateAsync();
-
-    var principal =
-        authenticationState.User;
-
-
-    if (principal.Identity?.IsAuthenticated == true)
-    {
-        // Creamos un scope independiente para que Home tenga
-        // su propio UserManager + AppDbContext.
-        using var scope =
-            ScopeFactory.CreateScope();
-
-        var userManager =
-            scope.ServiceProvider
-                .GetRequiredService<UserManager<AppUser>>();
-
-        var usuario =
-            await userManager.GetUserAsync(principal);
-
-
-        if (usuario is not null)
-        {
-            _nombreCompleto =
-                !string.IsNullOrWhiteSpace(
-                    usuario.NombreCompleto)
-
-                    ? usuario.NombreCompleto
-
-                    : usuario.Email ?? "Usuario";
-                     _usuarioId =  usuario.Id;
-        }
-    }
-
-_cumpleanios =
-    (await BebeService
-        .ObtenerCumpleaniosMesAsync(
-            _ahora.Year,
-            _ahora.Month))
-    .ToList();
-
-   await CargarClaseActualAsync();
-}
-
-
-
-protected override Task OnAfterRenderAsync(
-    bool firstRender)
-{
-    if (firstRender)
-    {
-        _relojTimer =
-            new Timer(
-                _ =>
-                {
-                    _ = InvokeAsync(
-                        () =>
-                        {
-                            _ahora = DateTime.Now;
-
-                            StateHasChanged();
-                        });
-                },
-                null,
-                TimeSpan.FromSeconds(1),
-                TimeSpan.FromSeconds(30));
-    }
-
-    return Task.CompletedTask;
-}
-
-
-
-private async Task CargarClaseActualAsync()
-{
-    var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
-
-    var hora =
-        TimeOnly.FromDateTime(
-            DateTime.Now);
-
-
-    var clases =
-        await AsistenciaService
-            .ListarSesionesDiaAsync(
-                hoy);
-
-
-    var actual =
-        clases.FirstOrDefault(x =>
-            x.EstadoSesion !=
-                EstadoSesionClase.Cancelada
-            &&
-            x.HoraInicio <= hora
-            &&
-            x.HoraFin >= hora);
-
-
-    if (actual is null)
-    {
-        _claseActual =
-            null;
-
-        return;
-    }
-
-
-    _claseActual =
-        await AsistenciaService
-            .ObtenerSesionAsync(
-                actual.SesionClaseId);
-}
-private async Task MarcarAsistencia(
-    AsistenciaAlumnoDto alumno,
-    EstadoAsistencia estado)
-{
-    if (_claseActual is null)
-        return;
-
-
-    try
-    {
-        var nuevoEstado =
-            alumno.Estado == estado
-                ? EstadoAsistencia.Pendiente
-                : estado;
-
-
-        await AsistenciaService
-            .MarcarAsync(
-                new RegistrarAsistenciaDto
-                {
-                    SesionClaseId =
-                        _claseActual.SesionClaseId,
-
-                    BebeId =
-                        alumno.BebeId,
-
-                    Estado =
-                        nuevoEstado,
-
-                    Observaciones =
-                        alumno.Observaciones,
-
-                    UsuarioId =
-                        _usuarioId
-                });
-
-
-        _claseActual =
-            await AsistenciaService
-                .ObtenerSesionAsync(
-                    _claseActual.SesionClaseId);
-
-
-        await InvokeAsync(
-            StateHasChanged);
-    }
-    catch
-    {
-        /*
-         * Después podemos mostrar snackbar acá.
-         * No dejamos romper el circuito Blazor.
-         */
-    }
-}
-
-
-private static string ObtenerIniciales(
-    string nombre)
-{
-    var partes =
-        nombre.Split(
-            ' ',
-            StringSplitOptions.RemoveEmptyEntries);
-
-    if (partes.Length == 0)
-        return "?";
-
-    if (partes.Length == 1)
-        return partes[0][0]
-            .ToString()
-            .ToUpperInvariant();
-
-    return string.Concat(
-        partes[0][0],
-        partes[^1][0])
-        .ToUpperInvariant();
-}
-
-
-
-
-
-
-
-
-
-private List<CumpleaniosBebeDto>
-    CumpleaniosDelMes =>
-        _cumpleanios;
-
-
-private List<CumpleaniosBebeDto>
-    CumpleaniosHoy =>
-        _cumpleanios
-            .Where(x =>
-                x.EsHoy)
-            .ToList();
-
-
-private static string ObtenerMesAbreviado(
-    DateOnly fecha)
-{
-    var cultura =
-        new System.Globalization.CultureInfo("es-AR");
-
-    return fecha
-        .ToDateTime(TimeOnly.MinValue)
-        .ToString("MMM", cultura)
-        .TrimEnd('.')
-        .ToUpperInvariant();
-}
-
-private static string ObtenerNombreMes(
-    DateTime fecha)
-{
-    var cultura =
-        new System.Globalization.CultureInfo("es-AR");
-
-    return cultura
-        .DateTimeFormat
-        .GetMonthName(fecha.Month)
-        .ToLowerInvariant();
-}
-public void Dispose()
-{
-    _relojTimer?.Dispose();
-}
-    private readonly ClaseHoy[] _clasesHoy =
-    [
-        new(
-            "09:00",
-            "30 min",
-            "Inicial · 6 a 12 meses",
-            "Prof. Camila Torres",
-            "6 / 8",
-            "available"),
-
-        new(
-            "10:00",
-            "30 min",
-            "Nivel 1 · 1 a 2 años",
-            "Prof. Mariana López",
-            "8 / 8",
-            "full"),
-
-        new(
-            "11:00",
-            "45 min",
-            "Nivel 2 · 2 a 3 años",
-            "Prof. Camila Torres",
-            "7 / 8",
-            "warning"),
-
-        new(
-            "16:30",
-            "45 min",
-            "Nivel 3 · 3 a 4 años",
-            "Prof. Julieta + Prof. Agustín",
-            "10 / 12",
-            "available"),
-
-        new(
-            "18:00",
-            "45 min",
-            "Nivel 4 · 5 a 7 años",
-            "Prof. Agustín + Prof. Laura",
-            "12 / 12",
-            "full")
-    ];
-
-
-
-
-
-    private readonly Vacante[] _vacantes =
-    [
-        new(
-            "Hoy",
-            "11:00",
-            "Nivel 2 · 2 a 3 años",
-            4),
-
-        new(
-            "Hoy",
-            "17:15",
-            "Nivel 3 · 3 a 4 años",
-            2),
-
-        new(
-            "Sáb",
-            "10:30",
-            "Nivel 1 · 1 a 2 años",
-            5)
-    ];
-
-
-    private readonly AsistenciaDia[] _asistenciaSemanal =
-    [
-        new("Lun", 88),
-        new("Mar", 95),
-        new("Mié", 82),
-        new("Jue", 93),
-        new("Vie", 90),
-        new("Sáb", 97)
-    ];
-
-
-    private sealed record ClaseHoy(
-        string Hora,
-        string Duracion,
-        string Nivel,
-        string Profesor,
-        string Cupo,
-        string EstadoCss);
-
-
-    private sealed record Vacante(
-        string Dia,
-        string Hora,
-        string Nivel,
-        int Espera);
-
-
-    private sealed record AsistenciaDia(
-        string Dia,
-        int Porcentaje);
-
-}

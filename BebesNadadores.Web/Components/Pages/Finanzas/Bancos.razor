@@ -1,0 +1,1192 @@
+@page "/bancos"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using BebesNadadores.Application.Bancos
+@using BebesNadadores.Application.Bancos.Dtos
+@using BebesNadadores.Domain.Enums
+
+@inject IBancoService BancoService
+@inject ICuentaBancariaService CuentaBancariaService
+@inject IMovimientoBancarioService MovimientoBancarioService
+@inject NavigationManager Navigation
+
+<PageTitle>Bancos | Bebés Nadadores</PageTitle>
+
+
+<div class="banking-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
+    <section class="banking-header">
+
+        <div class="header-copy">
+
+            <span class="eyebrow">
+                FINANZAS · TESORERÍA
+            </span>
+
+            <h1>
+                Modulo Financiero (Bancos y cuentas)
+            </h1>
+
+            <p>
+                Administrá las cuentas de recaudación,
+                saldos y movimientos bancarios del natatorio.
+            </p>
+
+        </div>
+
+
+        <div class="header-actions">
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+                Volver
+
+            </button>
+
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="AbrirNuevoBanco">
+
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance"
+                         Size="Size.Small" />
+
+                Nuevo banco
+
+            </button>
+
+
+            <button type="button"
+                    class="primary-action"
+                    @onclick="AbrirNuevaCuenta">
+
+                <MudIcon Icon="@Icons.Material.Filled.Add"
+                         Size="Size.Small" />
+
+                Nueva cuenta
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+    @* =========================================================
+       MENSAJES
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box message-error">
+
+            <MudIcon Icon="@Icons.Material.Filled.Error"
+                     Size="Size.Small" />
+
+            <span>
+                @_error
+            </span>
+
+            <button type="button"
+                    @onclick="() => _error = null">
+
+                <MudIcon Icon="@Icons.Material.Filled.Close"
+                         Size="Size.Small" />
+
+            </button>
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box message-success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            <span>
+                @_mensaje
+            </span>
+
+        </div>
+    }
+
+
+    @if (_cargando)
+    {
+        <div class="loading-panel">
+
+            <MudProgressCircular Indeterminate="true"
+                                 Size="Size.Large" />
+
+            <span>
+                Preparando información financiera...
+            </span>
+
+        </div>
+    }
+    else
+    {
+        @* =====================================================
+           HERO FINANCIERO
+           ===================================================== *@
+
+        <section class="finance-hero">
+
+            <div class="hero-glow hero-glow-one"></div>
+            <div class="hero-glow hero-glow-two"></div>
+
+            <div class="hero-main">
+
+                <div class="hero-icon">
+
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                </div>
+
+
+                <div>
+
+                    <span class="hero-label">
+                        SALDO TOTAL DISPONIBLE
+                    </span>
+
+                    <strong class="hero-balance">
+                        @FormatearMoneda(SaldoTotal)
+                    </strong>
+
+                    <span class="hero-caption">
+                        Suma de todas las cuentas bancarias activas
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="hero-stats">
+
+                <article>
+
+                    <span>
+                        Cuentas activas
+                    </span>
+
+                    <strong>
+                        @_cuentas.Count(x => x.Activa)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Bancos activos
+                    </span>
+
+                    <strong>
+                        @_bancos.Count(x => x.Activo)
+                    </strong>
+
+                </article>
+
+
+                <article>
+
+                    <span>
+                        Moneda principal
+                    </span>
+
+                    <strong>
+                        ARS
+                    </strong>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        @* =====================================================
+           BANCOS
+           ===================================================== *@
+
+        <section class="section-block">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span>
+                        ENTIDADES
+                    </span>
+
+                    <h2>
+                        Bancos configurados
+                    </h2>
+
+                </div>
+
+                <button type="button"
+                        class="text-action"
+                        @onclick="AbrirNuevoBanco">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Add"
+                             Size="Size.Small" />
+
+                    Agregar banco
+
+                </button>
+
+            </div>
+
+
+            @if (_bancos.Count == 0)
+            {
+                <div class="empty-inline">
+
+                    Todavía no hay bancos configurados.
+
+                </div>
+            }
+            else
+            {
+                <div class="banks-strip">
+
+                    @foreach (var banco in
+                        _bancos.OrderBy(x => x.Nombre))
+                    {
+                        <article class="bank-pill @(banco.Activo ? "" : "is-disabled")">
+
+                            <div class="bank-pill-icon">
+
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                            </div>
+
+
+                            <div class="bank-pill-copy">
+
+                                <strong>
+                                    @banco.Nombre
+                                </strong>
+
+                                <span>
+                                    @banco.CantidadCuentas
+                                    @(banco.CantidadCuentas == 1
+                                        ? "cuenta"
+                                        : "cuentas")
+                                </span>
+
+                            </div>
+
+
+                            <div class="bank-pill-actions">
+
+                                <button type="button"
+                                        title="Editar banco"
+                                        @onclick="() => EditarBanco(banco)">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                             Size="Size.Small" />
+
+                                </button>
+
+
+                                <button type="button"
+                                        title="Activar / desactivar"
+                                        @onclick="() => CambiarEstadoBancoAsync(banco)">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew"
+                                             Size="Size.Small" />
+
+                                </button>
+
+                            </div>
+
+                        </article>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+
+        @* =====================================================
+           TOOLBAR
+           ===================================================== *@
+
+        <section class="account-toolbar">
+
+            <div class="search-box">
+
+                <MudIcon Icon="@Icons.Material.Filled.Search"
+                         Size="Size.Small" />
+
+                <input type="text"
+                       placeholder="Buscar banco, cuenta, alias o titular..."
+                       @bind="_busqueda"
+                       @bind:event="oninput" />
+
+            </div>
+
+
+            <label class="inactive-toggle">
+
+                <input type="checkbox"
+                       @bind="_mostrarInactivas" />
+
+                <span class="toggle-ui"></span>
+
+                Mostrar inactivas
+
+            </label>
+
+        </section>
+
+
+        @* =====================================================
+           CUENTAS
+           ===================================================== *@
+
+        <section class="accounts-section">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span>
+                        CUENTAS DE RECAUDACIÓN
+                    </span>
+
+                    <h2>
+                        Tus cuentas
+                    </h2>
+
+                </div>
+
+                <span class="account-count">
+                    @CuentasFiltradas.Count()
+                    disponibles
+                </span>
+
+            </div>
+
+
+            @if (!CuentasFiltradas.Any())
+            {
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                    </div>
+
+                    <h3>
+                        No encontramos cuentas
+                    </h3>
+
+                    <p>
+                        Creá una cuenta bancaria para comenzar a
+                        registrar transferencias y movimientos.
+                    </p>
+
+                    <button type="button"
+                            class="primary-action"
+                            @onclick="AbrirNuevaCuenta">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Add"
+                                 Size="Size.Small" />
+
+                        Crear primera cuenta
+
+                    </button>
+
+                </div>
+            }
+            else
+            {
+                <div class="accounts-grid">
+
+                    @foreach (var cuenta in CuentasFiltradas)
+                    {
+                        <article class="account-card @(cuenta.Activa ? "" : "account-disabled")">
+
+                            <div class="account-card-top">
+
+                                <div class="account-logo">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                                </div>
+
+
+                                <div class="account-status @(cuenta.Activa ? "active" : "inactive")">
+
+                                    <span></span>
+
+                                    @(cuenta.Activa
+                                        ? "Activa"
+                                        : "Inactiva")
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="account-bank">
+                                @cuenta.Banco
+                            </div>
+
+
+                            <h3>
+                                @cuenta.Nombre
+                            </h3>
+
+
+                            <div class="account-balance">
+
+                                <span>
+                                    Saldo disponible
+                                </span>
+
+                                <strong>
+                                    @FormatearMoneda(
+                                        ObtenerSaldo(cuenta.Id))
+                                </strong>
+
+                            </div>
+
+
+                            <div class="account-details">
+
+                                <div>
+
+                                    <span>
+                                        Tipo
+                                    </span>
+
+                                    <strong>
+                                        @ObtenerTipoCuentaTexto(
+                                            cuenta.Tipo)
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        Moneda
+                                    </span>
+
+                                    <strong>
+                                        @cuenta.Moneda
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                cuenta.Alias))
+                            {
+                                <div class="account-data">
+
+                                    <span>
+                                        Alias
+                                    </span>
+
+                                    <strong>
+                                        @cuenta.Alias
+                                    </strong>
+
+                                </div>
+                            }
+
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                cuenta.CbuCvu))
+                            {
+                                <div class="account-data">
+
+                                    <span>
+                                        CBU / CVU
+                                    </span>
+
+                                    <strong class="monospace">
+                                        @cuenta.CbuCvu
+                                    </strong>
+
+                                </div>
+                            }
+
+
+                            <div class="account-footer">
+
+                               <button type="button"
+        class="account-main-action"
+        @onclick="() => VerMovimientos(cuenta.Id)">
+
+    <MudIcon Icon="@Icons.Material.Filled.Visibility"
+             Size="Size.Small" />
+
+    Ver movimientos
+
+</button>
+
+
+                                <button type="button"
+                                        class="icon-action"
+                                        title="Editar cuenta"
+                                        @onclick="() => EditarCuentaAsync(cuenta)">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Edit"
+                                             Size="Size.Small" />
+
+                                </button>
+
+
+                                <button type="button"
+                                        class="icon-action"
+                                        title="Activar / desactivar"
+                                        @onclick="() => CambiarEstadoCuentaAsync(cuenta)">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew"
+                                             Size="Size.Small" />
+
+                                </button>
+
+                            </div>
+
+                        </article>
+                    }
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL BANCO
+   ============================================================= *@
+
+@if (_modalBancoAbierto)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarModalBanco">
+
+        <section class="premium-modal small-modal"
+                 @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        ENTIDAD FINANCIERA
+                    </span>
+
+                    <h2>
+                        @(_bancoEditandoId.HasValue
+                            ? "Editar banco"
+                            : "Nuevo banco")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModalBanco">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div class="form-field full">
+
+                    <label>
+                        Nombre del banco *
+                    </label>
+
+                    <input type="text"
+                           maxlength="150"
+                           placeholder="Ej. Banco Provincia"
+                           @bind="_formBanco.Nombre" />
+
+                </div>
+
+
+                <label class="premium-checkbox">
+
+                    <input type="checkbox"
+                           @bind="_formBanco.Activo" />
+
+                    <span class="checkbox-ui">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Check"
+                                 Size="Size.Small" />
+
+                    </span>
+
+                    <span>
+
+                        <strong>
+                            Banco activo
+                        </strong>
+
+                        <small>
+                            Disponible para asociar nuevas cuentas.
+                        </small>
+
+                    </span>
+
+                </label>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModalBanco">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="GuardarBancoAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Check"
+                             Size="Size.Small" />
+
+                    @(_guardando
+                        ? "Guardando..."
+                        : "Guardar banco")
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+}
+
+
+@* =============================================================
+   MODAL CUENTA
+   ============================================================= *@
+
+@if (_modalCuentaAbierto)
+{
+    <div class="modal-overlay"
+         @onclick="CerrarModalCuenta">
+
+        <section class="premium-modal"
+                 @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        CUENTA DE RECAUDACIÓN
+                    </span>
+
+                    <h2>
+                        @(_cuentaEditandoId.HasValue
+                            ? "Editar cuenta"
+                            : "Nueva cuenta")
+                    </h2>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModalCuenta">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="modal-body form-grid">
+
+                <div class="form-field">
+
+                    <label>
+                        Banco *
+                    </label>
+
+                    <select @bind="_formCuenta.BancoId">
+
+                        <option value="@Guid.Empty">
+                            Seleccionar...
+                        </option>
+
+                        @foreach (var banco in
+                            _bancos
+                                .Where(x => x.Activo)
+                                .OrderBy(x => x.Nombre))
+                        {
+                            <option value="@banco.Id">
+                                @banco.Nombre
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Tipo de cuenta *
+                    </label>
+
+                    <select @bind="_formCuenta.Tipo">
+
+                        <option value="@TipoCuentaBancaria.CajaAhorro">
+                            Caja de ahorro
+                        </option>
+
+                        <option value="@TipoCuentaBancaria.CuentaCorriente">
+                            Cuenta corriente
+                        </option>
+
+                        <option value="@TipoCuentaBancaria.BilleteraVirtual">
+                            Billetera virtual
+                        </option>
+
+                        <option value="@TipoCuentaBancaria.Otra">
+                            Otra
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-field full">
+
+                    <label>
+                        Nombre interno *
+                    </label>
+
+                    <input type="text"
+                           placeholder="Ej. Provincia · Recaudación"
+                           @bind="_formCuenta.Nombre" />
+
+                    <small>
+                        Es el nombre que verá la administrativa
+                        al registrar un pago.
+                    </small>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Titular *
+                    </label>
+
+                    <input type="text"
+                           placeholder="Titular de la cuenta"
+                           @bind="_formCuenta.Titular" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Número de cuenta
+                    </label>
+
+                    <input type="text"
+                           @bind="_formCuenta.NumeroCuenta" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        CBU / CVU
+                    </label>
+
+                    <input type="text"
+                           maxlength="50"
+                           @bind="_formCuenta.CbuCvu" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Alias
+                    </label>
+
+                    <input type="text"
+                           maxlength="100"
+                           placeholder="bebes.nadadores"
+                           @bind="_formCuenta.Alias" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Moneda
+                    </label>
+
+                    <select @bind="_formCuenta.Moneda">
+
+                        <option value="ARS">
+                            Pesos argentinos · ARS
+                        </option>
+
+                        <option value="USD">
+                            Dólares · USD
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Saldo inicial
+                    </label>
+
+                    <div class="money-input">
+
+                        <span>
+                            $
+                        </span>
+
+                        <input type="number"
+                               min="0"
+                               step="0.01"
+                               @bind="_formCuenta.SaldoInicial" />
+
+                    </div>
+
+                </div>
+
+
+                <div class="full">
+
+                    <label class="premium-checkbox">
+
+                        <input type="checkbox"
+                               @bind="_formCuenta.Activa" />
+
+                        <span class="checkbox-ui">
+
+                            <MudIcon Icon="@Icons.Material.Filled.Check"
+                                     Size="Size.Small" />
+
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Cuenta activa
+                            </strong>
+
+                            <small>
+                                Puede recibir pagos y generar movimientos.
+                            </small>
+
+                        </span>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="cancel-action"
+                        @onclick="CerrarModalCuenta">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_guardando"
+                        @onclick="GuardarCuentaAsync">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Check"
+                             Size="Size.Small" />
+
+                    @(_guardando
+                        ? "Guardando..."
+                        : "Guardar cuenta")
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </div>
+}
+
+
+@* =============================================================
+   PANEL DE MOVIMIENTOS
+   ============================================================= *@
+
+@if (_cuentaDetalle is not null)
+{
+    <div class="drawer-overlay"
+         @onclick="CerrarMovimientos">
+
+        <aside class="movement-drawer"
+               @onclick:stopPropagation="true">
+
+            <div class="drawer-header">
+
+                <div>
+
+                    <span class="drawer-eyebrow">
+                        MOVIMIENTOS
+                    </span>
+
+                    <h2>
+                        @_cuentaDetalle.Nombre
+                    </h2>
+
+                    <p>
+                        @_cuentaDetalle.Banco
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarMovimientos">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </div>
+
+
+            <div class="drawer-balance">
+
+                <span>
+                    Saldo actual
+                </span>
+
+                <strong>
+                    @FormatearMoneda(
+                        ObtenerSaldo(
+                            _cuentaDetalle.Id))
+                </strong>
+
+            </div>
+
+
+            <div class="movement-filters">
+
+                <div class="form-field">
+
+                    <label>
+                        Desde
+                    </label>
+
+                    <input type="date"
+                           @bind="_movDesde" />
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label>
+                        Hasta
+                    </label>
+
+                    <input type="date"
+                           @bind="_movHasta" />
+
+                </div>
+
+
+                <button type="button"
+                        class="filter-action"
+                        @onclick="CargarMovimientosAsync">
+
+                    Buscar
+
+                </button>
+
+            </div>
+
+
+            <div class="movement-summary">
+
+                <div class="summary-income">
+
+                    <span>
+                        Ingresos
+                    </span>
+
+                    <strong>
+                        @FormatearMoneda(
+                            IngresosPeriodo)
+                    </strong>
+
+                </div>
+
+
+                <div class="summary-expense">
+
+                    <span>
+                        Egresos
+                    </span>
+
+                    <strong>
+                        @FormatearMoneda(
+                            EgresosPeriodo)
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="movements-list">
+
+                @if (_cargandoMovimientos)
+                {
+                    <div class="drawer-loading">
+
+                        <MudProgressCircular Indeterminate="true" />
+
+                    </div>
+                }
+                else if (_movimientos.Count == 0)
+                {
+                    <div class="empty-movements">
+
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+
+                        <strong>
+                            Sin movimientos
+                        </strong>
+
+                        <span>
+                            No hay movimientos en el período seleccionado.
+                        </span>
+
+                    </div>
+                }
+                else
+                {
+                    @foreach (var movimiento in
+                        _movimientos)
+                    {
+                        <article class="movement-row">
+
+                            <div class="movement-icon @(movimiento.Tipo == TipoMovimientoBancario.Ingreso ? "income" : "expense")">
+
+                                <MudIcon Icon="@(movimiento.Tipo == TipoMovimientoBancario.Ingreso
+                                    ? Icons.Material.Filled.ArrowDownward
+                                    : Icons.Material.Filled.ArrowUpward)" />
+
+                            </div>
+
+
+                            <div class="movement-copy">
+
+                                <strong>
+                                    @movimiento.Concepto
+                                </strong>
+
+                                <span>
+                                    @FormatearFecha(
+                                        movimiento.FechaUtc)
+                                    ·
+                                    @ObtenerOrigenTexto(
+                                        movimiento.Origen)
+                                </span>
+
+                            </div>
+
+
+                            <strong class="movement-amount @(movimiento.Tipo == TipoMovimientoBancario.Ingreso ? "income" : "expense")">
+
+                                @(movimiento.Tipo ==
+                                    TipoMovimientoBancario.Ingreso
+                                    ? "+"
+                                    : "-")
+
+                                @FormatearMoneda(
+                                    movimiento.Importe)
+
+                            </strong>
+
+                        </article>
+                    }
+                }
+
+            </div>
+
+        </aside>
+
+    </div>
+}
