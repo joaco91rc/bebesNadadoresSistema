@@ -4,11 +4,13 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using BebesNadadores.Application.Configuracion;
 
 namespace BebesNadadores.Infrastructure.Services.Asistencias;
 
 public sealed class AsistenciaService(
-    IDbContextFactory<AppDbContext> factory)
+    IDbContextFactory<AppDbContext> factory,
+    IConfiguracionSistemaService configuracionService)
     : IAsistenciaService
 {
     // =========================================================
@@ -90,6 +92,56 @@ public sealed class AsistenciaService(
                     false);
         }
 
+
+// =========================================================
+// RESERVAS DE PRIMERA CLASE
+// =========================================================
+
+var reservasIniciales =
+    await db.ReservasSesionesClase
+        .AsNoTracking()
+
+        .Include(x =>
+            x.Bebe)
+
+        .Where(x =>
+            x.SesionClaseId ==
+                sesion.Id
+            &&
+            x.Estado ==
+                EstadoReservaSesion.Activa)
+
+        .ToListAsync(ct);
+
+
+foreach (var reserva in
+    reservasIniciales)
+{
+    /*
+     * Puede pasar que tenga horario habitual
+     * y la reserva coincida accidentalmente
+     * con la misma clase.
+     *
+     * Priorizamos siempre la inscripción regular.
+     */
+    if (esperados.ContainsKey(
+        reserva.BebeId))
+    {
+        continue;
+    }
+
+
+    esperados[
+        reserva.BebeId] =
+        new AlumnoEsperado(
+            reserva.BebeId,
+            reserva.InscripcionId,
+
+            $"{reserva.Bebe.Nombre} " +
+            $"{reserva.Bebe.Apellido}",
+
+            false);
+}
 
         // =====================================================
         // ALUMNOS QUE VAN COMO RECUPERO
@@ -383,7 +435,7 @@ public sealed class AsistenciaService(
     // LÓGICA CENTRAL DE MARCACIÓN
     // =========================================================
 
-    private static async Task MarcarInternoAsync(
+    private  async Task MarcarInternoAsync(
         AppDbContext db,
         SesionClase sesion,
         Guid bebeId,
@@ -403,7 +455,7 @@ public sealed class AsistenciaService(
         if (esperado is null)
         {
             throw new InvalidOperationException(
-                "El bebé no pertenece a esta clase ni tiene un recupero reservado para ella.");
+    "El bebé no pertenece a esta clase, no posee una reserva inicial ni tiene un recupero reservado.");
         }
 
 
@@ -562,8 +614,7 @@ public sealed class AsistenciaService(
     // GENERAR RECUPERO POR AUSENCIA CON AVISO
     // =========================================================
 
-    private static async Task
-        GenerarRecuperoAusenciaConAvisoAsync(
+    private async Task GenerarRecuperoAusenciaConAvisoAsync(
             AppDbContext db,
             SesionClase sesion,
             Domain.Entities.Asistencia asistencia,
@@ -585,9 +636,11 @@ public sealed class AsistenciaService(
                                 .AusenciaConAviso,
                     ct);
 
-
-        var vencimiento =
-            sesion.Fecha.AddDays(45);
+var configuracion =
+    await configuracionService.ObtenerAsync(ct);
+       var vencimiento =
+    sesion.Fecha.AddDays(
+        configuracion.DiasVigenciaRecupero);
 
 
         if (recuperacion is null)
@@ -773,6 +826,43 @@ public sealed class AsistenciaService(
 
                 false);
         }
+
+// -----------------------------------------------------
+// Si no es alumno regular, verificamos si posee una
+// reserva puntual de inscripción inicial.
+// -----------------------------------------------------
+
+var reservaInicial =
+    await db.ReservasSesionesClase
+        .AsNoTracking()
+
+        .Include(x =>
+            x.Bebe)
+
+        .FirstOrDefaultAsync(
+            x =>
+                x.BebeId ==
+                    bebeId
+                &&
+                x.SesionClaseId ==
+                    sesion.Id
+                &&
+                x.Estado ==
+                    EstadoReservaSesion.Activa,
+            ct);
+
+
+if (reservaInicial is not null)
+{
+    return new AlumnoEsperado(
+        reservaInicial.BebeId,
+        reservaInicial.InscripcionId,
+
+        $"{reservaInicial.Bebe.Nombre} " +
+        $"{reservaInicial.Bebe.Apellido}",
+
+        false);
+}
 
 
         // -----------------------------------------------------

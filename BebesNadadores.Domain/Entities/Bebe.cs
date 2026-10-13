@@ -11,6 +11,18 @@ public class Bebe : EntidadAuditable
     public Sexo Sexo { get; set; } = Sexo.NoInformado;
     public string? Dni { get; set; }
 
+    /*
+     * Declaración realizada por la familia.
+     * Nullable permite distinguir registros históricos sin dato.
+     */
+    public bool? PermanecioHospitalMasDe5Dias { get; set; }
+
+    public string? DetalleHospitalizacion { get; set; }
+
+    public bool? RecibeTratamiento { get; set; }
+
+    public string? DetalleTratamiento { get; set; }
+
     public DateOnly FechaAlta { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public EstadoBebe Estado { get; set; } = EstadoBebe.Activo;
     public DateOnly? FechaBaja { get; set; }
@@ -24,7 +36,8 @@ public class Bebe : EntidadAuditable
     public ICollection<Asistencia> Asistencias { get; set; } = new List<Asistencia>();
     public ICollection<Recuperacion> Recuperaciones { get; set; } = new List<Recuperacion>();
     public ICollection<AptoMedico> AptosMedicos { get; set; } = new List<AptoMedico>();
-    public ICollection<PreferenciaRecuperacion> PreferenciasRecuperacion { get; set; } = new List<PreferenciaRecuperacion>();
+    public ICollection<PreferenciaRecuperacion> PreferenciasRecuperacion { get; set; } =
+        new List<PreferenciaRecuperacion>();
 
     public int EdadEnMeses(DateOnly hoy)
     {

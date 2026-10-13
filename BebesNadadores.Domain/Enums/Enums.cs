@@ -139,14 +139,7 @@ public enum TipoMovimientoCaja
     Egreso = 2
 }
 
-public enum CategoriaMovimientoCaja
-{
-    Cuota = 1,
-    Insumo = 2,
-    Kiosco = 3,
-    Ajuste = 4,
-    Otro = 5
-}
+
 
 public enum CanalNotificacion
 {
@@ -177,4 +170,39 @@ public enum EstadoCicloLectivo
     Borrador = 1,
     Publicado = 2,
     Cerrado = 3
+}
+
+
+
+public enum EstadoReservaSesion
+{
+    Activa = 1,
+    Cancelada = 2
+}
+
+public enum TipoReservaSesion
+{
+    InscripcionInicial = 1
+}
+
+public enum TipoCuentaBancaria
+{
+    CajaAhorro = 1,
+    CuentaCorriente = 2,
+    BilleteraVirtual = 3,
+    Otra = 99
+}
+
+public enum TipoMovimientoBancario
+{
+    Ingreso = 1,
+    Egreso = 2
+}
+
+public enum OrigenMovimientoBancario
+{
+    PagoBebe = 1,
+    PagoProveedor = 2,
+    AjusteManual = 3,
+    Otro = 99
 }

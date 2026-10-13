@@ -1,15 +1,17 @@
+using BebesNadadores.Application.CiclosLectivos.Dtos;
 using BebesNadadores.Application.Turnera;
 using BebesNadadores.Application.Turnera.Dtos;
 using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
+using BebesNadadores.Application.Configuracion;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using BebesNadadores.Application.CiclosLectivos.Dtos;
 
 namespace BebesNadadores.Infrastructure.Services.Turnera;
 
 public sealed class TurneraService(
-    IDbContextFactory<AppDbContext> factory)
+    IDbContextFactory<AppDbContext> factory,
+    IConfiguracionSistemaService configuracionService)
     : ITurneraService
 {
     // =========================================================
@@ -18,28 +20,24 @@ public sealed class TurneraService(
 
     public async Task<IReadOnlyList<TurnoDto>> ListarTurnosAsync(
         bool incluirBajas = false,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-        var query =
-            db.Turnos
-                .AsNoTracking()
-                .Include(x => x.Nivel)
-                .Include(x => x.Profesores)
-                    .ThenInclude(x => x.Profesor)
-                .AsQueryable();
+        var query = db
+            .Turnos.AsNoTracking()
+            .Include(x => x.Nivel)
+            .Include(x => x.Profesores)
+                .ThenInclude(x => x.Profesor)
+            .AsQueryable();
 
         if (!incluirBajas)
         {
-            query =
-                query.Where(x =>
-                    x.Estado != EstadoTurno.Baja);
+            query = query.Where(x => x.Estado != EstadoTurno.Baja);
         }
 
-        var turnos =
-            await query.ToListAsync(ct);
+        var turnos = await query.ToListAsync(ct);
 
         return turnos
             .OrderBy(x => (int)x.DiaSemana)
@@ -48,846 +46,601 @@ public sealed class TurneraService(
             .ToList();
     }
 
-
-    public async Task<TurnoDto?> ObtenerTurnoAsync(
-        Guid turnoId,
-        CancellationToken ct = default)
+    public async Task<TurnoDto?> ObtenerTurnoAsync(Guid turnoId, CancellationToken ct = default)
     {
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-        var turno =
-            await db.Turnos
-                .AsNoTracking()
-                .Include(x => x.Nivel)
-                .Include(x => x.Profesores)
-                    .ThenInclude(x => x.Profesor)
-                .FirstOrDefaultAsync(
-                    x => x.Id == turnoId,
-                    ct);
+        var turno = await db
+            .Turnos.AsNoTracking()
+            .Include(x => x.Nivel)
+            .Include(x => x.Profesores)
+                .ThenInclude(x => x.Profesor)
+            .FirstOrDefaultAsync(x => x.Id == turnoId, ct);
 
-        return turno is null
-            ? null
-            : MapearTurno(turno);
+        return turno is null ? null : MapearTurno(turno);
     }
 
-
-   public async Task<Guid> CrearTurnoAsync(
-    CrearTurnoDto dto,
-    CancellationToken ct = default)
-{
-    ValidarDatosBasicos(dto);
-
-
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
-
-
-    // =========================================================
-    // CICLO LECTIVO
-    // =========================================================
-
-    var ciclo =
-        await db.CiclosLectivos
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.Id == dto.CicloLectivoId,
-                ct)
-        ?? throw new InvalidOperationException(
-            "El ciclo lectivo seleccionado no existe.");
-
-
-    if (ciclo.Estado ==
-        EstadoCicloLectivo.Cerrado)
+    public async Task<Guid> CrearTurnoAsync(CrearTurnoDto dto, CancellationToken ct = default)
     {
-        throw new InvalidOperationException(
-            "No se pueden agregar horarios a un ciclo lectivo cerrado.");
-    }
+        ValidarDatosBasicos(dto);
 
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-    var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        // =========================================================
+        // CICLO LECTIVO
+        // =========================================================
 
+        var ciclo =
+            await db
+                .CiclosLectivos.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == dto.CicloLectivoId, ct)
+            ?? throw new InvalidOperationException("El ciclo lectivo seleccionado no existe.");
 
-    DateOnly vigenteDesde;
-    DateOnly vigenteHasta;
-
-
-    // =========================================================
-    // DEFINIR VIGENCIA REAL
-    // =========================================================
-
-    if (ciclo.Estado ==
-        EstadoCicloLectivo.Borrador)
-    {
-        /*
-         * En borrador el horario forma parte
-         * de todo el ciclo lectivo.
-         */
-        vigenteDesde =
-            ciclo.FechaInicio;
-
-        vigenteHasta =
-            ciclo.FechaFin;
-    }
-    else
-    {
-        /*
-         * El ciclo ya está publicado.
-         *
-         * Respetamos la fecha "Aplicar desde"
-         * elegida desde la configuración de grilla.
-         */
-        vigenteDesde =
-            dto.VigenteDesde;
-
-        vigenteHasta =
-            dto.VigenteHasta
-            ?? ciclo.FechaFin;
-
-
-        /*
-         * Un horario nuevo de un ciclo ya publicado
-         * no puede crear clases retrospectivamente.
-         */
-        if (vigenteDesde < hoy)
+        if (ciclo.Estado == EstadoCicloLectivo.Cerrado)
         {
             throw new InvalidOperationException(
-                "En un ciclo ya publicado, un horario nuevo no puede comenzar en una fecha pasada.");
+                "No se pueden agregar horarios a un ciclo lectivo cerrado."
+            );
         }
-    }
 
+        var hoy = DateOnly.FromDateTime(DateTime.Today);
 
-    // =========================================================
-    // VALIDAR VIGENCIA CONTRA EL CICLO
-    // =========================================================
+        DateOnly vigenteDesde;
+        DateOnly vigenteHasta;
 
-    if (vigenteDesde <
-        ciclo.FechaInicio)
-    {
-        throw new InvalidOperationException(
-            $"El horario no puede comenzar antes del inicio del ciclo ({ciclo.FechaInicio:dd/MM/yyyy}).");
-    }
+        // =========================================================
+        // DEFINIR VIGENCIA REAL
+        // =========================================================
 
-
-    if (vigenteDesde >
-        ciclo.FechaFin)
-    {
-        throw new InvalidOperationException(
-            $"La fecha de inicio está fuera del ciclo lectivo.");
-    }
-
-
-    if (vigenteHasta >
-        ciclo.FechaFin)
-    {
-        throw new InvalidOperationException(
-            $"El horario no puede finalizar después del fin del ciclo ({ciclo.FechaFin:dd/MM/yyyy}).");
-    }
-
-
-    if (vigenteHasta <
-        vigenteDesde)
-    {
-        throw new InvalidOperationException(
-            "La fecha Hasta no puede ser anterior a la fecha Desde.");
-    }
-
-
-    // =========================================================
-    // NIVEL
-    // =========================================================
-
-    var nivel =
-        await ObtenerNivelAsync(
-            db,
-            dto.NivelId,
-            ct);
-
-
-    // =========================================================
-    // PROFESORES
-    // =========================================================
-
-    ValidarProfesoresDto(
-        dto.Profesores,
-        nivel);
-
-
-    var profesorIds =
-        dto.Profesores
-            .Select(x =>
-                x.ProfesorId)
-            .Distinct()
-            .ToList();
-
-
-    await ValidarProfesoresExistentesAsync(
-        db,
-        profesorIds,
-        ct);
-
-
-    // =========================================================
-    // VALIDAR SUPERPOSICIÓN
-    // =========================================================
-
-    await ValidarSuperposicionProfesoresAsync(
-        db,
-        turnoIdExcluir: null,
-        dto.DiaSemana,
-        dto.HoraInicio,
-        dto.DuracionMinutos,
-        vigenteDesde,
-        vigenteHasta,
-        profesorIds,
-        ct);
-
-
-    // =========================================================
-    // CREAR TURNO
-    // =========================================================
-
-    var turno =
-        new Turno
+        if (ciclo.Estado == EstadoCicloLectivo.Borrador)
         {
-            Id =
-                Guid.NewGuid(),
+            /*
+             * En borrador el horario forma parte
+             * de todo el ciclo lectivo.
+             */
+            vigenteDesde = ciclo.FechaInicio;
 
-            CicloLectivoId =
-                ciclo.Id,
+            vigenteHasta = ciclo.FechaFin;
+        }
+        else
+        {
+            /*
+             * El ciclo ya está publicado.
+             *
+             * Respetamos la fecha "Aplicar desde"
+             * elegida desde la configuración de grilla.
+             */
+            vigenteDesde = dto.VigenteDesde;
 
-            Nombre =
-                dto.Nombre.Trim(),
+            vigenteHasta = dto.VigenteHasta ?? ciclo.FechaFin;
 
-            DiaSemana =
-                dto.DiaSemana,
-
-            HoraInicio =
-                dto.HoraInicio,
-
-            DuracionMinutos =
-                dto.DuracionMinutos,
-
-            NivelId =
-                dto.NivelId,
-
-            Cupo =
-                dto.Cupo,
-
-            Sector =
-                Normalizar(
-                    dto.Sector),
-
-            VigenteDesde =
-                vigenteDesde,
-
-            VigenteHasta =
-                vigenteHasta,
-
-            Estado =
-                EstadoTurno.Activo
-        };
-
-
-    // =========================================================
-    // PROFESORES DEL TURNO
-    // =========================================================
-
-    foreach (var profesor in
-        dto.Profesores)
-    {
-        turno.Profesores.Add(
-            new TurnoProfesor
+            /*
+             * Un horario nuevo de un ciclo ya publicado
+             * no puede crear clases retrospectivamente.
+             */
+            if (vigenteDesde < hoy)
             {
-                TurnoId =
-                    turno.Id,
+                throw new InvalidOperationException(
+                    "En un ciclo ya publicado, un horario nuevo no puede comenzar en una fecha pasada."
+                );
+            }
+        }
 
-                ProfesorId =
-                    profesor.ProfesorId,
+        // =========================================================
+        // VALIDAR VIGENCIA CONTRA EL CICLO
+        // =========================================================
 
-                EsPrincipal =
-                    profesor.EsPrincipal
-            });
-    }
+        if (vigenteDesde < ciclo.FechaInicio)
+        {
+            throw new InvalidOperationException(
+                $"El horario no puede comenzar antes del inicio del ciclo ({ciclo.FechaInicio:dd/MM/yyyy})."
+            );
+        }
 
+        if (vigenteDesde > ciclo.FechaFin)
+        {
+            throw new InvalidOperationException(
+                $"La fecha de inicio está fuera del ciclo lectivo."
+            );
+        }
 
-    db.Turnos.Add(
-        turno);
+        if (vigenteHasta > ciclo.FechaFin)
+        {
+            throw new InvalidOperationException(
+                $"El horario no puede finalizar después del fin del ciclo ({ciclo.FechaFin:dd/MM/yyyy})."
+            );
+        }
 
+        if (vigenteHasta < vigenteDesde)
+        {
+            throw new InvalidOperationException(
+                "La fecha Hasta no puede ser anterior a la fecha Desde."
+            );
+        }
 
-    await db.SaveChangesAsync(
-        ct);
+        // =========================================================
+        // NIVEL
+        // =========================================================
 
+        var nivel = await ObtenerNivelAsync(db, dto.NivelId, ct);
 
-    // =========================================================
-    // CICLO YA PUBLICADO
-    // =========================================================
+        // =========================================================
+        // PROFESORES
+        // =========================================================
 
-    if (ciclo.Estado ==
-        EstadoCicloLectivo.Publicado)
-    {
-        /*
-         * El nuevo horario ya entra en una grilla
-         * que está funcionando.
-         *
-         * Generamos automáticamente todas sus
-         * clases desde AplicarDesde hasta su fin.
-         *
-         * GenerarSesionesAsync evita duplicados.
-         */
-        await GenerarSesionesAsync(
-            vigenteDesde,
-            vigenteHasta,
-            ct);
-    }
+        ValidarProfesoresDto(dto.Profesores, nivel);
 
+        var profesorIds = dto.Profesores.Select(x => x.ProfesorId).Distinct().ToList();
 
-    return turno.Id;
-}
+        await ValidarProfesoresExistentesAsync(db, profesorIds, ct);
 
+        // =========================================================
+        // VALIDAR SUPERPOSICIÓN
+        // =========================================================
 
-    public async Task ActualizarTurnoAsync(
-    Guid turnoId,
-    ActualizarTurnoDto dto,
-    CancellationToken ct = default)
-{
-    ValidarDatosBasicos(dto);
-
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
-
-    await using var transaction =
-        await db.Database.BeginTransactionAsync(ct);
-
-
-    var turno =
-        await db.Turnos
-            .Include(x => x.Profesores)
-            .FirstOrDefaultAsync(
-                x => x.Id == turnoId,
-                ct)
-        ?? throw new InvalidOperationException(
-            "El turno indicado no existe.");
-
-
-    if (dto.AplicarDesde < turno.VigenteDesde)
-    {
-        throw new InvalidOperationException(
-            $"Los cambios no pueden aplicarse antes del {turno.VigenteDesde:dd/MM/yyyy}.");
-    }
-
-
-    if (turno.VigenteHasta.HasValue &&
-        dto.AplicarDesde > turno.VigenteHasta.Value)
-    {
-        throw new InvalidOperationException(
-            "La fecha de aplicación está fuera de la vigencia del turno.");
-    }
-
-
-    var nivel =
-        await ObtenerNivelAsync(
-            db,
-            dto.NivelId,
-            ct);
-
-
-    ValidarProfesoresDto(
-        dto.Profesores,
-        nivel);
-
-
-    var profesorIds =
-        dto.Profesores
-            .Select(x => x.ProfesorId)
-            .Distinct()
-            .ToList();
-
-
-    await ValidarProfesoresExistentesAsync(
-        db,
-        profesorIds,
-        ct);
-
-
-    if (dto.Estado == EstadoTurno.Activo)
-    {
         await ValidarSuperposicionProfesoresAsync(
             db,
-            turnoId,
+            turnoIdExcluir: null,
             dto.DiaSemana,
             dto.HoraInicio,
             dto.DuracionMinutos,
-            dto.AplicarDesde,
-            dto.VigenteHasta,
+            vigenteDesde,
+            vigenteHasta,
             profesorIds,
-            ct);
+            ct
+        );
+
+        // =========================================================
+        // CREAR TURNO
+        // =========================================================
+
+        var turno = new Turno
+        {
+            Id = Guid.NewGuid(),
+
+            CicloLectivoId = ciclo.Id,
+
+            Nombre = dto.Nombre.Trim(),
+
+            DiaSemana = dto.DiaSemana,
+
+            HoraInicio = dto.HoraInicio,
+
+            DuracionMinutos = dto.DuracionMinutos,
+
+            NivelId = dto.NivelId,
+
+            Cupo = dto.Cupo,
+
+            Sector = Normalizar(dto.Sector),
+
+            VigenteDesde = vigenteDesde,
+
+            VigenteHasta = vigenteHasta,
+
+            Estado = EstadoTurno.Activo,
+        };
+
+        // =========================================================
+        // PROFESORES DEL TURNO
+        // =========================================================
+
+        foreach (var profesor in dto.Profesores)
+        {
+            turno.Profesores.Add(
+                new TurnoProfesor
+                {
+                    TurnoId = turno.Id,
+
+                    ProfesorId = profesor.ProfesorId,
+
+                    EsPrincipal = profesor.EsPrincipal,
+                }
+            );
+        }
+
+        db.Turnos.Add(turno);
+
+        await db.SaveChangesAsync(ct);
+
+        // =========================================================
+        // CICLO YA PUBLICADO
+        // =========================================================
+
+        if (ciclo.Estado == EstadoCicloLectivo.Publicado)
+        {
+            /*
+             * El nuevo horario ya entra en una grilla
+             * que está funcionando.
+             *
+             * Generamos automáticamente todas sus
+             * clases desde AplicarDesde hasta su fin.
+             *
+             * GenerarSesionesAsync evita duplicados.
+             */
+            await GenerarSesionesCicloAsync(ciclo.Id, vigenteDesde, vigenteHasta, ct);
+        }
+
+        return turno.Id;
     }
 
-
-    // =========================================================
-    // SESIONES YA GENERADAS DESDE LA FECHA DE CAMBIO
-    // =========================================================
-
- var sesionesAReemplazar =
-    await db.SesionesClase
-        .Where(x =>
-            x.TurnoId == turnoId
-            &&
-            x.Fecha >= dto.AplicarDesde
-            &&
-            !x.EsModificadaManualmente)
-
-        .ToListAsync(ct);
-
-
-    if (sesionesAReemplazar.Count > 0)
+    public async Task ActualizarTurnoAsync(
+        Guid turnoId,
+        ActualizarTurnoDto dto,
+        CancellationToken ct = default
+    )
     {
-        var sesionIds =
-            sesionesAReemplazar
-                .Select(x => x.Id)
-                .ToList();
+        ValidarDatosBasicos(dto);
 
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-        var tieneAsistencias =
-            await db.Asistencias
-                .AnyAsync(
-                    x => sesionIds.Contains(
-                        x.SesionClaseId),
-                    ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
+        var turno =
+            await db.Turnos.Include(x => x.Profesores).FirstOrDefaultAsync(x => x.Id == turnoId, ct)
+            ?? throw new InvalidOperationException("El turno indicado no existe.");
 
-        var tieneInvitaciones =
-            await db.InvitacionesVacante
-                .AnyAsync(
-                    x => sesionIds.Contains(
-                        x.SesionClaseId),
-                    ct);
-
-
-        var tieneRecuperaciones =
-            await db.Recuperaciones
-                .AnyAsync(
-                    x =>
-                        sesionIds.Contains(
-                            x.SesionOrigenId)
-                        ||
-                        (
-                            x.SesionUsoId.HasValue &&
-                            sesionIds.Contains(
-                                x.SesionUsoId.Value)
-                        ),
-                    ct);
-
-
-        if (tieneAsistencias ||
-            tieneInvitaciones ||
-            tieneRecuperaciones)
+        if (dto.AplicarDesde < turno.VigenteDesde)
         {
             throw new InvalidOperationException(
-                "No se puede aplicar el cambio desde esa fecha porque existen clases con asistencia, invitaciones o recuperos asociados. Elegí una fecha posterior.");
+                $"Los cambios no pueden aplicarse antes del {turno.VigenteDesde:dd/MM/yyyy}."
+            );
         }
 
+        if (turno.VigenteHasta.HasValue && dto.AplicarDesde > turno.VigenteHasta.Value)
+        {
+            throw new InvalidOperationException(
+                "La fecha de aplicación está fuera de la vigencia del turno."
+            );
+        }
+
+        var nivel = await ObtenerNivelAsync(db, dto.NivelId, ct);
+
+        ValidarProfesoresDto(dto.Profesores, nivel);
+
+        var profesorIds = dto.Profesores.Select(x => x.ProfesorId).Distinct().ToList();
+
+        await ValidarProfesoresExistentesAsync(db, profesorIds, ct);
+
+        if (dto.Estado == EstadoTurno.Activo)
+        {
+            await ValidarSuperposicionProfesoresAsync(
+                db,
+                turnoId,
+                dto.DiaSemana,
+                dto.HoraInicio,
+                dto.DuracionMinutos,
+                dto.AplicarDesde,
+                dto.VigenteHasta,
+                profesorIds,
+                ct
+            );
+        }
+
+        // =========================================================
+        // SESIONES YA GENERADAS DESDE LA FECHA DE CAMBIO
+        // =========================================================
+
+        var sesionesAReemplazar = await db
+            .SesionesClase.Where(x =>
+                x.TurnoId == turnoId && x.Fecha >= dto.AplicarDesde && !x.EsModificadaManualmente
+            )
+            .ToListAsync(ct);
+
+        if (sesionesAReemplazar.Count > 0)
+        {
+            var sesionIds = sesionesAReemplazar.Select(x => x.Id).ToList();
+
+            var tieneAsistencias = await db.Asistencias.AnyAsync(
+                x => sesionIds.Contains(x.SesionClaseId),
+                ct
+            );
+
+            var tieneInvitaciones = await db.InvitacionesVacante.AnyAsync(
+                x => sesionIds.Contains(x.SesionClaseId),
+                ct
+            );
+
+            var tieneRecuperaciones = await db.Recuperaciones.AnyAsync(
+                x =>
+                    sesionIds.Contains(x.SesionOrigenId)
+                    || (x.SesionUsoId.HasValue && sesionIds.Contains(x.SesionUsoId.Value)),
+                ct
+            );
+
+            if (tieneAsistencias || tieneInvitaciones || tieneRecuperaciones)
+            {
+                throw new InvalidOperationException(
+                    "No se puede aplicar el cambio desde esa fecha porque existen clases con asistencia, invitaciones o recuperos asociados. Elegí una fecha posterior."
+                );
+            }
+
+            /*
+             * Son sesiones futuras todavía limpias.
+             * Las eliminamos y se volverán a generar
+             * con la nueva versión del turno.
+             */
+            db.SesionesClase.RemoveRange(sesionesAReemplazar);
+        }
+
+        // =========================================================
+        // SI EL CAMBIO APLICA DESDE EL COMIENZO MISMO DEL TURNO
+        // PODEMOS MODIFICAR LA VERSIÓN ACTUAL.
+        // =========================================================
+
+        if (dto.AplicarDesde == turno.VigenteDesde)
+        {
+            turno.Nombre = dto.Nombre.Trim();
+
+            turno.DiaSemana = dto.DiaSemana;
+
+            turno.HoraInicio = dto.HoraInicio;
+
+            turno.DuracionMinutos = dto.DuracionMinutos;
+
+            turno.NivelId = dto.NivelId;
+
+            turno.Cupo = dto.Cupo;
+
+            turno.Sector = Normalizar(dto.Sector);
+
+            turno.VigenteHasta = dto.VigenteHasta;
+
+            turno.Estado = dto.Estado;
+
+            SincronizarProfesores(db, turno, dto.Profesores);
+
+            await db.SaveChangesAsync(ct);
+
+            await transaction.CommitAsync(ct);
+
+            // Si pertenece a un ciclo publicado,
+            // reconstruimos las clases que eliminamos.
+            if (turno.CicloLectivoId.HasValue)
+            {
+                var ciclo = await db
+                    .CiclosLectivos.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == turno.CicloLectivoId.Value, ct);
+
+                if (ciclo is not null && ciclo.Estado == EstadoCicloLectivo.Publicado)
+                {
+                    var hasta =
+                        turno.VigenteHasta.HasValue && turno.VigenteHasta.Value < ciclo.FechaFin
+                            ? turno.VigenteHasta.Value
+                            : ciclo.FechaFin;
+
+                 await GenerarSesionesCicloAsync(
+    turno.CicloLectivoId.Value,
+    dto.AplicarDesde,
+    hasta,
+    ct);
+                }
+            }
+
+            return;
+        }
+
+        // =========================================================
+        // VERSIONADO
+        // =========================================================
+        //
+        // Ej:
+        //
+        // viejo: 01/09 -> 31/10
+        // nuevo: 01/11 -> ...
+        //
+        // Las sesiones históricas siguen apuntando al turno viejo.
+        // =========================================================
+
+        turno.VigenteHasta = dto.AplicarDesde.AddDays(-1);
 
         /*
-         * Son sesiones futuras todavía limpias.
-         * Las eliminamos y se volverán a generar
-         * con la nueva versión del turno.
+         * La versión anterior sigue Activa como registro histórico.
+         * Su VigenteHasta impide que vuelva a generar clases.
          */
-        db.SesionesClase.RemoveRange(
-            sesionesAReemplazar);
-    }
+        turno.Estado = EstadoTurno.Activo;
 
-
-    // =========================================================
-    // SI EL CAMBIO APLICA DESDE EL COMIENZO MISMO DEL TURNO
-    // PODEMOS MODIFICAR LA VERSIÓN ACTUAL.
-    // =========================================================
-
-   if (dto.AplicarDesde ==
-    turno.VigenteDesde)
-{
-    turno.Nombre =
-        dto.Nombre.Trim();
-
-    turno.DiaSemana =
-        dto.DiaSemana;
-
-    turno.HoraInicio =
-        dto.HoraInicio;
-
-    turno.DuracionMinutos =
-        dto.DuracionMinutos;
-
-    turno.NivelId =
-        dto.NivelId;
-
-    turno.Cupo =
-        dto.Cupo;
-
-    turno.Sector =
-        Normalizar(dto.Sector);
-
-    turno.VigenteHasta =
-        dto.VigenteHasta;
-
-    turno.Estado =
-        dto.Estado;
-
-
-    SincronizarProfesores(
-        db,
-        turno,
-        dto.Profesores);
-
-
-    await db.SaveChangesAsync(ct);
-
-    await transaction.CommitAsync(ct);
-
-
-    // Si pertenece a un ciclo publicado,
-    // reconstruimos las clases que eliminamos.
-    if (turno.CicloLectivoId.HasValue)
-    {
-        var ciclo =
-            await db.CiclosLectivos
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    x =>
-                        x.Id ==
-                        turno.CicloLectivoId.Value,
-                    ct);
-
-
-        if (ciclo is not null &&
-            ciclo.Estado ==
-                EstadoCicloLectivo.Publicado)
+        var nuevaVersion = new Turno
         {
-            var hasta =
-                turno.VigenteHasta.HasValue &&
-                turno.VigenteHasta.Value <
-                    ciclo.FechaFin
+            Id = Guid.NewGuid(),
 
-                    ? turno.VigenteHasta.Value
-                    : ciclo.FechaFin;
+            // MUY IMPORTANTE:
+            // la nueva versión sigue perteneciendo
+            // al mismo ciclo lectivo.
+            CicloLectivoId = turno.CicloLectivoId,
 
+            Nombre = dto.Nombre.Trim(),
 
-            await GenerarSesionesAsync(
-                dto.AplicarDesde,
-                hasta,
-                ct);
+            DiaSemana = dto.DiaSemana,
+
+            HoraInicio = dto.HoraInicio,
+
+            DuracionMinutos = dto.DuracionMinutos,
+
+            NivelId = dto.NivelId,
+
+            Cupo = dto.Cupo,
+
+            Sector = Normalizar(dto.Sector),
+
+            VigenteDesde = dto.AplicarDesde,
+
+            VigenteHasta = dto.VigenteHasta,
+
+            Estado = dto.Estado,
+        };
+
+        foreach (var profesor in dto.Profesores)
+        {
+            nuevaVersion.Profesores.Add(
+                new TurnoProfesor
+                {
+                    TurnoId = nuevaVersion.Id,
+
+                    ProfesorId = profesor.ProfesorId,
+
+                    EsPrincipal = profesor.EsPrincipal,
+                }
+            );
+        }
+
+        db.Turnos.Add(nuevaVersion);
+
+        await db.SaveChangesAsync(ct);
+
+        await transaction.CommitAsync(ct);
+
+        /*
+         * Al modificar la configuración recurrente,
+         * eliminamos las sesiones futuras anteriores
+         * y ahora debemos volver a generarlas usando
+         * la nueva versión del turno.
+         */
+        if (nuevaVersion.CicloLectivoId.HasValue)
+        {
+            var ciclo = await db
+                .CiclosLectivos.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == nuevaVersion.CicloLectivoId.Value, ct);
+
+            if (ciclo is not null && ciclo.Estado == EstadoCicloLectivo.Publicado)
+            {
+                var hasta =
+                    nuevaVersion.VigenteHasta.HasValue
+                    && nuevaVersion.VigenteHasta.Value < ciclo.FechaFin
+                        ? nuevaVersion.VigenteHasta.Value
+                        : ciclo.FechaFin;
+
+              await GenerarSesionesCicloAsync(
+    nuevaVersion.CicloLectivoId.Value,
+    nuevaVersion.VigenteDesde,
+    hasta,
+    ct);
+            }
         }
     }
 
-
-    return;
-}
-
-
-    // =========================================================
-    // VERSIONADO
-    // =========================================================
-    //
-    // Ej:
-    //
-    // viejo: 01/09 -> 31/10
-    // nuevo: 01/11 -> ...
-    //
-    // Las sesiones históricas siguen apuntando al turno viejo.
-    // =========================================================
-
-   turno.VigenteHasta =
-    dto.AplicarDesde.AddDays(-1);
-
-/*
- * La versión anterior sigue Activa como registro histórico.
- * Su VigenteHasta impide que vuelva a generar clases.
- */
-turno.Estado =
-    EstadoTurno.Activo;
-
-
-  var nuevaVersion =
-    new Turno
+    private static void SincronizarProfesores(
+        AppDbContext db,
+        Turno turno,
+        IReadOnlyCollection<ProfesorTurnoInputDto> profesores
+    )
     {
-        Id =
-            Guid.NewGuid(),
+        var nuevos = profesores.ToDictionary(x => x.ProfesorId);
 
-        // MUY IMPORTANTE:
-        // la nueva versión sigue perteneciendo
-        // al mismo ciclo lectivo.
-        CicloLectivoId =
-            turno.CicloLectivoId,
+        var eliminar = turno.Profesores.Where(x => !nuevos.ContainsKey(x.ProfesorId)).ToList();
 
-        Nombre =
-            dto.Nombre.Trim(),
+        db.TurnosProfesores.RemoveRange(eliminar);
 
-        DiaSemana =
-            dto.DiaSemana,
+        foreach (var actual in turno.Profesores)
+        {
+            if (nuevos.TryGetValue(actual.ProfesorId, out var nuevo))
+            {
+                actual.EsPrincipal = nuevo.EsPrincipal;
+            }
+        }
 
-        HoraInicio =
+        var actualesIds = turno.Profesores.Select(x => x.ProfesorId).ToHashSet();
+
+        foreach (var nuevo in profesores)
+        {
+            if (actualesIds.Contains(nuevo.ProfesorId))
+            {
+                continue;
+            }
+
+            turno.Profesores.Add(
+                new TurnoProfesor
+                {
+                    TurnoId = turno.Id,
+
+                    ProfesorId = nuevo.ProfesorId,
+
+                    EsPrincipal = nuevo.EsPrincipal,
+                }
+            );
+        }
+    }
+
+    private static void ValidarDatosBasicos(ActualizarTurnoDto dto)
+    {
+        ValidarDatosBasicos(
+            dto.Nombre,
             dto.HoraInicio,
-
-        DuracionMinutos =
             dto.DuracionMinutos,
-
-        NivelId =
-            dto.NivelId,
-
-        Cupo =
             dto.Cupo,
-
-        Sector =
-            Normalizar(dto.Sector),
-
-        VigenteDesde =
+            dto.Sector,
             dto.AplicarDesde,
-
-        VigenteHasta =
-            dto.VigenteHasta,
-
-        Estado =
-            dto.Estado
-    };
-
-
-    foreach (var profesor in dto.Profesores)
-    {
-        nuevaVersion.Profesores.Add(
-            new TurnoProfesor
-            {
-                TurnoId =
-                    nuevaVersion.Id,
-
-                ProfesorId =
-                    profesor.ProfesorId,
-
-                EsPrincipal =
-                    profesor.EsPrincipal
-            });
+            dto.VigenteHasta
+        );
     }
 
-
-   db.Turnos.Add(
-    nuevaVersion);
-
-
-await db.SaveChangesAsync(ct);
-
-await transaction.CommitAsync(ct);
-
-
-/*
- * Al modificar la configuración recurrente,
- * eliminamos las sesiones futuras anteriores
- * y ahora debemos volver a generarlas usando
- * la nueva versión del turno.
- */
-if (nuevaVersion.CicloLectivoId.HasValue)
-{
-    var ciclo =
-        await db.CiclosLectivos
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x =>
-                    x.Id ==
-                    nuevaVersion.CicloLectivoId.Value,
-                ct);
-
-
-    if (ciclo is not null &&
-        ciclo.Estado ==
-            EstadoCicloLectivo.Publicado)
+    private static void ValidarDatosBasicos(
+        string nombre,
+        TimeOnly horaInicio,
+        int duracionMinutos,
+        int cupo,
+        string? sector,
+        DateOnly vigenteDesde,
+        DateOnly? vigenteHasta
+    )
     {
-        var hasta =
-            nuevaVersion.VigenteHasta.HasValue &&
-            nuevaVersion.VigenteHasta.Value <
-            ciclo.FechaFin
-
-                ? nuevaVersion.VigenteHasta.Value
-                : ciclo.FechaFin;
-
-
-        await GenerarSesionesAsync(
-            nuevaVersion.VigenteDesde,
-            hasta,
-            ct);
-    }
-}
-}
-private static void SincronizarProfesores(
-    AppDbContext db,
-    Turno turno,
-    IReadOnlyCollection<ProfesorTurnoInputDto> profesores)
-{
-    var nuevos =
-        profesores.ToDictionary(
-            x => x.ProfesorId);
-
-
-    var eliminar =
-        turno.Profesores
-            .Where(x =>
-                !nuevos.ContainsKey(
-                    x.ProfesorId))
-            .ToList();
-
-
-    db.TurnosProfesores.RemoveRange(
-        eliminar);
-
-
-    foreach (var actual in turno.Profesores)
-    {
-        if (nuevos.TryGetValue(
-            actual.ProfesorId,
-            out var nuevo))
+        if (string.IsNullOrWhiteSpace(nombre))
         {
-            actual.EsPrincipal =
-                nuevo.EsPrincipal;
-        }
-    }
-
-
-    var actualesIds =
-        turno.Profesores
-            .Select(x => x.ProfesorId)
-            .ToHashSet();
-
-
-    foreach (var nuevo in profesores)
-    {
-        if (actualesIds.Contains(
-            nuevo.ProfesorId))
-        {
-            continue;
+            throw new InvalidOperationException("Debe ingresar el nombre del turno.");
         }
 
+        if (nombre.Trim().Length > 150)
+        {
+            throw new InvalidOperationException(
+                "El nombre del turno no puede superar los 150 caracteres."
+            );
+        }
 
-        turno.Profesores.Add(
-            new TurnoProfesor
-            {
-                TurnoId =
-                    turno.Id,
+        if (duracionMinutos <= 0 || duracionMinutos > 240)
+        {
+            throw new InvalidOperationException("La duración del turno no es válida.");
+        }
 
-                ProfesorId =
-                    nuevo.ProfesorId,
+        var horaFin = horaInicio.AddMinutes(duracionMinutos);
 
-                EsPrincipal =
-                    nuevo.EsPrincipal
-            });
+        if (horaFin <= horaInicio)
+        {
+            throw new InvalidOperationException("El turno no puede finalizar al día siguiente.");
+        }
+
+        if (cupo <= 0)
+        {
+            throw new InvalidOperationException("El cupo debe ser mayor a cero.");
+        }
+
+        if (vigenteHasta.HasValue && vigenteHasta.Value < vigenteDesde)
+        {
+            throw new InvalidOperationException(
+                "La fecha Hasta no puede ser anterior a la fecha Desde."
+            );
+        }
+
+        if (sector?.Length > 150)
+        {
+            throw new InvalidOperationException("El sector no puede superar los 150 caracteres.");
+        }
     }
-}
-
-
-
-
-private static void ValidarDatosBasicos(
-    ActualizarTurnoDto dto)
-{
-    ValidarDatosBasicos(
-        dto.Nombre,
-        dto.HoraInicio,
-        dto.DuracionMinutos,
-        dto.Cupo,
-        dto.Sector,
-        dto.AplicarDesde,
-        dto.VigenteHasta);
-}
-
-
-private static void ValidarDatosBasicos(
-    string nombre,
-    TimeOnly horaInicio,
-    int duracionMinutos,
-    int cupo,
-    string? sector,
-    DateOnly vigenteDesde,
-    DateOnly? vigenteHasta)
-{
-    if (string.IsNullOrWhiteSpace(nombre))
-    {
-        throw new InvalidOperationException(
-            "Debe ingresar el nombre del turno.");
-    }
-
-
-    if (nombre.Trim().Length > 150)
-    {
-        throw new InvalidOperationException(
-            "El nombre del turno no puede superar los 150 caracteres.");
-    }
-
-
-    if (duracionMinutos <= 0 ||
-        duracionMinutos > 240)
-    {
-        throw new InvalidOperationException(
-            "La duración del turno no es válida.");
-    }
-
-
-    var horaFin =
-        horaInicio.AddMinutes(
-            duracionMinutos);
-
-
-    if (horaFin <= horaInicio)
-    {
-        throw new InvalidOperationException(
-            "El turno no puede finalizar al día siguiente.");
-    }
-
-
-    if (cupo <= 0)
-    {
-        throw new InvalidOperationException(
-            "El cupo debe ser mayor a cero.");
-    }
-
-
-    if (vigenteHasta.HasValue &&
-        vigenteHasta.Value < vigenteDesde)
-    {
-        throw new InvalidOperationException(
-            "La fecha Hasta no puede ser anterior a la fecha Desde.");
-    }
-
-
-    if (sector?.Length > 150)
-    {
-        throw new InvalidOperationException(
-            "El sector no puede superar los 150 caracteres.");
-    }
-}
-
 
     public async Task CambiarEstadoTurnoAsync(
         Guid turnoId,
         EstadoTurno estado,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
         var turno =
-            await db.Turnos
-                .Include(x => x.Profesores)
-                .FirstOrDefaultAsync(
-                    x => x.Id == turnoId,
-                    ct)
-            ?? throw new InvalidOperationException(
-                "El turno indicado no existe.");
+            await db.Turnos.Include(x => x.Profesores).FirstOrDefaultAsync(x => x.Id == turnoId, ct)
+            ?? throw new InvalidOperationException("El turno indicado no existe.");
 
         if (estado == EstadoTurno.Activo)
         {
-            var profesorIds =
-                turno.Profesores
-                    .Select(x => x.ProfesorId)
-                    .ToList();
+            var profesorIds = turno.Profesores.Select(x => x.ProfesorId).ToList();
 
             await ValidarSuperposicionProfesoresAsync(
                 db,
@@ -898,7 +651,8 @@ private static void ValidarDatosBasicos(
                 turno.VigenteDesde,
                 turno.VigenteHasta,
                 profesorIds,
-                ct);
+                ct
+            );
         }
 
         turno.Estado = estado;
@@ -907,583 +661,441 @@ private static void ValidarDatosBasicos(
     }
 
     // =========================================================
-// QUITAR TURNO DE LA GRILLA SEMANAL
-// =========================================================
-
-public async Task QuitarTurnoDeGrillaAsync(
-    Guid turnoId,
-    DateOnly aplicarDesde,
-    CancellationToken ct = default)
-{
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
-
-
-    await using var transaction =
-        await db.Database.BeginTransactionAsync(ct);
-
-
-    var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
-
-
-    // =========================================================
-    // TURNO
+    // QUITAR TURNO DE LA GRILLA SEMANAL
     // =========================================================
 
-    var turno =
-        await db.Turnos
-            .Include(x =>
-                x.Profesores)
-
-            .FirstOrDefaultAsync(
-                x =>
-                    x.Id ==
-                        turnoId,
-                ct)
-
-        ?? throw new InvalidOperationException(
-            "El horario indicado no existe.");
-
-
-    if (turno.Estado ==
-        EstadoTurno.Baja)
+    public async Task QuitarTurnoDeGrillaAsync(
+        Guid turnoId,
+        DateOnly aplicarDesde,
+        CancellationToken ct = default
+    )
     {
-        throw new InvalidOperationException(
-            "El horario ya se encuentra dado de baja.");
-    }
+        await using var db = await factory.CreateDbContextAsync(ct);
 
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-    if (aplicarDesde <
-        turno.VigenteDesde)
-    {
-        throw new InvalidOperationException(
-            $"El horario comienza a tener vigencia el " +
-            $"{turno.VigenteDesde:dd/MM/yyyy}.");
-    }
+        var hoy = DateOnly.FromDateTime(DateTime.Today);
 
+        // =========================================================
+        // TURNO
+        // =========================================================
 
-    if (
-        turno.VigenteHasta.HasValue
-        &&
-        aplicarDesde >
-            turno.VigenteHasta.Value)
-    {
-        throw new InvalidOperationException(
-            "La fecha indicada está fuera de la vigencia del horario.");
-    }
+        var turno =
+            await db.Turnos.Include(x => x.Profesores).FirstOrDefaultAsync(x => x.Id == turnoId, ct)
+            ?? throw new InvalidOperationException("El horario indicado no existe.");
 
+        if (turno.Estado == EstadoTurno.Baja)
+        {
+            throw new InvalidOperationException("El horario ya se encuentra dado de baja.");
+        }
 
-    // =========================================================
-    // INSCRIPCIONES QUE TODAVÍA UTILIZAN EL TURNO
-    // =========================================================
-    //
-    // No podemos quitar el horario si todavía existen bebés
-    // que deberían asistir a partir de la fecha elegida.
-    // Primero hay que reubicarlos.
-    // =========================================================
-
-    var inscripcionesActivas =
-        await db.InscripcionesTurnos
-            .AsNoTracking()
-
-            .Where(x =>
-                x.TurnoId ==
-                    turnoId
-
-                &&
-                x.Inscripcion.Estado !=
-                    EstadoInscripcion.Cancelada
-
-                &&
-                x.Inscripcion.Estado !=
-                    EstadoInscripcion.Pausada
-
-                &&
-                x.Inscripcion.FechaInicio <=
-                    aplicarDesde
-
-                &&
-                (
-                    !x.Inscripcion.FechaFin.HasValue
-                    ||
-                    x.Inscripcion.FechaFin.Value >=
-                        aplicarDesde
-                ))
-
-            .Select(x =>
-                x.Inscripcion.BebeId)
-
-            .Distinct()
-
-            .CountAsync(ct);
-
-
-    if (inscripcionesActivas > 0)
-    {
-        throw new InvalidOperationException(
-            $"Este horario todavía tiene " +
-            $"{inscripcionesActivas} " +
-            $"{(inscripcionesActivas == 1 ? "bebé asignado" : "bebés asignados")}. " +
-            "Reubicá sus inscripciones antes de quitarlo de la grilla.");
-    }
-
-
-    // =========================================================
-    // LISTA DE ESPERA ACTIVA PARA ESTE TURNO
-    // =========================================================
-
-    var solicitudesEsperaActivas =
-        await db.ListaEspera
-            .AsNoTracking()
-
-            .AnyAsync(
-                x =>
-                    x.TurnoId ==
-                        turnoId
-
-                    &&
-                    (
-                        x.Estado ==
-                            EstadoListaEspera.Activa
-
-                        ||
-
-                        x.Estado ==
-                            EstadoListaEspera.Notificada
-                    ),
-                ct);
-
-
-    if (solicitudesEsperaActivas)
-    {
-        throw new InvalidOperationException(
-            "Este horario posee solicitudes activas en lista de espera. " +
-            "Revisalas antes de quitarlo de la grilla.");
-    }
-
-
-    // =========================================================
-    // SESIONES DESDE LA FECHA DE BAJA
-    // =========================================================
-
-    var sesionesDesdeFecha =
-        await db.SesionesClase
-
-            .Where(x =>
-                x.TurnoId ==
-                    turnoId
-
-                &&
-                x.Fecha >=
-                    aplicarDesde)
-
-            .ToListAsync(ct);
-
-
-    if (sesionesDesdeFecha.Count > 0)
-    {
-        var sesionIds =
-            sesionesDesdeFecha
-                .Select(x =>
-                    x.Id)
-                .ToList();
-
-
-        // -----------------------------------------------------
-        // ASISTENCIAS
-        // -----------------------------------------------------
-
-        var tieneAsistencias =
-            await db.Asistencias
-                .AsNoTracking()
-
-                .AnyAsync(
-                    x =>
-                        sesionIds.Contains(
-                            x.SesionClaseId),
-                    ct);
-
-
-        // -----------------------------------------------------
-        // INVITACIONES
-        // -----------------------------------------------------
-
-        var tieneInvitaciones =
-            await db.InvitacionesVacante
-                .AsNoTracking()
-
-                .AnyAsync(
-                    x =>
-                        sesionIds.Contains(
-                            x.SesionClaseId),
-                    ct);
-
-
-        // -----------------------------------------------------
-        // RECUPEROS
-        // -----------------------------------------------------
-
-        var tieneRecuperaciones =
-            await db.Recuperaciones
-                .AsNoTracking()
-
-                .AnyAsync(
-                    x =>
-                        sesionIds.Contains(
-                            x.SesionOrigenId)
-
-                        ||
-
-                        (
-                            x.SesionUsoId.HasValue
-                            &&
-                            sesionIds.Contains(
-                                x.SesionUsoId.Value)
-                        ),
-                    ct);
-
-
-        if (
-            tieneAsistencias
-            ||
-            tieneInvitaciones
-            ||
-            tieneRecuperaciones)
+        if (aplicarDesde < turno.VigenteDesde)
         {
             throw new InvalidOperationException(
-                "No se puede quitar el horario desde esa fecha porque " +
-                "existen clases con asistencia, invitaciones o recuperos asociados. " +
-                "Elegí una fecha posterior.");
+                $"El horario comienza a tener vigencia el " + $"{turno.VigenteDesde:dd/MM/yyyy}."
+            );
         }
 
+        if (turno.VigenteHasta.HasValue && aplicarDesde > turno.VigenteHasta.Value)
+        {
+            throw new InvalidOperationException(
+                "La fecha indicada está fuera de la vigencia del horario."
+            );
+        }
+
+        // =========================================================
+        // INSCRIPCIONES QUE TODAVÍA UTILIZAN EL TURNO
+        // =========================================================
+        //
+        // No podemos quitar el horario si todavía existen bebés
+        // que deberían asistir a partir de la fecha elegida.
+        // Primero hay que reubicarlos.
+        // =========================================================
+
+        var inscripcionesActivas = await db
+            .InscripcionesTurnos.AsNoTracking()
+            .Where(x =>
+                x.TurnoId == turnoId
+                && x.Inscripcion.Estado != EstadoInscripcion.Cancelada
+                && x.Inscripcion.Estado != EstadoInscripcion.Pausada
+                && x.Inscripcion.FechaInicio <= aplicarDesde
+                && (
+                    !x.Inscripcion.FechaFin.HasValue || x.Inscripcion.FechaFin.Value >= aplicarDesde
+                )
+            )
+            .Select(x => x.Inscripcion.BebeId)
+            .Distinct()
+            .CountAsync(ct);
+
+        if (inscripcionesActivas > 0)
+        {
+            throw new InvalidOperationException(
+                $"Este horario todavía tiene "
+                    + $"{inscripcionesActivas} "
+                    + $"{(inscripcionesActivas == 1 ? "bebé asignado" : "bebés asignados")}. "
+                    + "Reubicá sus inscripciones antes de quitarlo de la grilla."
+            );
+        }
+
+        // =========================================================
+        // LISTA DE ESPERA ACTIVA PARA ESTE TURNO
+        // =========================================================
+
+        var solicitudesEsperaActivas = await db
+            .ListaEspera.AsNoTracking()
+            .AnyAsync(
+                x =>
+                    x.TurnoId == turnoId
+                    && (
+                        x.Estado == EstadoListaEspera.Activa
+                        || x.Estado == EstadoListaEspera.Notificada
+                    ),
+                ct
+            );
+
+        if (solicitudesEsperaActivas)
+        {
+            throw new InvalidOperationException(
+                "Este horario posee solicitudes activas en lista de espera. "
+                    + "Revisalas antes de quitarlo de la grilla."
+            );
+        }
+
+        // =========================================================
+        // SESIONES DESDE LA FECHA DE BAJA
+        // =========================================================
+
+        var sesionesDesdeFecha = await db
+            .SesionesClase.Where(x => x.TurnoId == turnoId && x.Fecha >= aplicarDesde)
+            .ToListAsync(ct);
+
+        if (sesionesDesdeFecha.Count > 0)
+        {
+            var sesionIds = sesionesDesdeFecha.Select(x => x.Id).ToList();
+
+            // -----------------------------------------------------
+            // ASISTENCIAS
+            // -----------------------------------------------------
+
+            var tieneAsistencias = await db
+                .Asistencias.AsNoTracking()
+                .AnyAsync(x => sesionIds.Contains(x.SesionClaseId), ct);
+
+            // -----------------------------------------------------
+            // INVITACIONES
+            // -----------------------------------------------------
+
+            var tieneInvitaciones = await db
+                .InvitacionesVacante.AsNoTracking()
+                .AnyAsync(x => sesionIds.Contains(x.SesionClaseId), ct);
+
+            // -----------------------------------------------------
+            // RECUPEROS
+            // -----------------------------------------------------
+
+            var tieneRecuperaciones = await db
+                .Recuperaciones.AsNoTracking()
+                .AnyAsync(
+                    x =>
+                        sesionIds.Contains(x.SesionOrigenId)
+                        || (x.SesionUsoId.HasValue && sesionIds.Contains(x.SesionUsoId.Value)),
+                    ct
+                );
+
+            if (tieneAsistencias || tieneInvitaciones || tieneRecuperaciones)
+            {
+                throw new InvalidOperationException(
+                    "No se puede quitar el horario desde esa fecha porque "
+                        + "existen clases con asistencia, invitaciones o recuperos asociados. "
+                        + "Elegí una fecha posterior."
+                );
+            }
+
+            /*
+             * Las sesiones son futuras y todavía están limpias.
+             * Las eliminamos porque el turno dejará de generarlas.
+             */
+            db.SesionesClase.RemoveRange(sesionesDesdeFecha);
+        }
+
+        // =========================================================
+        // ¿TIENE HISTORIA?
+        // =========================================================
+
+        var tieneSesionesAnteriores = await db
+            .SesionesClase.AsNoTracking()
+            .AnyAsync(x => x.TurnoId == turnoId && x.Fecha < aplicarDesde, ct);
+
+        var tieneInscripcionesHistoricas = await db
+            .InscripcionesTurnos.AsNoTracking()
+            .AnyAsync(x => x.TurnoId == turnoId, ct);
+
+        var tieneListaEsperaHistorica = await db
+            .ListaEspera.AsNoTracking()
+            .AnyAsync(x => x.TurnoId == turnoId, ct);
+
+        var tieneHistoria =
+            tieneSesionesAnteriores || tieneInscripcionesHistoricas || tieneListaEsperaHistorica;
+
+        // =========================================================
+        // TURNO NUEVO SIN USO → BORRADO FÍSICO
+        // =========================================================
+        //
+        // Esto sirve especialmente durante la configuración inicial
+        // de la grilla.
+        //
+        // Si la administrativa creó mal un horario y todavía no
+        // existen bebés ni actividad, realmente lo eliminamos.
+        // =========================================================
+
+        if (aplicarDesde <= hoy && !tieneHistoria)
+        {
+            if (turno.Profesores.Count > 0)
+            {
+                db.TurnosProfesores.RemoveRange(turno.Profesores);
+            }
+
+            db.Turnos.Remove(turno);
+
+            await db.SaveChangesAsync(ct);
+
+            await transaction.CommitAsync(ct);
+
+            return;
+        }
+
+        // =========================================================
+        // TURNO CON HISTORIA → TERMINAR VIGENCIA
+        // =========================================================
+        //
+        // NO eliminamos el turno porque las clases anteriores deben
+        // seguir pudiendo consultarse.
+        // =========================================================
+
+        if (aplicarDesde <= turno.VigenteDesde)
+        {
+            throw new InvalidOperationException(
+                "Este horario ya posee información histórica y no puede eliminarse "
+                    + "desde el comienzo de su vigencia. Elegí una fecha posterior."
+            );
+        }
+
+        turno.VigenteHasta = aplicarDesde.AddDays(-1);
 
         /*
-         * Las sesiones son futuras y todavía están limpias.
-         * Las eliminamos porque el turno dejará de generarlas.
+         * IMPORTANTE:
+         *
+         * permanece ACTIVO históricamente.
+         *
+         * La vigencia es la que determina hasta cuándo genera
+         * clases. No necesitamos marcarlo Baja.
          */
-        db.SesionesClase.RemoveRange(
-            sesionesDesdeFecha);
-    }
-
-
-    // =========================================================
-    // ¿TIENE HISTORIA?
-    // =========================================================
-
-    var tieneSesionesAnteriores =
-        await db.SesionesClase
-            .AsNoTracking()
-
-            .AnyAsync(
-                x =>
-                    x.TurnoId ==
-                        turnoId
-
-                    &&
-                    x.Fecha <
-                        aplicarDesde,
-                ct);
-
-
-    var tieneInscripcionesHistoricas =
-        await db.InscripcionesTurnos
-            .AsNoTracking()
-
-            .AnyAsync(
-                x =>
-                    x.TurnoId ==
-                        turnoId,
-                ct);
-
-
-    var tieneListaEsperaHistorica =
-        await db.ListaEspera
-            .AsNoTracking()
-
-            .AnyAsync(
-                x =>
-                    x.TurnoId ==
-                        turnoId,
-                ct);
-
-
-    var tieneHistoria =
-        tieneSesionesAnteriores
-        ||
-        tieneInscripcionesHistoricas
-        ||
-        tieneListaEsperaHistorica;
-
-
-    // =========================================================
-    // TURNO NUEVO SIN USO → BORRADO FÍSICO
-    // =========================================================
-    //
-    // Esto sirve especialmente durante la configuración inicial
-    // de la grilla.
-    //
-    // Si la administrativa creó mal un horario y todavía no
-    // existen bebés ni actividad, realmente lo eliminamos.
-    // =========================================================
-
-    if (
-        aplicarDesde <= hoy
-        &&
-        !tieneHistoria)
-    {
-        if (turno.Profesores.Count > 0)
-        {
-            db.TurnosProfesores.RemoveRange(
-                turno.Profesores);
-        }
-
-
-        db.Turnos.Remove(
-            turno);
-
+        turno.Estado = EstadoTurno.Activo;
 
         await db.SaveChangesAsync(ct);
 
         await transaction.CommitAsync(ct);
-
-        return;
     }
-
-
-    // =========================================================
-    // TURNO CON HISTORIA → TERMINAR VIGENCIA
-    // =========================================================
-    //
-    // NO eliminamos el turno porque las clases anteriores deben
-    // seguir pudiendo consultarse.
-    // =========================================================
-
-    if (aplicarDesde <=
-        turno.VigenteDesde)
-    {
-        throw new InvalidOperationException(
-            "Este horario ya posee información histórica y no puede eliminarse " +
-            "desde el comienzo de su vigencia. Elegí una fecha posterior.");
-    }
-
-
-    turno.VigenteHasta =
-        aplicarDesde.AddDays(-1);
-
-
-    /*
-     * IMPORTANTE:
-     *
-     * permanece ACTIVO históricamente.
-     *
-     * La vigencia es la que determina hasta cuándo genera
-     * clases. No necesitamos marcarlo Baja.
-     */
-    turno.Estado =
-        EstadoTurno.Activo;
-
-
-    await db.SaveChangesAsync(ct);
-
-    await transaction.CommitAsync(ct);
-}
-
 
     // =========================================================
     // GENERACIÓN DE SESIONES
     // =========================================================
 
-    public async Task<GeneracionSesionesDto>
-        GenerarSesionesAsync(
-            DateOnly desde,
-            DateOnly hasta,
-            CancellationToken ct = default)
+    public async Task<GeneracionSesionesDto> GenerarSesionesAsync(
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken ct = default
+    )
     {
-        ValidarRango(
-            desde,
-            hasta);
+        // Se conserva por compatibilidad con ITurneraService.
+        // Generación global/manual.
+        return await GenerarSesionesInternoAsync(cicloLectivoId: null, desde, hasta, ct);
+    }
 
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+    // =========================================================
+    // GENERACIÓN DE SESIONES DE UN CICLO LECTIVO
+    // =========================================================
 
-        var turnos =
-    await db.Turnos
-        .AsNoTracking()
+    
 
-        .Include(x =>
-            x.Profesores)
+    // =========================================================
+    // GENERADOR INTERNO
+    // =========================================================
 
-        .Where(x =>
-            x.Estado ==
-                EstadoTurno.Activo
-            &&
-            x.VigenteDesde <=
-                hasta
-            &&
-            (
-                x.VigenteHasta == null
-                ||
-                x.VigenteHasta >=
-                    desde
-            ))
+    private async Task<GeneracionSesionesDto> GenerarSesionesInternoAsync(
+        Guid? cicloLectivoId,
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken ct
+    )
+    {
+        ValidarRango(desde, hasta);
 
-        .ToListAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // =====================================================
+        // TURNOS
+        // =====================================================
+
+        var query = db
+            .Turnos.AsNoTracking()
+            .Include(x => x.Profesores)
+            .Where(x =>
+                x.Estado == EstadoTurno.Activo
+                && x.VigenteDesde <= hasta
+                && (x.VigenteHasta == null || x.VigenteHasta >= desde)
+            );
+
+        /*
+         * Cuando la generación proviene de un ciclo lectivo
+         * sólo debemos materializar clases pertenecientes
+         * a ese ciclo.
+         *
+         * Esto evita mezclar horarios de distintos ciclos
+         * que tengan fechas superpuestas.
+         */
+        if (cicloLectivoId.HasValue)
+        {
+            query = query.Where(x => x.CicloLectivoId == cicloLectivoId.Value);
+        }
+
+        var turnos = await query.ToListAsync(ct);
 
         if (turnos.Count == 0)
         {
-            return new GeneracionSesionesDto(
-                0,
-                0);
+            return new GeneracionSesionesDto(0, 0);
         }
 
-        var turnoIds =
-            turnos
-                .Select(x => x.Id)
-                .ToList();
+        // =====================================================
+        // SESIONES EXISTENTES
+        // =====================================================
 
-        var existentes =
-            await db.SesionesClase
-                .AsNoTracking()
-                .Where(x =>
-                    turnoIds.Contains(x.TurnoId) &&
-                    x.Fecha >= desde &&
-                    x.Fecha <= hasta)
-                .Select(x => new
-                {
-                    x.TurnoId,
-                    x.Fecha
-                })
-                .ToListAsync(ct);
+        var turnoIds = turnos.Select(x => x.Id).ToList();
 
-        var claves =
-            existentes
-                .Select(x =>
-                    (x.TurnoId, x.Fecha))
-                .ToHashSet();
+        var existentes = await db
+            .SesionesClase.AsNoTracking()
+            .Where(x => turnoIds.Contains(x.TurnoId) && x.Fecha >= desde && x.Fecha <= hasta)
+            .Select(x => new { x.TurnoId, x.Fecha })
+            .ToListAsync(ct);
 
-        var diasNoLaborables =
-            await db.DiasNoLaborables
-                .AsNoTracking()
-                .Where(x =>
-                    x.Activo &&
-                    x.Fecha >= desde &&
-                    x.Fecha <= hasta)
-                .ToListAsync(ct);
+        var claves = existentes.Select(x => (x.TurnoId, x.Fecha)).ToHashSet();
+
+        // =====================================================
+        // DÍAS NO LABORABLES
+        // =====================================================
+
+        var diasNoLaborables = await db
+            .DiasNoLaborables.AsNoTracking()
+            .Where(x => x.Activo && x.Fecha >= desde && x.Fecha <= hasta)
+            .ToListAsync(ct);
 
         var generadas = 0;
+
         var yaExistentes = 0;
+
+        // =====================================================
+        // GENERAR SESIONES
+        // =====================================================
 
         foreach (var turno in turnos)
         {
-            var inicio =
-                turno.VigenteDesde > desde
-                    ? turno.VigenteDesde
-                    : desde;
+            var inicio = turno.VigenteDesde > desde ? turno.VigenteDesde : desde;
 
             var fin =
-                turno.VigenteHasta.HasValue &&
-                turno.VigenteHasta.Value < hasta
-
+                turno.VigenteHasta.HasValue && turno.VigenteHasta.Value < hasta
                     ? turno.VigenteHasta.Value
                     : hasta;
 
-            for (
-                var fecha = inicio;
-                fecha <= fin;
-                fecha = fecha.AddDays(1))
+            for (var fecha = inicio; fecha <= fin; fecha = fecha.AddDays(1))
             {
-                if (ObtenerDiaSemana(fecha)
-                    != turno.DiaSemana)
+                // -------------------------------------------------
+                // DÍA DE SEMANA
+                // -------------------------------------------------
+
+                if (ObtenerDiaSemana(fecha) != turno.DiaSemana)
                 {
                     continue;
                 }
 
-                if (claves.Contains(
-                    (turno.Id, fecha)))
+                // -------------------------------------------------
+                // YA EXISTE
+                // -------------------------------------------------
+
+                if (claves.Contains((turno.Id, fecha)))
                 {
                     yaExistentes++;
 
                     continue;
                 }
 
-                var cierre =
-                    diasNoLaborables
-                        .Where(x =>
-                            x.Fecha == fecha)
-                        .FirstOrDefault(x =>
-                            AfectaSesion(
-                                x,
-                                turno.HoraInicio,
-                                turno.DuracionMinutos));
+                // -------------------------------------------------
+                // FERIADO / CIERRE
+                // -------------------------------------------------
 
-                var sesion =
-                    new SesionClase
-                    {
-                        Id =
-                            Guid.NewGuid(),
+                var cierre = diasNoLaborables
+                    .Where(x => x.Fecha == fecha)
+                    .FirstOrDefault(x => AfectaSesion(x, turno.HoraInicio, turno.DuracionMinutos));
 
-                        TurnoId =
-                            turno.Id,
+                // -------------------------------------------------
+                // CREAR SESIÓN
+                // -------------------------------------------------
 
-                        Fecha =
-                            fecha,
+                var sesion = new SesionClase
+                {
+                    Id = Guid.NewGuid(),
 
-                        HoraInicio =
-                            turno.HoraInicio,
+                    TurnoId = turno.Id,
 
-                        DuracionMinutos =
-                            turno.DuracionMinutos,
+                    Fecha = fecha,
 
-                        NivelId =
-                            turno.NivelId,
+                    HoraInicio = turno.HoraInicio,
 
-                        Cupo =
-                            turno.Cupo,
+                    DuracionMinutos = turno.DuracionMinutos,
 
-                        Sector =
-                            turno.Sector,
+                    NivelId = turno.NivelId,
 
-                        Estado =
-                            cierre is null
-                                ? EstadoSesionClase.Programada
-                                : EstadoSesionClase.Cancelada,
+                    Cupo = turno.Cupo,
 
-                        MotivoCancelacion =
-                            cierre is null
-                                ? null
-                                : cierre.Descripcion,
+                    Sector = turno.Sector,
 
-                        DiaNoLaborableId =
-                            cierre?.Id
-                    };
+                    Estado = cierre is null
+                        ? EstadoSesionClase.Programada
+                        : EstadoSesionClase.Cancelada,
 
-                    foreach (var profesor in
-    turno.Profesores)
-{
-    sesion.Profesores.Add(
-        new SesionClaseProfesor
-        {
-            SesionClaseId =
-                sesion.Id,
+                    MotivoCancelacion = cierre is null ? null : cierre.Descripcion,
 
-            ProfesorId =
-                profesor.ProfesorId,
+                    DiaNoLaborableId = cierre?.Id,
+                };
 
-            EsPrincipal =
-                profesor.EsPrincipal
-        });
-}
+                // -------------------------------------------------
+                // PROFESORES
+                // -------------------------------------------------
+
+                foreach (var profesor in turno.Profesores)
+                {
+                    sesion.Profesores.Add(
+                        new SesionClaseProfesor
+                        {
+                            SesionClaseId = sesion.Id,
+
+                            ProfesorId = profesor.ProfesorId,
+
+                            EsPrincipal = profesor.EsPrincipal,
+                        }
+                    );
+                }
 
                 db.SesionesClase.Add(sesion);
 
-                claves.Add(
-                    (turno.Id, fecha));
+                claves.Add((turno.Id, fecha));
 
                 generadas++;
             }
         }
+
+        // =====================================================
+        // GUARDAR SESIONES
+        // =====================================================
 
         if (generadas > 0)
         {
@@ -1497,249 +1109,161 @@ public async Task QuitarTurnoDeGrillaAsync(
          * No generamos recuperos futuros antes de que
          * efectivamente llegue la clase perdida.
          */
-        await GenerarRecuperosPorClasesNoDictadasAsync(
-            db,
-            desde,
-            hasta,
-            ct);
+        await GenerarRecuperosPorClasesNoDictadasAsync(db, desde, hasta, ct);
 
-        return new GeneracionSesionesDto(
-            generadas,
-            yaExistentes);
+        return new GeneracionSesionesDto(generadas, yaExistentes);
     }
-
 
     // =========================================================
     // AGENDA
     // =========================================================
 
-   public async Task<IReadOnlyList<SesionClaseDto>>
-    ObtenerAgendaAsync(
+    public async Task<IReadOnlyList<SesionClaseDto>> ObtenerAgendaAsync(
         DateOnly desde,
         DateOnly hasta,
-        CancellationToken ct = default)
-{
-    ValidarRango(
-        desde,
-        hasta);
+        CancellationToken ct = default
+    )
+    {
+        ValidarRango(desde, hasta);
 
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
+        var sesiones = await db
+            .SesionesClase.AsNoTracking()
+            .Include(x => x.Nivel)
+            .Include(x => x.Turno)
+            .Include(x => x.Profesores)
+                .ThenInclude(x => x.Profesor)
+            .Where(x => x.Fecha >= desde && x.Fecha <= hasta)
+            .OrderBy(x => x.Fecha)
+            .ThenBy(x => x.HoraInicio)
+            .ToListAsync(ct);
 
-
-    var sesiones =
-    await db.SesionesClase
-        .AsNoTracking()
-
-        .Include(x =>
-            x.Nivel)
-
-        .Include(x =>
-            x.Turno)
-
-        .Include(x =>
-            x.Profesores)
-            .ThenInclude(x =>
-                x.Profesor)
-
-        .Where(x =>
-            x.Fecha >= desde
-            &&
-            x.Fecha <= hasta)
-
-        .OrderBy(x =>
-            x.Fecha)
-
-        .ThenBy(x =>
-            x.HoraInicio)
-
-        .ToListAsync(ct);
-
-
-    return await MapearSesionesAsync(
-        db,
-        sesiones,
-        ct);
-}
-
+        return await MapearSesionesAsync(db, sesiones, ct);
+    }
 
     // =========================================================
     // DETALLE DE SESIÓN
     // =========================================================
 
-    public async Task<SesionClaseDetalleDto?>
-        ObtenerSesionAsync(
-            Guid sesionId,
-            CancellationToken ct = default)
+    public async Task<SesionClaseDetalleDto?> ObtenerSesionAsync(
+        Guid sesionId,
+        CancellationToken ct = default
+    )
     {
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-        var sesion =
-    await db.SesionesClase
-        .AsNoTracking()
-
-        .Include(x =>
-            x.Nivel)
-
-        .Include(x =>
-            x.Turno)
-
-        .Include(x =>
-            x.Profesores)
-            .ThenInclude(x =>
-                x.Profesor)
-
-        .FirstOrDefaultAsync(
-            x => x.Id == sesionId,
-            ct);
+        var sesion = await db
+            .SesionesClase.AsNoTracking()
+            .Include(x => x.Nivel)
+            .Include(x => x.Turno)
+            .Include(x => x.Profesores)
+                .ThenInclude(x => x.Profesor)
+            .FirstOrDefaultAsync(x => x.Id == sesionId, ct);
 
         if (sesion is null)
             return null;
 
+        var inscripciones = await db
+            .InscripcionesTurnos.AsNoTracking()
+            .Include(x => x.Inscripcion)
+            .Where(x => x.TurnoId == sesion.TurnoId)
+            .ToListAsync(ct);
 
-        var inscripciones =
-            await db.InscripcionesTurnos
-                .AsNoTracking()
-                .Include(x => x.Inscripcion)
-                .Where(x =>
-                    x.TurnoId ==
-                    sesion.TurnoId)
-                .ToListAsync(ct);
+        var reservasIniciales = await db
+            .ReservasSesionesClase.AsNoTracking()
+            .Where(x => x.SesionClaseId == sesion.Id && x.Estado == EstadoReservaSesion.Activa)
+            .ToListAsync(ct);
 
+        var recuperos = await db
+            .Recuperaciones.AsNoTracking()
+            .Where(x =>
+                x.SesionUsoId == sesion.Id
+                && (
+                    x.Estado == EstadoRecuperacion.Reservada
+                    || x.Estado == EstadoRecuperacion.Utilizada
+                )
+            )
+            .ToListAsync(ct);
 
-        var recuperos =
-            await db.Recuperaciones
-                .AsNoTracking()
-                .Where(x =>
-                    x.SesionUsoId ==
-                    sesion.Id &&
-                    (
-                        x.Estado ==
-                            EstadoRecuperacion.Reservada ||
-
-                        x.Estado ==
-                            EstadoRecuperacion.Utilizada
-                    ))
-                .ToListAsync(ct);
-
-
-        var esperados =
-            new Dictionary<
-                Guid,
-                (Guid InscripcionId, bool EsRecupero)>();
-
+        var esperados = new Dictionary<Guid, (Guid InscripcionId, bool EsRecupero)>();
 
         foreach (var relacion in inscripciones)
         {
-            if (!InscripcionValidaEnFecha(
-                relacion.Inscripcion,
-                sesion.Fecha))
+            if (!InscripcionValidaEnFecha(relacion.Inscripcion, sesion.Fecha))
             {
                 continue;
             }
 
-            esperados[
-                relacion.Inscripcion.BebeId] =
-                (
-                    relacion.InscripcionId,
-                    false
-                );
+            esperados[relacion.Inscripcion.BebeId] = (relacion.InscripcionId, false);
         }
 
+        // =========================================================
+        // RESERVAS DE PRIMERA CLASE
+        // =========================================================
+
+        foreach (var reserva in reservasIniciales)
+        {
+            /*
+             * Si ya aparece como alumno regular,
+             * no lo duplicamos.
+             */
+            if (esperados.ContainsKey(reserva.BebeId))
+            {
+                continue;
+            }
+
+            esperados[reserva.BebeId] = (reserva.InscripcionId, false);
+        }
 
         foreach (var recupero in recuperos)
         {
-            if (!esperados.ContainsKey(
-                recupero.BebeId))
+            if (!esperados.ContainsKey(recupero.BebeId))
             {
-                esperados[
-                    recupero.BebeId] =
-                    (
-                        recupero.InscripcionId,
-                        true
-                    );
+                esperados[recupero.BebeId] = (recupero.InscripcionId, true);
             }
         }
 
+        var bebeIds = esperados.Keys.ToList();
 
-        var bebeIds =
-            esperados.Keys.ToList();
+        var bebes = await db
+            .Bebes.AsNoTracking()
+            .Where(x => bebeIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, ct);
 
+        var asistencias = await db
+            .Asistencias.AsNoTracking()
+            .Where(x => x.SesionClaseId == sesion.Id)
+            .ToDictionaryAsync(x => x.BebeId, ct);
 
-        var bebes =
-            await db.Bebes
-                .AsNoTracking()
-                .Where(x =>
-                    bebeIds.Contains(x.Id))
-                .ToDictionaryAsync(
-                    x => x.Id,
-                    ct);
-
-
-        var asistencias =
-            await db.Asistencias
-                .AsNoTracking()
-                .Where(x =>
-                    x.SesionClaseId ==
-                    sesion.Id)
-                .ToDictionaryAsync(
-                    x => x.BebeId,
-                    ct);
-
-
-        var detalleBebes =
-            new List<BebeSesionDto>();
-
+        var detalleBebes = new List<BebeSesionDto>();
 
         foreach (var esperado in esperados)
         {
-            if (!bebes.TryGetValue(
-                esperado.Key,
-                out var bebe))
+            if (!bebes.TryGetValue(esperado.Key, out var bebe))
             {
                 continue;
             }
 
-            asistencias.TryGetValue(
-                bebe.Id,
-                out var asistencia);
+            asistencias.TryGetValue(bebe.Id, out var asistencia);
 
             detalleBebes.Add(
                 new BebeSesionDto(
                     bebe.Id,
-
-                    esperado.Value
-                        .InscripcionId,
-
+                    esperado.Value.InscripcionId,
                     $"{bebe.Nombre} {bebe.Apellido}",
-
                     asistencia?.Estado,
-
-                    esperado.Value
-                        .EsRecupero));
+                    esperado.Value.EsRecupero
+                )
+            );
         }
 
+        detalleBebes = detalleBebes.OrderBy(x => x.NombreCompleto).ToList();
 
-        detalleBebes =
-            detalleBebes
-                .OrderBy(x =>
-                    x.NombreCompleto)
-                .ToList();
+        var sesionDto = MapearSesion(sesion, detalleBebes.Count);
 
-
-        var sesionDto =
-            MapearSesion(
-                sesion,
-                detalleBebes.Count);
-
-
-        return new SesionClaseDetalleDto(
-            sesionDto,
-            detalleBebes);
+        return new SesionClaseDetalleDto(sesionDto, detalleBebes);
     }
-
 
     // =========================================================
     // CANCELAR UNA SESIÓN PARTICULAR
@@ -1748,37 +1272,28 @@ public async Task QuitarTurnoDeGrillaAsync(
     public async Task CancelarSesionAsync(
         Guid sesionId,
         string motivo,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         if (string.IsNullOrWhiteSpace(motivo))
         {
-            throw new InvalidOperationException(
-                "Debe indicar el motivo de la cancelación.");
+            throw new InvalidOperationException("Debe indicar el motivo de la cancelación.");
         }
 
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
         var sesion =
-            await db.SesionesClase
-                .FirstOrDefaultAsync(
-                    x => x.Id == sesionId,
-                    ct)
-            ?? throw new InvalidOperationException(
-                "La clase indicada no existe.");
+            await db.SesionesClase.FirstOrDefaultAsync(x => x.Id == sesionId, ct)
+            ?? throw new InvalidOperationException("La clase indicada no existe.");
 
-        if (sesion.Estado ==
-            EstadoSesionClase.Finalizada)
+        if (sesion.Estado == EstadoSesionClase.Finalizada)
         {
-            throw new InvalidOperationException(
-                "No puede cancelar una clase finalizada.");
+            throw new InvalidOperationException("No puede cancelar una clase finalizada.");
         }
 
-        sesion.Estado =
-            EstadoSesionClase.Cancelada;
+        sesion.Estado = EstadoSesionClase.Cancelada;
 
-        sesion.MotivoCancelacion =
-            motivo.Trim();
+        sesion.MotivoCancelacion = motivo.Trim();
 
         /*
          * Es una cancelación manual,
@@ -1789,57 +1304,40 @@ public async Task QuitarTurnoDeGrillaAsync(
         await db.SaveChangesAsync(ct);
     }
 
-
     // =========================================================
     // REACTIVAR SESIÓN
     // =========================================================
 
-    public async Task ReactivarSesionAsync(
-        Guid sesionId,
-        CancellationToken ct = default)
+    public async Task ReactivarSesionAsync(Guid sesionId, CancellationToken ct = default)
     {
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
         var sesion =
-            await db.SesionesClase
-                .FirstOrDefaultAsync(
-                    x => x.Id == sesionId,
-                    ct)
-            ?? throw new InvalidOperationException(
-                "La clase indicada no existe.");
+            await db.SesionesClase.FirstOrDefaultAsync(x => x.Id == sesionId, ct)
+            ?? throw new InvalidOperationException("La clase indicada no existe.");
 
-        if (sesion.Estado ==
-            EstadoSesionClase.Finalizada)
+        if (sesion.Estado == EstadoSesionClase.Finalizada)
         {
-            throw new InvalidOperationException(
-                "Una clase finalizada no puede reactivarse.");
+            throw new InvalidOperationException("Una clase finalizada no puede reactivarse.");
         }
 
-        var cierres =
-            await db.DiasNoLaborables
-                .AsNoTracking()
-                .Where(x =>
-                    x.Activo &&
-                    x.Fecha ==
-                    sesion.Fecha)
-                .ToListAsync(ct);
+        var cierres = await db
+            .DiasNoLaborables.AsNoTracking()
+            .Where(x => x.Activo && x.Fecha == sesion.Fecha)
+            .ToListAsync(ct);
 
-        var cierre =
-            cierres.FirstOrDefault(x =>
-                AfectaSesion(
-                    x,
-                    sesion.HoraInicio,
-                    sesion.DuracionMinutos));
+        var cierre = cierres.FirstOrDefault(x =>
+            AfectaSesion(x, sesion.HoraInicio, sesion.DuracionMinutos)
+        );
 
         if (cierre is not null)
         {
             throw new InvalidOperationException(
-                $"La clase no puede reactivarse porque está afectada por: {cierre.Descripcion}.");
+                $"La clase no puede reactivarse porque está afectada por: {cierre.Descripcion}."
+            );
         }
 
-        sesion.Estado =
-            EstadoSesionClase.Programada;
+        sesion.Estado = EstadoSesionClase.Programada;
 
         sesion.MotivoCancelacion = null;
 
@@ -1848,371 +1346,384 @@ public async Task QuitarTurnoDeGrillaAsync(
         await db.SaveChangesAsync(ct);
     }
 
-
     // =========================================================
     // FINALIZAR
     // =========================================================
 
-    public async Task FinalizarSesionAsync(
-        Guid sesionId,
-        CancellationToken ct = default)
+    public async Task FinalizarSesionAsync(Guid sesionId, CancellationToken ct = default)
     {
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
 
         var sesion =
-            await db.SesionesClase
-                .FirstOrDefaultAsync(
-                    x => x.Id == sesionId,
-                    ct)
-            ?? throw new InvalidOperationException(
-                "La clase indicada no existe.");
+            await db.SesionesClase.FirstOrDefaultAsync(x => x.Id == sesionId, ct)
+            ?? throw new InvalidOperationException("La clase indicada no existe.");
 
-        if (sesion.Estado ==
-            EstadoSesionClase.Cancelada)
+        if (sesion.Estado == EstadoSesionClase.Cancelada)
         {
-            throw new InvalidOperationException(
-                "Una clase cancelada no puede finalizarse.");
+            throw new InvalidOperationException("Una clase cancelada no puede finalizarse.");
         }
 
-        sesion.Estado =
-            EstadoSesionClase.Finalizada;
+        sesion.Estado = EstadoSesionClase.Finalizada;
 
         await db.SaveChangesAsync(ct);
     }
-
 
     // =========================================================
     // CLASE ACTUAL
     // =========================================================
 
-    public async Task<IReadOnlyList<SesionClaseDto>>
-        ObtenerClasesEnCursoAsync(
-            DateTime fechaHora,
-            CancellationToken ct = default)
+    public async Task<IReadOnlyList<SesionClaseDto>> ObtenerClasesEnCursoAsync(
+        DateTime fechaHora,
+        CancellationToken ct = default
+    )
     {
-        var fecha =
-            DateOnly.FromDateTime(
-                fechaHora);
+        var fecha = DateOnly.FromDateTime(fechaHora);
 
-        var hora =
-            TimeOnly.FromDateTime(
-                fechaHora);
+        var hora = TimeOnly.FromDateTime(fechaHora);
 
-       
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-        await using var db =
-            await factory.CreateDbContextAsync(ct);
-
-        var sesionesDelDia =
-            await db.SesionesClase
-                .AsNoTracking()
-                .Include(x => x.Nivel)
-                .Include(x => x.Turno)
-                    .ThenInclude(x =>
-                        x.Profesores)
-                            .ThenInclude(x =>
-                                x.Profesor)
-                .Where(x =>
-                    x.Fecha == fecha &&
-                    x.Estado ==
-                        EstadoSesionClase.Programada)
-                .ToListAsync(ct);
+        var sesionesDelDia = await db
+            .SesionesClase.AsNoTracking()
+            .Include(x => x.Nivel)
+            .Include(x => x.Turno)
+                .ThenInclude(x => x.Profesores)
+                    .ThenInclude(x => x.Profesor)
+            .Where(x => x.Fecha == fecha && x.Estado == EstadoSesionClase.Programada)
+            .ToListAsync(ct);
 
         /*
          * Filtramos en memoria porque HoraFin es
          * una propiedad calculada y no se persiste.
          */
-        var enCurso =
-            sesionesDelDia
-                .Where(x =>
-                    x.HoraInicio <= hora &&
-                    x.HoraFin > hora)
-                .OrderBy(x =>
-                    x.HoraInicio)
-                .ToList();
+        var enCurso = sesionesDelDia
+            .Where(x => x.HoraInicio <= hora && x.HoraFin > hora)
+            .OrderBy(x => x.HoraInicio)
+            .ToList();
 
-        return await MapearSesionesAsync(
-            db,
-            enCurso,
-            ct);
+        return await MapearSesionesAsync(db, enCurso, ct);
     }
-
 
     // =========================================================
     // RECUPEROS POR FERIADOS / CIERRES
     // =========================================================
 
-    private static async Task
-        GenerarRecuperosPorClasesNoDictadasAsync(
-            AppDbContext db,
-            DateOnly desde,
-            DateOnly hasta,
-            CancellationToken ct)
+    private async Task GenerarRecuperosPorClasesNoDictadasAsync(
+        AppDbContext db,
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken ct
+    )
     {
-        var hoy =
-            DateOnly.FromDateTime(
-                DateTime.Today);
 
-        var hastaReal =
-            hasta > hoy
-                ? hoy
-                : hasta;
+        var configuracion =
+    await configuracionService.ObtenerAsync(ct);
+        var hoy = DateOnly.FromDateTime(DateTime.Today);
+
+        var hastaReal = hasta > hoy ? hoy : hasta;
 
         if (hastaReal < desde)
             return;
 
+        // =========================================================
+        // SESIONES CANCELADAS POR DÍA NO LABORABLE
+        // =========================================================
 
-        var sesiones =
-            await db.SesionesClase
-                .AsNoTracking()
-                .Include(x => x.DiaNoLaborable)
-                .Where(x =>
-                    x.Fecha >= desde &&
-                    x.Fecha <= hastaReal &&
-                    x.Estado ==
-                        EstadoSesionClase.Cancelada &&
-                    x.DiaNoLaborableId != null)
-                .ToListAsync(ct);
+        var sesiones = await db
+            .SesionesClase.AsNoTracking()
+            .Include(x => x.DiaNoLaborable)
+            .Where(x =>
+                x.Fecha >= desde
+                && x.Fecha <= hastaReal
+                && x.Estado == EstadoSesionClase.Cancelada
+                && x.DiaNoLaborableId != null
+            )
+            .ToListAsync(ct);
 
-
-        sesiones =
-            sesiones
-                .Where(x =>
-                    x.DiaNoLaborable is not null &&
-                    x.DiaNoLaborable.Activo &&
-                    x.DiaNoLaborable.GeneraRecupero)
-                .ToList();
-
+        sesiones = sesiones
+            .Where(x =>
+                x.DiaNoLaborable is not null
+                && x.DiaNoLaborable.Activo
+                && x.DiaNoLaborable.GeneraRecupero
+            )
+            .ToList();
 
         if (sesiones.Count == 0)
             return;
 
+        // =========================================================
+        // IDS
+        // =========================================================
 
-        var sesionIds =
-            sesiones
-                .Select(x => x.Id)
-                .ToList();
+        var sesionIds = sesiones.Select(x => x.Id).ToList();
 
-        var turnoIds =
-            sesiones
-                .Select(x => x.TurnoId)
-                .Distinct()
-                .ToList();
+        var turnoIds = sesiones.Select(x => x.TurnoId).Distinct().ToList();
 
+        // =========================================================
+        // RECUPEROS YA EXISTENTES
+        // =========================================================
 
-        var existentes =
-            await db.Recuperaciones
-                .AsNoTracking()
-                .Where(x =>
-                    sesionIds.Contains(
-                        x.SesionOrigenId))
-                .Select(x => new
-                {
-                    x.BebeId,
-                    x.SesionOrigenId
-                })
-                .ToListAsync(ct);
+        var existentes = await db
+            .Recuperaciones.AsNoTracking()
+            .Where(x => sesionIds.Contains(x.SesionOrigenId))
+            .Select(x => new { x.BebeId, x.SesionOrigenId })
+            .ToListAsync(ct);
 
-        var claves =
-            existentes
-                .Select(x =>
-                    (
-                        x.BebeId,
-                        x.SesionOrigenId
-                    ))
-                .ToHashSet();
+        var claves = existentes.Select(x => (x.BebeId, x.SesionOrigenId)).ToHashSet();
 
+        // =========================================================
+        // INSCRIPCIONES REGULARES
+        // =========================================================
 
-        var inscripciones =
-            await db.InscripcionesTurnos
-                .AsNoTracking()
-                .Include(x => x.Inscripcion)
-                .Where(x =>
-                    turnoIds.Contains(
-                        x.TurnoId))
-                .ToListAsync(ct);
+        var inscripciones = await db
+            .InscripcionesTurnos.AsNoTracking()
+            .Include(x => x.Inscripcion)
+            .Where(x => turnoIds.Contains(x.TurnoId))
+            .ToListAsync(ct);
 
+        // =========================================================
+        // RESERVAS INICIALES
+        // =========================================================
+
+        var reservasIniciales = await db
+            .ReservasSesionesClase.AsNoTracking()
+            .Where(x =>
+                sesionIds.Contains(x.SesionClaseId) && x.Estado == EstadoReservaSesion.Activa
+            )
+            .ToListAsync(ct);
+
+        // =========================================================
+        // PROCESAR CADA SESIÓN
+        // =========================================================
 
         foreach (var sesion in sesiones)
         {
-            var asignaciones =
-                inscripciones
-                    .Where(x =>
-                        x.TurnoId ==
-                            sesion.TurnoId &&
-                        InscripcionValidaEnFecha(
-                            x.Inscripcion,
-                            sesion.Fecha));
+            var cierre = sesion.DiaNoLaborable!;
 
+            // =====================================================
+            // 1. ALUMNOS REGULARES
+            // =====================================================
+
+            var asignaciones = inscripciones.Where(x =>
+                x.TurnoId == sesion.TurnoId && InscripcionValidaEnFecha(x.Inscripcion, sesion.Fecha)
+            );
 
             foreach (var asignacion in asignaciones)
             {
-                var bebeId =
-                    asignacion
-                        .Inscripcion
-                        .BebeId;
+                var bebeId = asignacion.Inscripcion.BebeId;
 
-                if (claves.Contains(
-                    (bebeId, sesion.Id)))
+                // Ya existe un recupero para
+                // bebé + sesión.
+                if (claves.Contains((bebeId, sesion.Id)))
                 {
                     continue;
                 }
 
-                var cierre =
-                    sesion.DiaNoLaborable!;
+                var recuperacion = new Recuperacion
+                {
+                    Id = Guid.NewGuid(),
 
-                var recuperacion =
-                    new Recuperacion
-                    {
-                        Id =
-                            Guid.NewGuid(),
+                    BebeId = bebeId,
 
-                        BebeId =
-                            bebeId,
+                    InscripcionId = asignacion.InscripcionId,
 
-                        InscripcionId =
-                            asignacion.InscripcionId,
+                    SesionOrigenId = sesion.Id,
 
-                        SesionOrigenId =
-                            sesion.Id,
+                    AsistenciaOrigenId = null,
 
-                        AsistenciaOrigenId =
-                            null,
+                    Tipo = TipoRecuperacion.ClaseNoDictada,
 
-                        Tipo =
-                            TipoRecuperacion
-                                .ClaseNoDictada,
+                    FechaGeneracion = sesion.Fecha,
 
-                        FechaGeneracion =
-                            sesion.Fecha,
+                    FechaVencimiento = cierre.RecuperoSinVencimiento
+                        ? null
+                        : sesion.Fecha.AddDays(
+    configuracion.DiasVigenciaRecupero),
 
-                        FechaVencimiento =
-                            cierre.RecuperoSinVencimiento
-                                ? null
-                                : sesion.Fecha.AddDays(45),
+                    Estado = EstadoRecuperacion.Disponible,
+                };
 
-                        Estado =
-                            EstadoRecuperacion.Disponible
-                    };
+                db.Recuperaciones.Add(recuperacion);
 
-                db.Recuperaciones.Add(
-                    recuperacion);
+                claves.Add((bebeId, sesion.Id));
+            }
 
-                claves.Add(
-                    (bebeId, sesion.Id));
+            // =====================================================
+            // 2. RESERVAS DE PRIMERA CLASE
+            // =====================================================
+
+            var reservasSesion = reservasIniciales.Where(x => x.SesionClaseId == sesion.Id);
+
+            foreach (var reserva in reservasSesion)
+            {
+                var bebeId = reserva.BebeId;
+
+                /*
+                 * Si también era alumno regular,
+                 * el recupero ya fue generado arriba.
+                 *
+                 * Por eso las reservas se procesan
+                 * DESPUÉS de las inscripciones regulares.
+                 */
+                if (claves.Contains((bebeId, sesion.Id)))
+                {
+                    continue;
+                }
+
+                var recuperacion = new Recuperacion
+                {
+                    Id = Guid.NewGuid(),
+
+                    BebeId = bebeId,
+
+                    InscripcionId = reserva.InscripcionId,
+
+                    SesionOrigenId = sesion.Id,
+
+                    AsistenciaOrigenId = null,
+
+                    Tipo = TipoRecuperacion.ClaseNoDictada,
+
+                    FechaGeneracion = sesion.Fecha,
+
+                    FechaVencimiento = cierre.RecuperoSinVencimiento
+                        ? null
+                        : sesion.Fecha.AddDays(
+    configuracion.DiasVigenciaRecupero),
+
+                    Estado = EstadoRecuperacion.Disponible,
+                };
+
+                db.Recuperaciones.Add(recuperacion);
+
+                claves.Add((bebeId, sesion.Id));
             }
         }
 
+        // =========================================================
+        // GUARDAR
+        // =========================================================
+
         await db.SaveChangesAsync(ct);
     }
-
 
     // =========================================================
     // MAPEO SESIONES CON CUPO REAL
     // =========================================================
 
-    private static async Task<IReadOnlyList<SesionClaseDto>>
-        MapearSesionesAsync(
-            AppDbContext db,
-            IReadOnlyCollection<SesionClase> sesiones,
-            CancellationToken ct)
+    private static async Task<IReadOnlyList<SesionClaseDto>> MapearSesionesAsync(
+        AppDbContext db,
+        IReadOnlyCollection<SesionClase> sesiones,
+        CancellationToken ct
+    )
     {
         if (sesiones.Count == 0)
             return [];
 
+        var turnoIds = sesiones.Select(x => x.TurnoId).Distinct().ToList();
 
-        var turnoIds =
-            sesiones
-                .Select(x => x.TurnoId)
-                .Distinct()
-                .ToList();
+        var sesionIds = sesiones.Select(x => x.Id).ToList();
 
-        var sesionIds =
-            sesiones
-                .Select(x => x.Id)
-                .ToList();
+        // =========================================================
+        // ALUMNOS REGULARES
+        // =========================================================
 
+        var inscripciones = await db
+            .InscripcionesTurnos.AsNoTracking()
+            .Include(x => x.Inscripcion)
+            .Where(x => turnoIds.Contains(x.TurnoId))
+            .ToListAsync(ct);
 
-        var inscripciones =
-            await db.InscripcionesTurnos
-                .AsNoTracking()
-                .Include(x => x.Inscripcion)
-                .Where(x =>
-                    turnoIds.Contains(
-                        x.TurnoId))
-                .ToListAsync(ct);
+        // =========================================================
+        // RECUPEROS RESERVADOS
+        // =========================================================
 
+        var recuperos = await db
+            .Recuperaciones.AsNoTracking()
+            .Where(x =>
+                x.SesionUsoId != null
+                && sesionIds.Contains(x.SesionUsoId.Value)
+                && (
+                    x.Estado == EstadoRecuperacion.Reservada
+                    || x.Estado == EstadoRecuperacion.Utilizada
+                )
+            )
+            .ToListAsync(ct);
 
-        var recuperos =
-            await db.Recuperaciones
-                .AsNoTracking()
-                .Where(x =>
-                    x.SesionUsoId != null &&
-                    sesionIds.Contains(
-                        x.SesionUsoId.Value) &&
-                    (
-                        x.Estado ==
-                            EstadoRecuperacion.Reservada ||
+        // =========================================================
+        // RESERVAS DE PRIMERA CLASE
+        // =========================================================
 
-                        x.Estado ==
-                            EstadoRecuperacion.Utilizada
-                    ))
-                .ToListAsync(ct);
+        var reservasIniciales = await db
+            .ReservasSesionesClase.AsNoTracking()
+            .Where(x =>
+                sesionIds.Contains(x.SesionClaseId) && x.Estado == EstadoReservaSesion.Activa
+            )
+            .ToListAsync(ct);
 
-
-        var resultado =
-            new List<SesionClaseDto>();
-
+        var resultado = new List<SesionClaseDto>();
 
         foreach (var sesion in sesiones)
         {
-            var bebes =
-                new HashSet<Guid>();
+            /*
+             * HashSet es importante:
+             *
+             * si por alguna situación el bebé aparece como
+             * regular y además tiene una reserva para esa misma
+             * sesión, ocupa UN solo lugar.
+             */
+            var bebes = new HashSet<Guid>();
+
+            // =====================================================
+            // REGULARES
+            // =====================================================
 
             foreach (var relacion in inscripciones)
             {
-                if (relacion.TurnoId !=
-                    sesion.TurnoId)
+                if (relacion.TurnoId != sesion.TurnoId)
                 {
                     continue;
                 }
 
-                if (!InscripcionValidaEnFecha(
-                    relacion.Inscripcion,
-                    sesion.Fecha))
+                if (!InscripcionValidaEnFecha(relacion.Inscripcion, sesion.Fecha))
                 {
                     continue;
                 }
 
-                bebes.Add(
-                    relacion
-                        .Inscripcion
-                        .BebeId);
+                bebes.Add(relacion.Inscripcion.BebeId);
             }
+
+            // =====================================================
+            // RECUPEROS
+            // =====================================================
 
             foreach (var recupero in recuperos)
             {
-                if (recupero.SesionUsoId ==
-                    sesion.Id)
+                if (recupero.SesionUsoId == sesion.Id)
                 {
-                    bebes.Add(
-                        recupero.BebeId);
+                    bebes.Add(recupero.BebeId);
                 }
             }
 
-            resultado.Add(
-                MapearSesion(
-                    sesion,
-                    bebes.Count));
+            // =====================================================
+            // RESERVAS INICIALES
+            // =====================================================
+
+            foreach (var reserva in reservasIniciales)
+            {
+                if (reserva.SesionClaseId == sesion.Id)
+                {
+                    bebes.Add(reserva.BebeId);
+                }
+            }
+
+            resultado.Add(MapearSesion(sesion, bebes.Count));
         }
 
         return resultado;
     }
 
-
-    private static TurnoDto MapearTurno(
-        Turno turno)
+    private static TurnoDto MapearTurno(Turno turno)
     {
         return new TurnoDto(
             turno.Id,
@@ -2228,454 +1739,339 @@ public async Task QuitarTurnoDeGrillaAsync(
             turno.VigenteDesde,
             turno.VigenteHasta,
             turno.Estado,
-
-            turno.Profesores
-                .OrderByDescending(x =>
-                    x.EsPrincipal)
-                .ThenBy(x =>
-                    x.Profesor.Apellido)
-                .Select(x =>
-                    new ProfesorTurnoDto(
-                        x.ProfesorId,
-
-                        $"{x.Profesor.Nombre} {x.Profesor.Apellido}"
-                            .Trim(),
-
-                        x.EsPrincipal))
-                .ToList());
-    }
-
-
-   private static SesionClaseDto MapearSesion(
-    SesionClase sesion,
-    int inscriptos)
-{
-    return new SesionClaseDto(
-        sesion.Id,
-        sesion.TurnoId,
-        sesion.Turno.Nombre,
-        sesion.Fecha,
-        sesion.HoraInicio,
-        sesion.DuracionMinutos,
-        sesion.HoraFin,
-        sesion.NivelId,
-        sesion.Nivel.Nombre,
-        sesion.Cupo,
-        inscriptos,
-
-        Math.Max(
-            0,
-            sesion.Cupo -
-            inscriptos),
-
-        sesion.Sector,
-        sesion.Estado,
-        sesion.MotivoCancelacion,
-        sesion.DiaNoLaborableId,
-
-        sesion.Profesores
-            .OrderByDescending(x =>
-                x.EsPrincipal)
-
-            .ThenBy(x =>
-                x.Profesor.Apellido)
-
-            .Select(x =>
-                new ProfesorTurnoDto(
+            turno
+                .Profesores.OrderByDescending(x => x.EsPrincipal)
+                .ThenBy(x => x.Profesor.Apellido)
+                .Select(x => new ProfesorTurnoDto(
                     x.ProfesorId,
-
-                    $"{x.Profesor.Nombre} {x.Profesor.Apellido}"
-                        .Trim(),
-
-                    x.EsPrincipal))
-
-            .ToList());
-}
-
-// =========================================================
-// EDITAR UNA CLASE PUNTUAL
-// =========================================================
-
-public async Task ActualizarSesionClaseAsync(
-    Guid sesionId,
-    ActualizarSesionClaseDto dto,
-    CancellationToken ct = default)
-{
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
-
-
-    var sesion =
-        await db.SesionesClase
-
-            .Include(x =>
-                x.Nivel)
-
-            .Include(x =>
-                x.Profesores)
-
-            .FirstOrDefaultAsync(
-                x => x.Id == sesionId,
-                ct)
-
-        ?? throw new InvalidOperationException(
-            "La clase indicada no existe.");
-
-
-    if (sesion.Estado !=
-        EstadoSesionClase.Programada)
-    {
-        throw new InvalidOperationException(
-            "Sólo se pueden modificar profesores de una clase programada.");
+                    $"{x.Profesor.Nombre} {x.Profesor.Apellido}".Trim(),
+                    x.EsPrincipal
+                ))
+                .ToList()
+        );
     }
 
+    private static SesionClaseDto MapearSesion(SesionClase sesion, int inscriptos)
+    {
+        return new SesionClaseDto(
+            sesion.Id,
+            sesion.TurnoId,
+            sesion.Turno.Nombre,
+            sesion.Fecha,
+            sesion.HoraInicio,
+            sesion.DuracionMinutos,
+            sesion.HoraFin,
+            sesion.NivelId,
+            sesion.Nivel.Nombre,
+            sesion.Cupo,
+            inscriptos,
+            Math.Max(0, sesion.Cupo - inscriptos),
+            sesion.Sector,
+            sesion.Estado,
+            sesion.MotivoCancelacion,
+            sesion.DiaNoLaborableId,
+            sesion
+                .Profesores.OrderByDescending(x => x.EsPrincipal)
+                .ThenBy(x => x.Profesor.Apellido)
+                .Select(x => new ProfesorTurnoDto(
+                    x.ProfesorId,
+                    $"{x.Profesor.Nombre} {x.Profesor.Apellido}".Trim(),
+                    x.EsPrincipal
+                ))
+                .ToList()
+        );
+    }
 
-    // =====================================================
-    // VALIDAR PROFESORES SEGÚN NIVEL
-    // =====================================================
+    // =========================================================
+    // EDITAR UNA CLASE PUNTUAL
+    // =========================================================
 
-    ValidarProfesoresDto(
-        dto.Profesores,
-        sesion.Nivel);
+    public async Task ActualizarSesionClaseAsync(
+        Guid sesionId,
+        ActualizarSesionClaseDto dto,
+        CancellationToken ct = default
+    )
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
 
+        var sesion =
+            await db
+                .SesionesClase.Include(x => x.Nivel)
+                .Include(x => x.Profesores)
+                .FirstOrDefaultAsync(x => x.Id == sesionId, ct)
+            ?? throw new InvalidOperationException("La clase indicada no existe.");
 
-    var profesorIds =
-        dto.Profesores
-            .Select(x =>
-                x.ProfesorId)
-            .Distinct()
-            .ToList();
+        if (sesion.Estado != EstadoSesionClase.Programada)
+        {
+            throw new InvalidOperationException(
+                "Sólo se pueden modificar profesores de una clase programada."
+            );
+        }
 
+        // =====================================================
+        // VALIDAR PROFESORES SEGÚN NIVEL
+        // =====================================================
 
-    await ValidarProfesoresExistentesAsync(
-        db,
-        profesorIds,
-        ct);
+        ValidarProfesoresDto(dto.Profesores, sesion.Nivel);
 
+        var profesorIds = dto.Profesores.Select(x => x.ProfesorId).Distinct().ToList();
 
-    // =====================================================
-    // VALIDAR QUE NO ESTÉN EN OTRA CLASE A ESA HORA
-    // =====================================================
+        await ValidarProfesoresExistentesAsync(db, profesorIds, ct);
 
-    await ValidarSuperposicionProfesoresSesionAsync(
-        db,
-        sesion.Id,
-        sesion.Fecha,
-        sesion.HoraInicio,
-        sesion.DuracionMinutos,
-        profesorIds,
-        ct);
+        // =====================================================
+        // VALIDAR QUE NO ESTÉN EN OTRA CLASE A ESA HORA
+        // =====================================================
 
+        await ValidarSuperposicionProfesoresSesionAsync(
+            db,
+            sesion.Id,
+            sesion.Fecha,
+            sesion.HoraInicio,
+            sesion.DuracionMinutos,
+            profesorIds,
+            ct
+        );
 
-    // =====================================================
-    // SINCRONIZAR
-    // =====================================================
+        // =====================================================
+        // SINCRONIZAR
+        // =====================================================
 
-    SincronizarProfesoresSesion(
-        db,
-        sesion,
-        dto.Profesores);
+        SincronizarProfesoresSesion(db, sesion, dto.Profesores);
 
+        /*
+         * Marca esta sesión como una excepción.
+         * Un cambio futuro de la grilla recurrente
+         * no debe sobreescribirla.
+         */
+        sesion.EsModificadaManualmente = true;
 
-    /*
-     * Marca esta sesión como una excepción.
-     * Un cambio futuro de la grilla recurrente
-     * no debe sobreescribirla.
-     */
-    sesion.EsModificadaManualmente =
-        true;
-
-
-    await db.SaveChangesAsync(ct);
-}
+        await db.SaveChangesAsync(ct);
+    }
 
     // =========================================================
     // VALIDACIONES
     // =========================================================
 
-    private static void ValidarDatosBasicos(
-        CrearTurnoDto dto)
+    private static void ValidarDatosBasicos(CrearTurnoDto dto)
     {
-        if (string.IsNullOrWhiteSpace(
-            dto.Nombre))
+        if (string.IsNullOrWhiteSpace(dto.Nombre))
         {
-            throw new InvalidOperationException(
-                "Debe ingresar el nombre del turno.");
+            throw new InvalidOperationException("Debe ingresar el nombre del turno.");
         }
 
         if (dto.Nombre.Trim().Length > 150)
         {
             throw new InvalidOperationException(
-                "El nombre del turno no puede superar los 150 caracteres.");
+                "El nombre del turno no puede superar los 150 caracteres."
+            );
         }
 
         if (dto.DuracionMinutos <= 0)
         {
-            throw new InvalidOperationException(
-                "La duración debe ser mayor a cero.");
+            throw new InvalidOperationException("La duración debe ser mayor a cero.");
         }
 
         if (dto.DuracionMinutos > 240)
         {
-            throw new InvalidOperationException(
-                "La duración del turno no es válida.");
+            throw new InvalidOperationException("La duración del turno no es válida.");
         }
 
         /*
          * Evita clases que atraviesen medianoche.
          */
-        if (dto.HoraInicio
-            .AddMinutes(dto.DuracionMinutos)
-            <= dto.HoraInicio)
+        if (dto.HoraInicio.AddMinutes(dto.DuracionMinutos) <= dto.HoraInicio)
         {
-            throw new InvalidOperationException(
-                "El turno no puede finalizar al día siguiente.");
+            throw new InvalidOperationException("El turno no puede finalizar al día siguiente.");
         }
 
         if (dto.Cupo <= 0)
         {
-            throw new InvalidOperationException(
-                "El cupo debe ser mayor a cero.");
+            throw new InvalidOperationException("El cupo debe ser mayor a cero.");
         }
 
-        if (dto.VigenteHasta.HasValue &&
-            dto.VigenteHasta.Value <
-            dto.VigenteDesde)
+        if (dto.VigenteHasta.HasValue && dto.VigenteHasta.Value < dto.VigenteDesde)
         {
-            throw new InvalidOperationException(
-                "La vigencia Hasta no puede ser anterior a Desde.");
+            throw new InvalidOperationException("La vigencia Hasta no puede ser anterior a Desde.");
         }
 
         if (dto.Sector?.Length > 100)
         {
-            throw new InvalidOperationException(
-                "El sector no puede superar los 100 caracteres.");
+            throw new InvalidOperationException("El sector no puede superar los 100 caracteres.");
         }
     }
 
-
-    private static async Task<Nivel>
-        ObtenerNivelAsync(
-            AppDbContext db,
-            Guid nivelId,
-            CancellationToken ct)
+    private static async Task<Nivel> ObtenerNivelAsync(
+        AppDbContext db,
+        Guid nivelId,
+        CancellationToken ct
+    )
     {
-        var nivel =
-            await db.Niveles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    x =>
-                        x.Id == nivelId &&
-                        x.Activo,
-                    ct);
+        var nivel = await db
+            .Niveles.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == nivelId && x.Activo, ct);
 
         return nivel
             ?? throw new InvalidOperationException(
-                "El nivel seleccionado no existe o está inactivo.");
+                "El nivel seleccionado no existe o está inactivo."
+            );
     }
-
 
     private static void ValidarProfesoresDto(
         IReadOnlyCollection<ProfesorTurnoInputDto> profesores,
-        Nivel nivel)
+        Nivel nivel
+    )
     {
-        var cantidad =
-            profesores
-                .Select(x => x.ProfesorId)
-                .Distinct()
-                .Count();
+        var cantidad = profesores.Select(x => x.ProfesorId).Distinct().Count();
 
-        if (cantidad <
-            nivel.ProfesoresMinimos)
+        if (cantidad < nivel.ProfesoresMinimos)
         {
             throw new InvalidOperationException(
-                $"El nivel requiere al menos {nivel.ProfesoresMinimos} profesor/es.");
+                $"El nivel requiere al menos {nivel.ProfesoresMinimos} profesor/es."
+            );
         }
 
-        if (cantidad >
-            nivel.ProfesoresMaximos)
+        if (cantidad > nivel.ProfesoresMaximos)
         {
             throw new InvalidOperationException(
-                $"El nivel admite como máximo {nivel.ProfesoresMaximos} profesor/es.");
+                $"El nivel admite como máximo {nivel.ProfesoresMaximos} profesor/es."
+            );
         }
 
         if (profesores.Count != cantidad)
         {
             throw new InvalidOperationException(
-                "No puede asignar el mismo profesor más de una vez.");
+                "No puede asignar el mismo profesor más de una vez."
+            );
         }
 
-        var principales =
-            profesores.Count(x =>
-                x.EsPrincipal);
+        var principales = profesores.Count(x => x.EsPrincipal);
 
         if (principales != 1)
         {
-            throw new InvalidOperationException(
-                "Debe existir exactamente un profesor principal.");
+            throw new InvalidOperationException("Debe existir exactamente un profesor principal.");
         }
     }
 
-
-    private static async Task
-        ValidarProfesoresExistentesAsync(
-            AppDbContext db,
-            IReadOnlyCollection<Guid> profesorIds,
-            CancellationToken ct)
+    private static async Task ValidarProfesoresExistentesAsync(
+        AppDbContext db,
+        IReadOnlyCollection<Guid> profesorIds,
+        CancellationToken ct
+    )
     {
-        var cantidad =
-            await db.Profesores
-                .AsNoTracking()
-                .CountAsync(
-                    x =>
-                        profesorIds.Contains(x.Id) &&
-                        x.Activo,
-                    ct);
+        var cantidad = await db
+            .Profesores.AsNoTracking()
+            .CountAsync(x => profesorIds.Contains(x.Id) && x.Activo, ct);
 
-        if (cantidad !=
-            profesorIds.Count)
+        if (cantidad != profesorIds.Count)
         {
             throw new InvalidOperationException(
-                "Uno o más profesores no existen o están inactivos.");
+                "Uno o más profesores no existen o están inactivos."
+            );
         }
     }
 
-
-    private static async Task
-        ValidarSuperposicionProfesoresAsync(
-            AppDbContext db,
-            Guid? turnoIdExcluir,
-            DiaSemana diaSemana,
-            TimeOnly horaInicio,
-            int duracionMinutos,
-            DateOnly vigenteDesde,
-            DateOnly? vigenteHasta,
-            IReadOnlyCollection<Guid> profesorIds,
-            CancellationToken ct)
+    private static async Task ValidarSuperposicionProfesoresAsync(
+        AppDbContext db,
+        Guid? turnoIdExcluir,
+        DiaSemana diaSemana,
+        TimeOnly horaInicio,
+        int duracionMinutos,
+        DateOnly vigenteDesde,
+        DateOnly? vigenteHasta,
+        IReadOnlyCollection<Guid> profesorIds,
+        CancellationToken ct
+    )
     {
         if (profesorIds.Count == 0)
             return;
 
-        var candidatos =
-            await db.Turnos
-                .AsNoTracking()
-                .Include(x => x.Profesores)
-                .Where(x =>
-                    x.Estado ==
-                        EstadoTurno.Activo &&
-                    x.DiaSemana ==
-                        diaSemana &&
-                    x.Profesores.Any(p =>
-                        profesorIds.Contains(
-                            p.ProfesorId)))
-                .ToListAsync(ct);
-
+        var candidatos = await db
+            .Turnos.AsNoTracking()
+            .Include(x => x.Profesores)
+            .Where(x =>
+                x.Estado == EstadoTurno.Activo
+                && x.DiaSemana == diaSemana
+                && x.Profesores.Any(p => profesorIds.Contains(p.ProfesorId))
+            )
+            .ToListAsync(ct);
 
         if (turnoIdExcluir.HasValue)
         {
-            candidatos =
-                candidatos
-                    .Where(x =>
-                        x.Id !=
-                        turnoIdExcluir.Value)
-                    .ToList();
+            candidatos = candidatos.Where(x => x.Id != turnoIdExcluir.Value).ToList();
         }
 
-
-        var horaFin =
-            horaInicio.AddMinutes(
-                duracionMinutos);
-
+        var horaFin = horaInicio.AddMinutes(duracionMinutos);
 
         foreach (var existente in candidatos)
         {
-            if (!PeriodosSeSuperponen(
-                vigenteDesde,
-                vigenteHasta,
-                existente.VigenteDesde,
-                existente.VigenteHasta))
+            if (
+                !PeriodosSeSuperponen(
+                    vigenteDesde,
+                    vigenteHasta,
+                    existente.VigenteDesde,
+                    existente.VigenteHasta
+                )
+            )
             {
                 continue;
             }
 
-            if (!HorariosSeSuperponen(
-                horaInicio,
-                horaFin,
-                existente.HoraInicio,
-                existente.HoraFin))
+            if (!HorariosSeSuperponen(horaInicio, horaFin, existente.HoraInicio, existente.HoraFin))
             {
                 continue;
             }
 
-            var profesoresConflicto =
-                existente
-                    .Profesores
-                    .Where(x =>
-                        profesorIds.Contains(
-                            x.ProfesorId))
-                    .Select(x =>
-                        x.ProfesorId)
-                    .ToList();
+            var profesoresConflicto = existente
+                .Profesores.Where(x => profesorIds.Contains(x.ProfesorId))
+                .Select(x => x.ProfesorId)
+                .ToList();
 
             if (profesoresConflicto.Count > 0)
             {
                 throw new InvalidOperationException(
-                    "Uno de los profesores ya tiene otro turno superpuesto en ese horario.");
+                    "Uno de los profesores ya tiene otro turno superpuesto en ese horario."
+                );
             }
         }
     }
-
 
     private static bool PeriodosSeSuperponen(
         DateOnly inicio1,
         DateOnly? fin1,
         DateOnly inicio2,
-        DateOnly? fin2)
+        DateOnly? fin2
+    )
     {
-        var final1 =
-            fin1 ?? DateOnly.MaxValue;
+        var final1 = fin1 ?? DateOnly.MaxValue;
 
-        var final2 =
-            fin2 ?? DateOnly.MaxValue;
+        var final2 = fin2 ?? DateOnly.MaxValue;
 
-        return
-            inicio1 <= final2 &&
-            inicio2 <= final1;
+        return inicio1 <= final2 && inicio2 <= final1;
     }
-
 
     private static bool HorariosSeSuperponen(
         TimeOnly inicio1,
         TimeOnly fin1,
         TimeOnly inicio2,
-        TimeOnly fin2)
+        TimeOnly fin2
+    )
     {
-        return
-            inicio1 < fin2 &&
-            inicio2 < fin1;
+        return inicio1 < fin2 && inicio2 < fin1;
     }
 
-
-    private static bool InscripcionValidaEnFecha(
-        Inscripcion inscripcion,
-        DateOnly fecha)
+    private static bool InscripcionValidaEnFecha(Inscripcion inscripcion, DateOnly fecha)
     {
-        if (inscripcion.Estado is
-            EstadoInscripcion.Cancelada or
-            EstadoInscripcion.Pausada)
+        if (inscripcion.Estado is EstadoInscripcion.Cancelada or EstadoInscripcion.Pausada)
         {
             return false;
         }
 
-        if (inscripcion.FechaInicio >
-            fecha)
+        if (inscripcion.FechaInicio > fecha)
         {
             return false;
         }
 
-        if (inscripcion.FechaFin.HasValue &&
-            inscripcion.FechaFin.Value <
-            fecha)
+        if (inscripcion.FechaFin.HasValue && inscripcion.FechaFin.Value < fecha)
         {
             return false;
         }
@@ -2683,384 +2079,505 @@ public async Task ActualizarSesionClaseAsync(
         return true;
     }
 
-
-    private static bool AfectaSesion(
-        DiaNoLaborable dia,
-        TimeOnly horaInicio,
-        int duracion)
+    private static bool AfectaSesion(DiaNoLaborable dia, TimeOnly horaInicio, int duracion)
     {
         if (dia.TodoElDia)
             return true;
 
-        if (!dia.HoraDesde.HasValue ||
-            !dia.HoraHasta.HasValue)
+        if (!dia.HoraDesde.HasValue || !dia.HoraHasta.HasValue)
         {
             return false;
         }
 
-        var horaFin =
-            horaInicio.AddMinutes(
-                duracion);
+        var horaFin = horaInicio.AddMinutes(duracion);
 
-        return
-            horaInicio < dia.HoraHasta.Value &&
-            dia.HoraDesde.Value < horaFin;
+        return horaInicio < dia.HoraHasta.Value && dia.HoraDesde.Value < horaFin;
     }
 
-
-    private static DiaSemana ObtenerDiaSemana(
-        DateOnly fecha)
+    private static DiaSemana ObtenerDiaSemana(DateOnly fecha)
     {
         return fecha.DayOfWeek switch
         {
-            DayOfWeek.Monday =>
-                DiaSemana.Lunes,
+            DayOfWeek.Monday => DiaSemana.Lunes,
 
-            DayOfWeek.Tuesday =>
-                DiaSemana.Martes,
+            DayOfWeek.Tuesday => DiaSemana.Martes,
 
-            DayOfWeek.Wednesday =>
-                DiaSemana.Miercoles,
+            DayOfWeek.Wednesday => DiaSemana.Miercoles,
 
-            DayOfWeek.Thursday =>
-                DiaSemana.Jueves,
+            DayOfWeek.Thursday => DiaSemana.Jueves,
 
-            DayOfWeek.Friday =>
-                DiaSemana.Viernes,
+            DayOfWeek.Friday => DiaSemana.Viernes,
 
-            DayOfWeek.Saturday =>
-                DiaSemana.Sabado,
+            DayOfWeek.Saturday => DiaSemana.Sabado,
 
-            DayOfWeek.Sunday =>
-                DiaSemana.Domingo,
+            DayOfWeek.Sunday => DiaSemana.Domingo,
 
-            _ =>
-                throw new ArgumentOutOfRangeException()
+            _ => throw new ArgumentOutOfRangeException(),
         };
     }
 
-
-    private static void ValidarRango(
-        DateOnly desde,
-        DateOnly hasta)
+    private static void ValidarRango(DateOnly desde, DateOnly hasta)
     {
         if (hasta < desde)
         {
-            throw new InvalidOperationException(
-                "La fecha Hasta no puede ser anterior a Desde.");
+            throw new InvalidOperationException("La fecha Hasta no puede ser anterior a Desde.");
         }
 
-        if (hasta.DayNumber -
-            desde.DayNumber > 366)
+        if (hasta.DayNumber - desde.DayNumber > 366)
         {
-            throw new InvalidOperationException(
-                "No puede consultar más de un año por vez.");
+            throw new InvalidOperationException("No puede consultar más de un año por vez.");
         }
     }
 
-
-    private static string? Normalizar(
-        string? valor)
+    private static string? Normalizar(string? valor)
     {
-        return string.IsNullOrWhiteSpace(valor)
-            ? null
-            : valor.Trim();
+        return string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
     }
 
-    public async Task<IReadOnlyList<NivelTurneraDto>>
-    ListarNivelesAsync(
-        CancellationToken ct = default)
-{
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
+    public async Task<IReadOnlyList<NivelTurneraDto>> ListarNivelesAsync(
+        CancellationToken ct = default
+    )
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-    return await db.Niveles
-        .AsNoTracking()
-        .Where(x => x.Activo)
-        .OrderBy(x => x.Orden)
-        .ThenBy(x => x.Nombre)
-        .Select(x =>
-            new NivelTurneraDto(
+        return await db
+            .Niveles.AsNoTracking()
+            .Where(x => x.Activo)
+            .OrderBy(x => x.Orden)
+            .ThenBy(x => x.Nombre)
+            .Select(x => new NivelTurneraDto(
                 x.Id,
                 x.Nombre,
                 x.DuracionMinutos,
                 x.CupoPredeterminado,
                 x.ProfesoresMinimos,
-                x.ProfesoresMaximos))
-        .ToListAsync(ct);
-}
-
-
-public async Task<IReadOnlyList<ProfesorDisponibleDto>>
-    ListarProfesoresAsync(
-        CancellationToken ct = default)
-{
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
-
-    return await db.Profesores
-        .AsNoTracking()
-        .Where(x => x.Activo)
-        .OrderBy(x => x.Apellido)
-        .ThenBy(x => x.Nombre)
-        .Select(x =>
-            new ProfesorDisponibleDto(
-                x.Id,
-                (x.Nombre + " " + x.Apellido).Trim()))
-        .ToListAsync(ct);
-}
-
-public async Task<IReadOnlyList<TurnoDto>>
-    ListarTurnosCicloAsync(
-        Guid cicloLectivoId,
-        bool incluirBajas = false,
-        CancellationToken ct = default)
-{
-    await using var db =
-        await factory.CreateDbContextAsync(ct);
-
-
-    var query =
-        db.Turnos
-            .AsNoTracking()
-            .Include(x => x.Nivel)
-            .Include(x => x.Profesores)
-                .ThenInclude(x =>
-                    x.Profesor)
-            .Where(x =>
-                x.CicloLectivoId ==
-                cicloLectivoId)
-            .AsQueryable();
-
-
-    if (!incluirBajas)
-    {
-        query =
-            query.Where(x =>
-                x.Estado !=
-                EstadoTurno.Baja);
+                x.ProfesoresMaximos
+            ))
+            .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<ProfesorDisponibleDto>> ListarProfesoresAsync(
+        CancellationToken ct = default
+    )
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-    var turnos =
-        await query
+        return await db
+            .Profesores.AsNoTracking()
+            .Where(x => x.Activo)
+            .OrderBy(x => x.Apellido)
+            .ThenBy(x => x.Nombre)
+            .Select(x => new ProfesorDisponibleDto(x.Id, (x.Nombre + " " + x.Apellido).Trim()))
             .ToListAsync(ct);
+    }
 
+    public async Task<IReadOnlyList<TurnoDto>> ListarTurnosCicloAsync(
+        Guid cicloLectivoId,
+        bool incluirBajas = false,
+        CancellationToken ct = default
+    )
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
 
-    return turnos
-        .OrderBy(x =>
-            (int)x.DiaSemana)
-        .ThenBy(x =>
-            x.HoraInicio)
-        .Select(MapearTurno)
-        .ToList();
-}
+        var query = db
+            .Turnos.AsNoTracking()
+            .Include(x => x.Nivel)
+            .Include(x => x.Profesores)
+                .ThenInclude(x => x.Profesor)
+            .Where(x => x.CicloLectivoId == cicloLectivoId)
+            .AsQueryable();
 
-public async Task<PublicarCicloLectivoResultadoDto>
-    PublicarCicloLectivoAsync(
+        if (!incluirBajas)
+        {
+            query = query.Where(x => x.Estado != EstadoTurno.Baja);
+        }
+
+        var turnos = await query.ToListAsync(ct);
+
+        return turnos
+            .OrderBy(x => (int)x.DiaSemana)
+            .ThenBy(x => x.HoraInicio)
+            .Select(MapearTurno)
+            .ToList();
+    }
+
+    public async Task<PublicarCicloLectivoResultadoDto> PublicarCicloLectivoAsync(
+        Guid cicloLectivoId,
+        CancellationToken ct = default
+    )
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        var ciclo =
+            await db.CiclosLectivos.FirstOrDefaultAsync(x => x.Id == cicloLectivoId, ct)
+            ?? throw new InvalidOperationException("El ciclo lectivo indicado no existe.");
+
+        if (ciclo.Estado == EstadoCicloLectivo.Cerrado)
+        {
+            throw new InvalidOperationException("El ciclo lectivo está cerrado.");
+        }
+
+        var cantidadTurnos = await db.Turnos.CountAsync(
+            x => x.CicloLectivoId == ciclo.Id && x.Estado == EstadoTurno.Activo,
+            ct
+        );
+
+        if (cantidadTurnos == 0)
+        {
+            throw new InvalidOperationException("No hay horarios configurados para publicar.");
+        }
+
+        /*
+         * Genera todas las clases del ciclo.
+         *
+         * GenerarSesionesAsync ya evita duplicados,
+         * por lo que si alguna sesión ya existe
+         * simplemente no vuelve a crearla.
+         */
+      var generacion =
+    await GenerarSesionesCicloAsync(
+        ciclo.Id,
+        ciclo.FechaInicio,
+        ciclo.FechaFin,
+        ct);
+
+        ciclo.Estado = EstadoCicloLectivo.Publicado;
+
+        /*
+         * Conservamos la fecha de la primera publicación.
+         */
+        ciclo.FechaPublicacionUtc ??= DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+
+        return new PublicarCicloLectivoResultadoDto(
+            cantidadTurnos,
+            generacion.Generadas,
+            generacion.YaExistentes
+        );
+    }
+
+    public async Task<GeneracionSesionesDto>
+    GenerarSesionesFaltantesCicloAsync(
         Guid cicloLectivoId,
         CancellationToken ct = default)
 {
     await using var db =
         await factory.CreateDbContextAsync(ct);
-
 
     var ciclo =
         await db.CiclosLectivos
+            .AsNoTracking()
             .FirstOrDefaultAsync(
                 x => x.Id == cicloLectivoId,
                 ct)
         ?? throw new InvalidOperationException(
             "El ciclo lectivo indicado no existe.");
 
-
-    if (ciclo.Estado ==
-        EstadoCicloLectivo.Cerrado)
+    if (ciclo.Estado == EstadoCicloLectivo.Cerrado)
     {
         throw new InvalidOperationException(
-            "El ciclo lectivo está cerrado.");
+            "No se pueden generar sesiones de un ciclo cerrado.");
     }
 
-
-    var cantidadTurnos =
-        await db.Turnos
-            .CountAsync(
-                x =>
-                    x.CicloLectivoId == ciclo.Id
-                    &&
-                    x.Estado == EstadoTurno.Activo,
-                ct);
-
-
-    if (cantidadTurnos == 0)
-    {
-        throw new InvalidOperationException(
-            "No hay horarios configurados para publicar.");
-    }
-
-
-    /*
-     * Genera todas las clases del ciclo.
-     *
-     * GenerarSesionesAsync ya evita duplicados,
-     * por lo que si alguna sesión ya existe
-     * simplemente no vuelve a crearla.
-     */
-    var generacion =
-        await GenerarSesionesAsync(
-            ciclo.FechaInicio,
-            ciclo.FechaFin,
-            ct);
-
-
-    ciclo.Estado =
-        EstadoCicloLectivo.Publicado;
-
-
-    /*
-     * Conservamos la fecha de la primera publicación.
-     */
-    ciclo.FechaPublicacionUtc ??=
-        DateTimeOffset.UtcNow;
-
-
-    await db.SaveChangesAsync(ct);
-
-
-    return new PublicarCicloLectivoResultadoDto(
-        cantidadTurnos,
-        generacion.Generadas,
-        generacion.YaExistentes);
+    return await GenerarSesionesCicloAsync(
+        ciclo.Id,
+        ciclo.FechaInicio,
+        ciclo.FechaFin,
+        ct);
 }
 
-private static void SincronizarProfesoresSesion(
-    AppDbContext db,
-    SesionClase sesion,
-    IReadOnlyCollection<ProfesorTurnoInputDto> profesores)
+private async Task<GeneracionSesionesDto>
+    GenerarSesionesCicloAsync(
+        Guid cicloLectivoId,
+        DateOnly desde,
+        DateOnly hasta,
+        CancellationToken ct = default)
 {
-    var nuevos =
-        profesores.ToDictionary(
-            x => x.ProfesorId);
+    ValidarRango(
+        desde,
+        hasta);
 
+    await using var db =
+        await factory.CreateDbContextAsync(ct);
 
-    var actuales =
-        sesion.Profesores
+    var turnos =
+        await db.Turnos
+            .AsNoTracking()
+            .Include(x => x.Profesores)
+            .Where(x =>
+                x.CicloLectivoId == cicloLectivoId
+                &&
+                x.Estado == EstadoTurno.Activo
+                &&
+                x.VigenteDesde <= hasta
+                &&
+                (
+                    x.VigenteHasta == null
+                    ||
+                    x.VigenteHasta >= desde
+                ))
+            .ToListAsync(ct);
+
+    if (turnos.Count == 0)
+    {
+        return new GeneracionSesionesDto(
+            0,
+            0);
+    }
+
+    var turnoIds =
+        turnos
+            .Select(x => x.Id)
             .ToList();
 
+    var existentes =
+        await db.SesionesClase
+            .AsNoTracking()
+            .Where(x =>
+                turnoIds.Contains(x.TurnoId)
+                &&
+                x.Fecha >= desde
+                &&
+                x.Fecha <= hasta)
+            .Select(x => new
+            {
+                x.TurnoId,
+                x.Fecha
+            })
+            .ToListAsync(ct);
 
-    foreach (var actual in actuales)
-    {
-        if (!nuevos.TryGetValue(
-            actual.ProfesorId,
-            out var nuevo))
-        {
-            db.SesionesClaseProfesores
-                .Remove(actual);
-
-            continue;
-        }
-
-
-        actual.EsPrincipal =
-            nuevo.EsPrincipal;
-    }
-
-
-    var actualesIds =
-        actuales
+    var claves =
+        existentes
             .Select(x =>
-                x.ProfesorId)
+                (x.TurnoId, x.Fecha))
             .ToHashSet();
 
+    var diasNoLaborables =
+        await db.DiasNoLaborables
+            .AsNoTracking()
+            .Where(x =>
+                x.Activo
+                &&
+                x.Fecha >= desde
+                &&
+                x.Fecha <= hasta)
+            .ToListAsync(ct);
 
-    foreach (var nuevo in profesores)
+    var generadas = 0;
+    var yaExistentes = 0;
+
+    foreach (var turno in turnos)
     {
-        if (actualesIds.Contains(
-            nuevo.ProfesorId))
+        var inicio =
+            turno.VigenteDesde > desde
+                ? turno.VigenteDesde
+                : desde;
+
+        var fin =
+            turno.VigenteHasta.HasValue &&
+            turno.VigenteHasta.Value < hasta
+                ? turno.VigenteHasta.Value
+                : hasta;
+
+        for (
+            var fecha = inicio;
+            fecha <= fin;
+            fecha = fecha.AddDays(1))
         {
-            continue;
+            if (ObtenerDiaSemana(fecha) !=
+                turno.DiaSemana)
+            {
+                continue;
+            }
+
+            if (claves.Contains(
+                (turno.Id, fecha)))
+            {
+                yaExistentes++;
+
+                continue;
+            }
+
+            var cierre =
+                diasNoLaborables
+                    .Where(x =>
+                        x.Fecha == fecha)
+                    .FirstOrDefault(x =>
+                        AfectaSesion(
+                            x,
+                            turno.HoraInicio,
+                            turno.DuracionMinutos));
+
+            var sesion =
+                new SesionClase
+                {
+                    Id = Guid.NewGuid(),
+
+                    TurnoId =
+                        turno.Id,
+
+                    Fecha =
+                        fecha,
+
+                    HoraInicio =
+                        turno.HoraInicio,
+
+                    DuracionMinutos =
+                        turno.DuracionMinutos,
+
+                    NivelId =
+                        turno.NivelId,
+
+                    Cupo =
+                        turno.Cupo,
+
+                    Sector =
+                        turno.Sector,
+
+                    Estado =
+                        cierre is null
+                            ? EstadoSesionClase.Programada
+                            : EstadoSesionClase.Cancelada,
+
+                    MotivoCancelacion =
+                        cierre is null
+                            ? null
+                            : cierre.Descripcion,
+
+                    DiaNoLaborableId =
+                        cierre?.Id
+                };
+
+            foreach (var profesor in
+                turno.Profesores)
+            {
+                sesion.Profesores.Add(
+                    new SesionClaseProfesor
+                    {
+                        SesionClaseId =
+                            sesion.Id,
+
+                        ProfesorId =
+                            profesor.ProfesorId,
+
+                        EsPrincipal =
+                            profesor.EsPrincipal
+                    });
+            }
+
+            db.SesionesClase.Add(
+                sesion);
+
+            claves.Add(
+                (turno.Id, fecha));
+
+            generadas++;
         }
-
-
-       sesion.Profesores.Add(
-    new SesionClaseProfesor
-    {
-        SesionClaseId =
-            sesion.Id,
-
-        ProfesorId =
-            nuevo.ProfesorId,
-
-        EsPrincipal =
-            nuevo.EsPrincipal,
-
-        EsReemplazo =
-            true,
-
-        ControlConfirmado =
-            false,
-
-        DictoClase =
-            false
-    });
     }
+
+    if (generadas > 0)
+    {
+        await db.SaveChangesAsync(ct);
+    }
+
+    await GenerarRecuperosPorClasesNoDictadasAsync(
+        db,
+        desde,
+        hasta,
+        ct);
+
+    return new GeneracionSesionesDto(
+        generadas,
+        yaExistentes);
 }
 
-private static async Task
-    ValidarSuperposicionProfesoresSesionAsync(
+    private static void SincronizarProfesoresSesion(
+        AppDbContext db,
+        SesionClase sesion,
+        IReadOnlyCollection<ProfesorTurnoInputDto> profesores
+    )
+    {
+        var nuevos = profesores.ToDictionary(x => x.ProfesorId);
+
+        var actuales = sesion.Profesores.ToList();
+
+        foreach (var actual in actuales)
+        {
+            if (!nuevos.TryGetValue(actual.ProfesorId, out var nuevo))
+            {
+                db.SesionesClaseProfesores.Remove(actual);
+
+                continue;
+            }
+
+            actual.EsPrincipal = nuevo.EsPrincipal;
+        }
+
+        var actualesIds = actuales.Select(x => x.ProfesorId).ToHashSet();
+
+        foreach (var nuevo in profesores)
+        {
+            if (actualesIds.Contains(nuevo.ProfesorId))
+            {
+                continue;
+            }
+
+            sesion.Profesores.Add(
+                new SesionClaseProfesor
+                {
+                    SesionClaseId = sesion.Id,
+
+                    ProfesorId = nuevo.ProfesorId,
+
+                    EsPrincipal = nuevo.EsPrincipal,
+
+                    EsReemplazo = true,
+
+                    ControlConfirmado = false,
+
+                    DictoClase = false,
+                }
+            );
+        }
+    }
+
+    private static async Task ValidarSuperposicionProfesoresSesionAsync(
         AppDbContext db,
         Guid sesionIdExcluir,
         DateOnly fecha,
         TimeOnly horaInicio,
         int duracionMinutos,
         IReadOnlyCollection<Guid> profesorIds,
-        CancellationToken ct)
-{
-    if (profesorIds.Count == 0)
-        return;
+        CancellationToken ct
+    )
+    {
+        if (profesorIds.Count == 0)
+            return;
 
-
-    var sesiones =
-        await db.SesionesClase
-            .AsNoTracking()
-
-            .Include(x =>
-                x.Profesores)
-
+        var sesiones = await db
+            .SesionesClase.AsNoTracking()
+            .Include(x => x.Profesores)
             .Where(x =>
                 x.Id != sesionIdExcluir
-                &&
-                x.Fecha == fecha
-                &&
-                x.Estado !=
-                    EstadoSesionClase.Cancelada
-                &&
-                x.Profesores.Any(p =>
-                    profesorIds.Contains(
-                        p.ProfesorId)))
-
+                && x.Fecha == fecha
+                && x.Estado != EstadoSesionClase.Cancelada
+                && x.Profesores.Any(p => profesorIds.Contains(p.ProfesorId))
+            )
             .ToListAsync(ct);
 
+        var horaFin = horaInicio.AddMinutes(duracionMinutos);
 
-    var horaFin =
-        horaInicio.AddMinutes(
-            duracionMinutos);
-
-
-    foreach (var otra in sesiones)
-    {
-        if (!HorariosSeSuperponen(
-            horaInicio,
-            horaFin,
-            otra.HoraInicio,
-            otra.HoraFin))
+        foreach (var otra in sesiones)
         {
-            continue;
+            if (!HorariosSeSuperponen(horaInicio, horaFin, otra.HoraInicio, otra.HoraFin))
+            {
+                continue;
+            }
+
+            throw new InvalidOperationException(
+                "Uno de los profesores ya está asignado a otra clase en ese horario."
+            );
         }
-
-
-        throw new InvalidOperationException(
-            "Uno de los profesores ya está asignado a otra clase en ese horario.");
     }
-}
 }

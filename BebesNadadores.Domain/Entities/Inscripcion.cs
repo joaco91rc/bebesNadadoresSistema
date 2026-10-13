@@ -1,5 +1,6 @@
 using BebesNadadores.Domain.Common;
 using BebesNadadores.Domain.Enums;
+using BebesNadadores.Domain.Entities;
 
 namespace BebesNadadores.Domain.Entities;
 
@@ -27,4 +28,7 @@ public class Inscripcion : EntidadAuditable
 public decimal? ValorDescuento { get; set; }
 
 public string? MotivoDescuento { get; set; }
+
+public ICollection<ReservaSesionClase> ReservasSesiones { get; set; }
+    = new List<ReservaSesionClase>();
 }

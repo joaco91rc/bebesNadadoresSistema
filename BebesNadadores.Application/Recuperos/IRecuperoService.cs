@@ -2,7 +2,7 @@ using BebesNadadores.Application.Recuperos.Dtos;
 
 namespace BebesNadadores.Application.Recuperos;
 
-public interface IRecuperacionService
+public interface IRecuperosService
 {
     Task<RecuperosPanelDto> ObtenerPanelAsync(
         DateOnly desde,
@@ -14,7 +14,13 @@ public interface IRecuperacionService
         ListarCandidatosAsync(
             Guid sesionClaseId,
             CancellationToken ct = default);
-
+Task<IReadOnlyList<VacanteRecuperoDto>>
+    ListarClasesCompatiblesAsync(
+        Guid recuperacionId,
+        DateOnly desde,
+        DateOnly hasta,
+        bool respetarDiaPreferido = true,
+        CancellationToken ct = default);
 
     Task ReservarAsync(
         Guid recuperacionId,

@@ -4,11 +4,13 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using BebesNadadores.Application.Configuracion;
 
 namespace BebesNadadores.Infrastructure.Services.Turnera;
 
 public sealed class DiaNoLaborableService(
-    IDbContextFactory<AppDbContext> factory)
+    IDbContextFactory<AppDbContext> factory,
+    IConfiguracionSistemaService configuracionService)
     : IDiaNoLaborableService
 {
     // =========================================================
@@ -313,7 +315,7 @@ public sealed class DiaNoLaborableService(
     // RECALCULAR SESIONES
     // =========================================================
 
-    private static async Task
+    private  async Task
         RecalcularSesionesFechaAsync(
             AppDbContext db,
             DateOnly fecha,
@@ -402,13 +404,15 @@ public sealed class DiaNoLaborableService(
     // RECUPEROS
     // =========================================================
 
-    private static async Task
-        ReconciliarRecuperosAsync(
+    private async Task ReconciliarRecuperosAsync(
             AppDbContext db,
             IReadOnlyCollection<SesionClase> sesiones,
             IReadOnlyCollection<DiaNoLaborable> cierres,
             CancellationToken ct)
     {
+
+        var configuracion =
+    await configuracionService.ObtenerAsync(ct);
         if (sesiones.Count == 0)
             return;
 
@@ -573,7 +577,8 @@ public sealed class DiaNoLaborableService(
                         FechaVencimiento =
                             cierre.RecuperoSinVencimiento
                                 ? null
-                                : sesion.Fecha.AddDays(45),
+                                : sesion.Fecha.AddDays(
+    configuracion.DiasVigenciaRecupero),
 
                         Estado =
                             EstadoRecuperacion.Disponible

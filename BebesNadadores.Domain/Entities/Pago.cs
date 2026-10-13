@@ -22,4 +22,8 @@ public class Pago : EntidadAuditable
     public Caja? Caja { get; set; }
 
     public ICollection<ImputacionPago> Imputaciones { get; set; } = new List<ImputacionPago>();
+
+    public Guid? CuentaBancariaId { get; set; }
+
+public CuentaBancaria? CuentaBancaria { get; set; }
 }

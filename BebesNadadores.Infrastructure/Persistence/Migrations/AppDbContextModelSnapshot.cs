@@ -136,6 +136,40 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.ToTable("Asistencias", (string)null);
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.Banco", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
+                    b.ToTable("Bancos", (string)null);
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Bebe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -152,6 +186,12 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("CreadoUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetalleHospitalizacion")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DetalleTratamiento")
+                        .HasColumnType("text");
 
                     b.Property<string>("Dni")
                         .HasMaxLength(20)
@@ -186,6 +226,12 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<bool?>("PermanecioHospitalMasDe5Dias")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool?>("RecibeTratamiento")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Sexo")
                         .HasColumnType("integer");
@@ -247,6 +293,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("FechaCierreUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateOnly>("FechaOperativa")
+                        .HasColumnType("date");
+
                     b.Property<Guid?>("ModificadoPorUsuarioId")
                         .HasColumnType("uuid");
 
@@ -273,13 +322,21 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("FechaOperativa")
+                        .IsUnique();
+
                     b.HasIndex("UsuarioAperturaId");
 
                     b.HasIndex("UsuarioCierreId");
 
                     b.HasIndex("Estado", "FechaAperturaUtc");
 
-                    b.ToTable("Cajas", (string)null);
+                    b.ToTable("Cajas", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Cajas_SaldoFinalDeclarado", "\"SaldoFinalDeclarado\" IS NULL OR \"SaldoFinalDeclarado\" >= 0");
+
+                            t.HasCheckConstraint("CK_Cajas_SaldoInicial", "\"SaldoInicial\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.CicloLectivo", b =>
@@ -328,6 +385,185 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_CiclosLectivos_Fechas", "\"FechaFin\" >= \"FechaInicio\"");
                         });
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.ConceptoCaja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Tipo", "Nombre")
+                        .IsUnique();
+
+                    b.HasIndex("Tipo", "Activo", "Orden");
+
+                    b.ToTable("ConceptosCaja", (string)null);
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.ConfiguracionSistema", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DiaVencimientoCuota")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DiasAlertaApto")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DiasVigenciaRecupero")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("EdadMaximaMeses")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("MesesVigenciaApto")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NombreInstitucion")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("WhatsApp")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConfiguracionSistema", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConfiguracionSistema_DiaVencimientoCuota", "\"DiaVencimientoCuota\" BETWEEN 1 AND 28");
+
+                            t.HasCheckConstraint("CK_ConfiguracionSistema_DiasAlertaApto", "\"DiasAlertaApto\" >= 0");
+
+                            t.HasCheckConstraint("CK_ConfiguracionSistema_DiasVigenciaRecupero", "\"DiasVigenciaRecupero\" > 0");
+
+                            t.HasCheckConstraint("CK_ConfiguracionSistema_EdadMaximaMeses", "\"EdadMaximaMeses\" BETWEEN 1 AND 84");
+
+                            t.HasCheckConstraint("CK_ConfiguracionSistema_MesesVigenciaApto", "\"MesesVigenciaApto\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CuentaBancaria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Alias")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("BancoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CbuCvu")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Moneda")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("NumeroCuenta")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("SaldoInicial")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Titular")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Alias")
+                        .IsUnique();
+
+                    b.HasIndex("CbuCvu")
+                        .IsUnique();
+
+                    b.HasIndex("BancoId", "Nombre");
+
+                    b.ToTable("CuentasBancarias", (string)null);
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Cuota", b =>
@@ -660,20 +896,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.ToTable("ListaEspera", (string)null);
                 });
 
-            modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoCaja", b =>
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoBancario", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<bool>("AfectaSaldoEfectivo")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("CajaId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Categoria")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Concepto")
                         .IsRequired()
@@ -686,6 +913,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreadoUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("CuentaBancariaId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("FechaUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -693,8 +923,76 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<int>("MedioPago")
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Origen")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("PagoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PagoProveedorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenciaExterna")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PagoId");
+
+                    b.HasIndex("PagoProveedorId");
+
+                    b.HasIndex("CuentaBancariaId", "FechaUtc");
+
+                    b.ToTable("MovimientosBancarios", (string)null);
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoCaja", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CajaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("ConceptoCajaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Detalle")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("FechaUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Importe")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<Guid?>("ModificadoPorUsuarioId")
                         .HasColumnType("uuid");
@@ -703,6 +1001,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("PagoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PagoProveedorId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Referencia")
@@ -714,11 +1015,15 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ConceptoCajaId");
+
                     b.HasIndex("PagoId");
+
+                    b.HasIndex("PagoProveedorId");
 
                     b.HasIndex("CajaId", "FechaUtc");
 
-                    b.HasIndex("Tipo", "Categoria", "MedioPago");
+                    b.HasIndex("Tipo", "ConceptoCajaId");
 
                     b.ToTable("MovimientosCaja", null, t =>
                         {
@@ -812,6 +1117,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreadoUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("CuentaBancariaId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("FechaUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -843,6 +1151,8 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CajaId");
 
+                    b.HasIndex("CuentaBancariaId");
+
                     b.HasIndex("ReferenciaExterna");
 
                     b.HasIndex("ResponsableId");
@@ -852,6 +1162,79 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.ToTable("Pagos", null, t =>
                         {
                             t.HasCheckConstraint("CK_Pagos_Importe", "\"Importe\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.PagoProveedor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CajaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CuentaBancariaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("FechaUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Importe")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("MedioPago")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NumeroComprobante")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("ProveedorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenciaExterna")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UsuarioRegistroId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioRegistroId");
+
+                    b.HasIndex("CajaId", "FechaUtc");
+
+                    b.HasIndex("CuentaBancariaId", "FechaUtc");
+
+                    b.HasIndex("ProveedorId", "FechaUtc");
+
+                    b.ToTable("PagosProveedores", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PagosProveedores_Importe", "\"Importe\" > 0");
                         });
                 });
 
@@ -998,6 +1381,66 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.ToTable("Profesores", (string)null);
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.Proveedor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Cuit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NombreFantasia")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("RazonSocial")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Cuit")
+                        .IsUnique();
+
+                    b.HasIndex("Activo", "RazonSocial");
+
+                    b.ToTable("Proveedores", (string)null);
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Recuperacion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1063,6 +1506,51 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.HasIndex("BebeId", "Estado", "FechaVencimiento");
 
                     b.ToTable("Recuperaciones", (string)null);
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.ReservaSesionClase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BebeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("InscripcionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SesionClaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BebeId");
+
+                    b.HasIndex("InscripcionId");
+
+                    b.HasIndex("SesionClaseId", "BebeId")
+                        .IsUnique();
+
+                    b.ToTable("ReservasSesionesClase", (string)null);
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Responsable", b =>
@@ -1675,6 +2163,17 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CuentaBancaria", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Banco", "Banco")
+                        .WithMany("Cuentas")
+                        .HasForeignKey("BancoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Banco");
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Cuota", b =>
                 {
                     b.HasOne("BebesNadadores.Domain.Entities.Inscripcion", "Inscripcion")
@@ -1810,11 +2309,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("Turno");
                 });
 
-            modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoCaja", b =>
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoBancario", b =>
                 {
-                    b.HasOne("BebesNadadores.Domain.Entities.Caja", "Caja")
+                    b.HasOne("BebesNadadores.Domain.Entities.CuentaBancaria", "CuentaBancaria")
                         .WithMany("Movimientos")
-                        .HasForeignKey("CajaId")
+                        .HasForeignKey("CuentaBancariaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1823,9 +2322,48 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PagoId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Caja");
+                    b.HasOne("BebesNadadores.Domain.Entities.PagoProveedor", "PagoProveedor")
+                        .WithMany()
+                        .HasForeignKey("PagoProveedorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CuentaBancaria");
 
                     b.Navigation("Pago");
+
+                    b.Navigation("PagoProveedor");
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoCaja", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Caja", "Caja")
+                        .WithMany("Movimientos")
+                        .HasForeignKey("CajaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Domain.Entities.ConceptoCaja", "ConceptoCaja")
+                        .WithMany()
+                        .HasForeignKey("ConceptoCajaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BebesNadadores.Domain.Entities.Pago", "Pago")
+                        .WithMany()
+                        .HasForeignKey("PagoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BebesNadadores.Domain.Entities.PagoProveedor", "PagoProveedor")
+                        .WithMany()
+                        .HasForeignKey("PagoProveedorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Caja");
+
+                    b.Navigation("ConceptoCaja");
+
+                    b.Navigation("Pago");
+
+                    b.Navigation("PagoProveedor");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Pago", b =>
@@ -1841,6 +2379,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CajaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("BebesNadadores.Domain.Entities.CuentaBancaria", "CuentaBancaria")
+                        .WithMany()
+                        .HasForeignKey("CuentaBancariaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("BebesNadadores.Domain.Entities.Responsable", "Responsable")
                         .WithMany()
                         .HasForeignKey("ResponsableId")
@@ -1850,7 +2393,40 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Caja");
 
+                    b.Navigation("CuentaBancaria");
+
                     b.Navigation("Responsable");
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.PagoProveedor", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Caja", "Caja")
+                        .WithMany()
+                        .HasForeignKey("CajaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BebesNadadores.Domain.Entities.CuentaBancaria", "CuentaBancaria")
+                        .WithMany()
+                        .HasForeignKey("CuentaBancariaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BebesNadadores.Domain.Entities.Proveedor", "Proveedor")
+                        .WithMany("Pagos")
+                        .HasForeignKey("ProveedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioRegistroId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Caja");
+
+                    b.Navigation("CuentaBancaria");
+
+                    b.Navigation("Proveedor");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.PreferenciaRecuperacion", b =>
@@ -1911,6 +2487,33 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("SesionOrigen");
 
                     b.Navigation("SesionUso");
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.ReservaSesionClase", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Bebe", "Bebe")
+                        .WithMany()
+                        .HasForeignKey("BebeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Domain.Entities.Inscripcion", "Inscripcion")
+                        .WithMany("ReservasSesiones")
+                        .HasForeignKey("InscripcionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Domain.Entities.SesionClase", "SesionClase")
+                        .WithMany("Reservas")
+                        .HasForeignKey("SesionClaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Bebe");
+
+                    b.Navigation("Inscripcion");
+
+                    b.Navigation("SesionClase");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.SesionClase", b =>
@@ -2066,6 +2669,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.Banco", b =>
+                {
+                    b.Navigation("Cuentas");
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Bebe", b =>
                 {
                     b.Navigation("AptosMedicos");
@@ -2093,6 +2701,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("Turnos");
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CuentaBancaria", b =>
+                {
+                    b.Navigation("Movimientos");
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Cuota", b =>
                 {
                     b.Navigation("Imputaciones");
@@ -2106,6 +2719,8 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Inscripcion", b =>
                 {
                     b.Navigation("Cuotas");
+
+                    b.Navigation("ReservasSesiones");
 
                     b.Navigation("Turnos");
                 });
@@ -2132,6 +2747,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("Turnos");
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.Proveedor", b =>
+                {
+                    b.Navigation("Pagos");
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Responsable", b =>
                 {
                     b.Navigation("Bebes");
@@ -2144,6 +2764,8 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("InvitacionesVacante");
 
                     b.Navigation("Profesores");
+
+                    b.Navigation("Reservas");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Turno", b =>

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BebesNadadores.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+89b761bab9d67e50d83cd24dfb91bf29c569c2b0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+736ab9a72e9e16a878f6b9314cd2d49e1dda4a45")]
 [assembly: System.Reflection.AssemblyProductAttribute("BebesNadadores.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BebesNadadores.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

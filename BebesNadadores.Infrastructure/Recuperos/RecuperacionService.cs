@@ -5,13 +5,15 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using BebesNadadores.Application.Turnera;
 
 namespace BebesNadadores.Infrastructure.Services.Recuperos;
 
-public sealed class RecuperacionService(
-    IDbContextFactory<AppDbContext> factory)
-    : IRecuperacionService
-{
+public sealed class RecuperosService(
+    IDbContextFactory<AppDbContext> factory,
+    ITurneraService turneraService)
+    : IRecuperosService
+    {
     // =========================================================
     // PANEL
     // =========================================================
@@ -29,6 +31,17 @@ public sealed class RecuperacionService(
     }
 
 
+    // =====================================================
+    // ASEGURAR SESIONES DEL PERÍODO
+    // =====================================================
+
+    await turneraService
+        .ObtenerAgendaAsync(
+            desde,
+            hasta,
+            ct);
+
+
     await using var db =
         await factory.CreateDbContextAsync(ct);
 
@@ -43,7 +56,7 @@ public sealed class RecuperacionService(
         hoy,
         ct);
 
-
+    
     // =====================================================
     // RECUPEROS ACTIVOS
     // =====================================================
@@ -368,30 +381,47 @@ public sealed class RecuperacionService(
          * Un lugar temporal para recupero nace únicamente
          * cuando un alumno habitual avisa que no va.
          */
-        var liberadasPorAviso =
-            ausentes;
+      // Vacantes estructurales:
+// lugares que nunca fueron ocupados por alumnos regulares.
+var vacantesFijas =
+    Math.Max(
+        0,
+        sesion.Cupo - regulares);
 
 
-        /*
-         * Cada recupero reservado consume uno de esos
-         * lugares temporales.
-         */
-        var disponiblesRecupero =
-            Math.Max(
-                0,
-                liberadasPorAviso -
-                reservados);
+// Lugares temporales liberados
+// porque un alumno habitual avisó que no asistirá.
+var liberadasPorAviso =
+    ausentes;
 
 
-        /*
-         * Si nadie avisó que falta, o todos los lugares
-         * liberados ya están reservados, no mostramos
-         * la sesión en Recuperos.
-         */
-        if (disponiblesRecupero == 0)
-        {
-            continue;
-        }
+// Disponibilidad total para recuperos.
+//
+// Ejemplo:
+// Cupo: 8
+// Regulares: 5
+// Ausentes con aviso: 1
+// Recuperos reservados: 1
+//
+// Vacantes fijas: 3
+// Liberadas:      1
+// Reservadas:     1
+//
+// Disponibles: 3
+var disponiblesRecupero =
+    Math.Max(
+        0,
+        vacantesFijas
+        +
+        liberadasPorAviso
+        -
+        reservados);
+
+
+if (disponiblesRecupero == 0)
+{
+    continue;
+}
 
 
         // -------------------------------------------------
@@ -428,39 +458,24 @@ public sealed class RecuperacionService(
          *
          * En Recuperos siempre vale 0.
          */
-        vacantes.Add(
-            new VacanteRecuperoDto(
-                sesion.Id,
-
-                sesion.TurnoId,
-
-                sesion.Fecha,
-
-                sesion.HoraInicio,
-
-                sesion.HoraFin,
-
-                sesion.NivelId,
-
-                sesion.Nivel.Nombre,
-
-                sesion.Turno.Nombre,
-
-                sesion.Cupo,
-
-                regulares,
-
-                ausentes,
-
-                reservados,
-
-                0, // VacantesFijas
-
-                liberadasPorAviso,
-
-                disponiblesRecupero,
-
-                profesores));
+       vacantes.Add(
+    new VacanteRecuperoDto(
+        sesion.Id,
+        sesion.TurnoId,
+        sesion.Fecha,
+        sesion.HoraInicio,
+        sesion.HoraFin,
+        sesion.NivelId,
+        sesion.Nivel.Nombre,
+        sesion.Turno.Nombre,
+        sesion.Cupo,
+        regulares,
+        ausentes,
+        reservados,
+        vacantesFijas,
+        liberadasPorAviso,
+        disponiblesRecupero,
+        profesores));
     }
 
 
@@ -514,6 +529,454 @@ public sealed class RecuperacionService(
         resumen,
         recuperosDto,
         vacantes);
+}
+
+// =========================================================
+// CLASES COMPATIBLES PARA UN RECUPERO
+// =========================================================
+
+public async Task<IReadOnlyList<VacanteRecuperoDto>>
+    ListarClasesCompatiblesAsync(
+        Guid recuperacionId,
+        DateOnly desde,
+        DateOnly hasta,
+        bool respetarDiaPreferido = true,
+        CancellationToken ct = default)
+{
+    if (hasta < desde)
+    {
+        throw new InvalidOperationException(
+            "La fecha Hasta no puede ser anterior a Desde.");
+    }
+
+
+    await using var db =
+        await factory.CreateDbContextAsync(ct);
+
+
+    var hoy =
+        DateOnly.FromDateTime(
+            DateTime.Today);
+
+
+    await ActualizarVencidosAsync(
+        db,
+        hoy,
+        ct);
+
+
+    // =====================================================
+    // RECUPERO
+    // =====================================================
+
+    var recuperacion =
+        await db.Recuperaciones
+            .AsNoTracking()
+
+            .Include(x =>
+                x.Bebe)
+
+            .Include(x =>
+                x.SesionOrigen)
+
+            .FirstOrDefaultAsync(
+                x =>
+                    x.Id ==
+                        recuperacionId,
+                ct)
+
+        ?? throw new InvalidOperationException(
+            "El recupero indicado no existe.");
+
+
+    if (recuperacion.Estado !=
+        EstadoRecuperacion.Disponible)
+    {
+        return [];
+    }
+
+
+    // =====================================================
+    // PREFERENCIA EN LISTA DE ESPERA
+    // =====================================================
+
+    var solicitud =
+        await db.ListaEspera
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x =>
+                    x.RecuperacionId ==
+                        recuperacionId
+
+                    &&
+
+                    (
+                        x.Estado ==
+                            EstadoListaEspera.Activa
+
+                        ||
+
+                        x.Estado ==
+                            EstadoListaEspera.Notificada
+                    ),
+                ct);
+
+
+    var diaPreferido =
+        solicitud?.DiaPreferido;
+
+
+    var franja =
+        solicitud?.FranjaHoraria
+        ?? FranjaHoraria.Indistinta;
+
+
+    // =====================================================
+    // RANGO REAL
+    // =====================================================
+
+    var fechaDesde =
+        desde < hoy
+            ? hoy
+            : desde;
+
+
+    /*
+     * Nunca permitimos usar el recupero antes
+     * de la clase que lo originó.
+     */
+    if (fechaDesde <
+        recuperacion.FechaGeneracion)
+    {
+        fechaDesde =
+            recuperacion.FechaGeneracion;
+    }
+
+
+    var fechaHasta =
+        hasta;
+
+
+    if (recuperacion.FechaVencimiento.HasValue &&
+        recuperacion.FechaVencimiento.Value <
+        fechaHasta)
+    {
+        fechaHasta =
+            recuperacion.FechaVencimiento.Value;
+    }
+
+
+    if (fechaHasta < fechaDesde)
+    {
+        return [];
+    }
+
+
+    // =====================================================
+    // SESIONES
+    // =====================================================
+
+    var query =
+        db.SesionesClase
+            .AsNoTracking()
+
+            .Include(x =>
+                x.Nivel)
+
+            .Include(x =>
+                x.Turno)
+                .ThenInclude(x =>
+                    x.Profesores)
+                    .ThenInclude(x =>
+                        x.Profesor)
+
+            .Where(x =>
+                x.Estado ==
+                    EstadoSesionClase.Programada
+
+                &&
+
+                x.Fecha >=
+                    fechaDesde
+
+                &&
+
+                x.Fecha <=
+                    fechaHasta
+
+                &&
+
+                x.NivelId ==
+                    recuperacion.SesionOrigen.NivelId
+
+                &&
+
+                x.Id !=
+                    recuperacion.SesionOrigenId);
+
+
+    var sesiones =
+        await query
+            .OrderBy(x =>
+                x.Fecha)
+            .ThenBy(x =>
+                x.HoraInicio)
+            .ToListAsync(ct);
+
+
+    if (sesiones.Count == 0)
+    {
+        return [];
+    }
+
+
+    // =====================================================
+    // TURNOS DONDE EL BEBÉ YA ES REGULAR
+    // =====================================================
+
+    var turnoIds =
+        sesiones
+            .Select(x =>
+                x.TurnoId)
+            .Distinct()
+            .ToList();
+
+
+    var inscripcionesBebe =
+        await db.InscripcionesTurnos
+            .AsNoTracking()
+
+            .Include(x =>
+                x.Inscripcion)
+
+            .Where(x =>
+                turnoIds.Contains(
+                    x.TurnoId)
+
+                &&
+
+                x.Inscripcion.BebeId ==
+                    recuperacion.BebeId)
+
+            .ToListAsync(ct);
+
+
+    // =====================================================
+    // ARMAR RESULTADO
+    // =====================================================
+
+    var resultado =
+        new List<VacanteRecuperoDto>();
+
+
+    foreach (var sesion in sesiones)
+    {
+        /*
+         * No puede recuperar en un turno al que
+         * ya pertenece regularmente.
+         */
+        var yaEsRegular =
+            inscripcionesBebe.Any(x =>
+                x.TurnoId ==
+                    sesion.TurnoId
+
+                &&
+
+                InscripcionValidaEnFecha(
+                    x.Inscripcion,
+                    sesion.Fecha));
+
+
+        if (yaEsRegular)
+        {
+            continue;
+        }
+
+
+        // -------------------------------------------------
+        // DÍA PREFERIDO
+        // -------------------------------------------------
+
+        if (respetarDiaPreferido &&
+            diaPreferido.HasValue)
+        {
+            var diaSesion =
+                ObtenerDiaSemana(
+                    sesion.Fecha);
+
+
+            if (diaSesion !=
+                diaPreferido.Value)
+            {
+                continue;
+            }
+        }
+
+
+        // -------------------------------------------------
+        // FRANJA HORARIA
+        // -------------------------------------------------
+        //
+        // Seguimos respetando la franja aunque la
+        // administrativa habilite "otros días".
+        //
+
+        if (!CoincideFranjaListaEspera(
+            franja,
+            sesion.HoraInicio))
+        {
+            continue;
+        }
+
+
+        // -------------------------------------------------
+        // DISPONIBILIDAD
+        // -------------------------------------------------
+
+        var disponibilidad =
+            await ObtenerDisponibilidadSesionAsync(
+                db,
+                sesion,
+                ct);
+
+
+        if (disponibilidad <= 0)
+        {
+            continue;
+        }
+
+
+        // -------------------------------------------------
+        // DATOS DE OCUPACIÓN
+        // -------------------------------------------------
+
+        var relaciones =
+            await db.InscripcionesTurnos
+                .AsNoTracking()
+
+                .Include(x =>
+                    x.Inscripcion)
+
+                .Where(x =>
+                    x.TurnoId ==
+                        sesion.TurnoId)
+
+                .ToListAsync(ct);
+
+
+        var regulares =
+            relaciones
+                .Where(x =>
+                    InscripcionValidaEnFecha(
+                        x.Inscripcion,
+                        sesion.Fecha))
+
+                .Select(x =>
+                    x.Inscripcion.BebeId)
+
+                .Distinct()
+                .Count();
+
+
+        var ausentes =
+            await db.Asistencias
+                .AsNoTracking()
+
+                .CountAsync(
+                    x =>
+                        x.SesionClaseId ==
+                            sesion.Id
+
+                        &&
+
+                        x.Estado ==
+                            EstadoAsistencia.AusenteConAviso
+
+                        &&
+
+                        !x.EsRecupero,
+                    ct);
+
+
+        ausentes =
+            Math.Min(
+                ausentes,
+                regulares);
+
+
+        var reservados =
+            await db.Recuperaciones
+                .AsNoTracking()
+
+                .CountAsync(
+                    x =>
+                        x.SesionUsoId ==
+                            sesion.Id
+
+                        &&
+
+                        (
+                            x.Estado ==
+                                EstadoRecuperacion.Reservada
+
+                            ||
+
+                            x.Estado ==
+                                EstadoRecuperacion.Utilizada
+                        ),
+                    ct);
+
+
+        var vacantesFijas =
+            Math.Max(
+                0,
+                sesion.Cupo -
+                regulares);
+
+
+        var profesores =
+            sesion
+                .Turno
+                .Profesores
+
+                .OrderByDescending(x =>
+                    x.EsPrincipal)
+
+                .ThenBy(x =>
+                    x.Profesor.Apellido)
+
+                .ThenBy(x =>
+                    x.Profesor.Nombre)
+
+                .Select(x =>
+                    $"{x.Profesor.Nombre} {x.Profesor.Apellido}"
+                        .Trim())
+
+                .ToList();
+
+
+        resultado.Add(
+            new VacanteRecuperoDto(
+                sesion.Id,
+                sesion.TurnoId,
+                sesion.Fecha,
+                sesion.HoraInicio,
+                sesion.HoraFin,
+                sesion.NivelId,
+                sesion.Nivel.Nombre,
+                sesion.Turno.Nombre,
+                sesion.Cupo,
+                regulares,
+                ausentes,
+                reservados,
+                vacantesFijas,
+                ausentes,
+                disponibilidad,
+                profesores));
+    }
+
+
+    return resultado;
 }
 
     // =========================================================
@@ -1269,30 +1732,19 @@ foreach (var solicitud in solicitudes)
     // DISPONIBILIDAD REAL PARA RECUPEROS
     // =========================================================
     //
-    // IMPORTANTE:
-    //
-    // NO hacemos:
-    //
-    //     Cupo - ocupación
-    //
-    // porque eso permitiría consumir lugares estructurales
-    // destinados a nuevas inscripciones.
-    //
-    // Solamente utilizamos lugares liberados por alumnos
-    // habituales que avisaron que no van a asistir.
-    //
-    // Ejemplo:
-    //
-    // Ausencias con aviso:      2
-    // Recuperos reservados:     1
-    //
-    // Disponibles:              1
-    // =========================================================
-
-    return Math.Max(
+   var vacantesFijas =
+    Math.Max(
         0,
-        ausentesConAviso -
-        recuperosReservados);
+        sesion.Cupo - regulares);
+
+
+return Math.Max(
+    0,
+    vacantesFijas
+    +
+    ausentesConAviso
+    -
+    recuperosReservados);
 }
 
 

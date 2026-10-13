@@ -127,6 +127,11 @@ public sealed record BebeLegajoDto(
     DateOnly FechaNacimiento,
     Sexo Sexo,
     string? Dni,
+      bool? PermanecioHospitalMasDe5Dias,
+    string? DetalleHospitalizacion,
+
+    bool? RecibeTratamiento,
+    string? DetalleTratamiento,
     DateOnly FechaAlta,
     EstadoBebe Estado,
     DateOnly? FechaBaja,

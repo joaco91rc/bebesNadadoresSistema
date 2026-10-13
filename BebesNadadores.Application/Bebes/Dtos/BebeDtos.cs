@@ -25,6 +25,11 @@ public sealed record BebeDto(
     DateOnly FechaNacimiento,
     Sexo Sexo,
     string? Dni,
+      bool? PermanecioHospitalMasDe5Dias,
+    string? DetalleHospitalizacion,
+
+    bool? RecibeTratamiento,
+    string? DetalleTratamiento,
     DateOnly FechaAlta,
     EstadoBebe Estado,
     DateOnly? FechaBaja,
@@ -49,6 +54,14 @@ public sealed class GuardarBebeDto
 
     public string? Dni { get; set; }
 
+   public bool? PermanecioHospitalMasDe5Dias { get; set; }
+
+public string? DetalleHospitalizacion { get; set; }
+
+public bool? RecibeTratamiento { get; set; }
+
+public string? DetalleTratamiento { get; set; }
+
     public Guid? NivelActualId { get; set; }
 
     public List<GuardarResponsableBebeDto> Responsables { get; set; }    = [];
@@ -61,11 +74,18 @@ public MedioPago MedioPagoPreferido { get; set; }
     = MedioPago.Transferencia;
 
 public List<Guid> TurnosIds { get; set; } = [];
+public bool DefinirHorarioHabitualAhora { get; set; }
+    = true;
 public TipoDescuento? TipoDescuento { get; set; }
 
 public decimal? ValorDescuento { get; set; }
 
 public string? MotivoDescuento { get; set; }
+
+public Guid? SesionInicialId { get; set; }
+
+public MedioPago MedioPagoInicial { get; set; } = MedioPago.Transferencia;
+public Guid? CuentaBancariaId { get; set; }
 }
 
 

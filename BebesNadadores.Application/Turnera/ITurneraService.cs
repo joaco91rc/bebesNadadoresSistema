@@ -9,7 +9,10 @@ public interface ITurneraService
         bool incluirBajas = false,
         CancellationToken ct = default);
 
-
+Task<GeneracionSesionesDto> GenerarSesionesFaltantesCicloAsync(
+    Guid cicloLectivoId,
+    CancellationToken ct = default);
+    
     Task<TurnoDto?> ObtenerTurnoAsync(
         Guid turnoId,
         CancellationToken ct = default);

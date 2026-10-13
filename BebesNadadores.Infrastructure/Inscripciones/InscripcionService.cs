@@ -5,11 +5,13 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using BebesNadadores.Application.Configuracion;
 
 namespace BebesNadadores.Infrastructure.Services.Inscripciones;
 
 public sealed class InscripcionService(
-    IDbContextFactory<AppDbContext> factory)
+    IDbContextFactory<AppDbContext> factory,
+    IConfiguracionSistemaService configuracionService)
     : IInscripcionService
 {
     public async Task CambiarAsync(
@@ -17,6 +19,9 @@ public sealed class InscripcionService(
         CambiarInscripcionDto dto,
         CancellationToken ct = default)
     {
+
+        var configuracion =
+    await configuracionService.ObtenerAsync(ct);
         await using var db =
             await factory.CreateDbContextAsync(ct);
 
@@ -342,10 +347,79 @@ public sealed class InscripcionService(
         // Todavía no existe un período anterior para preservar.
         // Modificamos la inscripción directamente.
         // =====================================================
+// =========================================================
+// REPARACIÓN DE INSCRIPCIONES ANTIGUAS SIN TURNOS
+// =========================================================
+//
+// Hay bebés creados antes de incorporar la relación
+// InscripcionTurno.
+//
+// En esos casos NO debemos cerrar la inscripción y crear
+// una nueva, porque:
+//
+// - perderíamos la continuidad de la inscripción;
+// - podríamos provocar una nueva cuota para el mismo mes;
+// - solamente necesitamos completar sus horarios habituales.
+//
+// Lo consideramos reparación únicamente si no estamos
+// modificando ninguna otra condición de la inscripción.
+//
 
-       if (actual.FechaInicio ==
-    dto.AplicarDesde)
+var esReparacionHorarios =
+    actual.Turnos.Count == 0
+
+    &&
+
+    actual.PlanId ==
+        plan.Id
+
+    &&
+
+    bebe.NivelActualId ==
+        nivel.Id
+
+    &&
+
+    actual.MedioPagoPreferido ==
+        dto.MedioPagoPreferido
+
+    &&
+
+    actual.TipoDescuento ==
+        dto.TipoDescuento
+
+    &&
+
+    actual.ValorDescuento ==
+        dto.ValorDescuento
+
+    &&
+
+    string.Equals(
+        Normalizar(
+            actual.MotivoDescuento),
+        Normalizar(
+            dto.MotivoDescuento),
+        StringComparison.Ordinal);
+
+
+// =========================================================
+// MODIFICAR INSCRIPCIÓN ACTUAL
+// =========================================================
+//
+// También modificamos directamente si la inscripción
+// comenzó hoy, porque todavía no existe historia previa.
+//
+
+if (
+    actual.FechaInicio ==
+        dto.AplicarDesde
+
+    ||
+
+    esReparacionHorarios)
 {
+
     actual.PlanId =
         plan.Id;
 
@@ -542,6 +616,11 @@ public sealed class InscripcionService(
     CambiarInscripcionDto dto,
     CancellationToken ct = default)
 {
+
+     var configuracion =
+        await configuracionService
+            .ObtenerAsync(ct);
+
     await using var db =
         await factory.CreateDbContextAsync(ct);
 
@@ -678,7 +757,8 @@ public sealed class InscripcionService(
     }
 
 
-    if (edadMeses >= 84)
+   if (edadMeses >=
+    configuracion.EdadMaximaMeses)
     {
         throw new InvalidOperationException(
             "El bebé alcanzó la edad máxima permitida.");

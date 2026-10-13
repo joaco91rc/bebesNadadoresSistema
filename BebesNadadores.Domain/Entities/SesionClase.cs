@@ -1,6 +1,6 @@
 using BebesNadadores.Domain.Common;
 using BebesNadadores.Domain.Enums;
-
+using BebesNadadores.Domain.Entities;
 namespace BebesNadadores.Domain.Entities;
 
 public class SesionClase : EntidadAuditable
@@ -59,4 +59,7 @@ public class SesionClase : EntidadAuditable
 
 public ICollection<SesionClaseProfesor> Profesores { get; set; }
     = new List<SesionClaseProfesor>();
+
+    public ICollection<ReservaSesionClase> Reservas { get; set; }
+    = new List<ReservaSesionClase>();
 }

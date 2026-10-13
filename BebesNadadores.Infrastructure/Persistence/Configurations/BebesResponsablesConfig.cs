@@ -17,6 +17,10 @@ public class BebeConfig : IEntityTypeConfiguration<Bebe>
         builder.Property(x => x.Dni).HasMaxLength(20);
         builder.Property(x => x.MotivoBaja).HasMaxLength(300);
 
+        // Nullable para no inventar respuestas en registros históricos.
+        builder.Property(x => x.PermanecioHospitalMasDe5Dias);
+        builder.Property(x => x.RecibeTratamiento);
+
         builder.HasIndex(x => x.Dni).IsUnique();
         builder.HasIndex(x => new { x.Estado, x.Apellido, x.Nombre });
 
