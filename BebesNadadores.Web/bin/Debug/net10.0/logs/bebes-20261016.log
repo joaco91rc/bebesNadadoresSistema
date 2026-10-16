@@ -1,0 +1,16 @@
+2026-10-16 00:20:00.666 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Recuperos automáticos: 0 por clases no dictadas, 0 por inicio a mitad de mes.
+2026-10-16 00:20:00.725 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Próxima ejecución de 'Recuperos automáticos': 17/10/2026 00:20 (hora Argentina).
+2026-10-16 03:05:00.617 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Iniciando generación automática de cuotas para 10/2026.
+2026-10-16 03:05:00.801 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Generación de cuotas finalizada. Período: 10/2026. Evaluadas: 5. Generadas: 0. Existentes: 5. Sin tarifa: 0.
+2026-10-16 03:05:00.803 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Próxima ejecución de 'Generación de cuotas': 17/10/2026 03:05 (hora Argentina).
+2026-10-16 09:16:20.357 [INF] Microsoft.Hosting.Lifetime
+    Application is shutting down...
+2026-10-16 09:16:20.420 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' detenida.
+2026-10-16 09:16:20.423 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' detenida.

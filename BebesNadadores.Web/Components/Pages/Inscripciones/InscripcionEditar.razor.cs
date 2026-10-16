@@ -1,3 +1,4 @@
+using BebesNadadores.Application.Cuotas;
 using BebesNadadores.Application.Bebes;
 using BebesNadadores.Application.Bebes.Dtos;
 using BebesNadadores.Application.Inscripciones;
@@ -90,6 +91,46 @@ public partial class InscripcionEditar : ComponentBase
     // =========================================================
 protected bool EsPrimeraInscripcion =>
     _legajo?.InscripcionActual is null;
+
+
+    /*
+     * Qué pasa con el primer mes según la fecha de inicio
+     * (misma regla que el servidor: ReglasCuota).
+     */
+    protected string TextoInicioPrimeraInscripcion
+    {
+        get
+        {
+            var inicio =
+                _form.AplicarDesde;
+
+            if (inicio != _hoy)
+            {
+                return $"Comienza el {inicio:dd/MM/yyyy}. " +
+                       "La cuota de ese mes se genera sola ese día.";
+            }
+
+            if (inicio.Day == 1)
+            {
+                return "Comienza hoy. La cuota del mes se genera sola.";
+            }
+
+            return ReglasCuota.EsInicioAMitadDeMes(inicio)
+                ? "Comienza hoy. Se genera MEDIA cuota de este mes (se cobra desde Pagos) " +
+                  "y el bebé recibe 1 clase de recupero de regalo."
+                : "Comienza hoy. Se genera la cuota completa de este mes, que se cobra desde Pagos.";
+        }
+    }
+
+
+    protected async Task ElegirInicioAsync(
+        DateOnly fecha)
+    {
+        _form.AplicarDesde =
+            fecha;
+
+        await CargarTurnosAsync();
+    }
     protected NivelDto? NivelSeleccionado =>
         _niveles.FirstOrDefault(x =>
             x.Id == _form.NivelId);
@@ -314,7 +355,7 @@ protected bool EsPrimeraInscripcion =>
     catch (Exception ex)
     {
         _errorCarga =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -389,7 +430,7 @@ protected bool EsPrimeraInscripcion =>
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -663,7 +704,7 @@ else
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {

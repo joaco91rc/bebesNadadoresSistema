@@ -44,6 +44,13 @@ public class SesionClase : EntidadAuditable
 
     public DiaNoLaborable? DiaNoLaborable { get; set; }
 
+    /*
+     * Solo para cancelaciones MANUALES (sin DiaNoLaborable):
+     * indica si los bebés de la clase reciben un recupero.
+     * En las cancelaciones por feriado/cierre manda el cierre.
+     */
+    public bool CancelacionGeneraRecupero { get; set; }
+
 
     public TimeOnly HoraFin =>
         HoraInicio.AddMinutes(DuracionMinutos);

@@ -1,6 +1,6 @@
 @page "/turnos"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.Turnera
 @using BebesNadadores.Application.Turnera.Dtos
@@ -932,6 +932,24 @@
                               placeholder="Ej. mantenimiento extraordinario"
                               @bind="_motivoCancelacion">
                     </textarea>
+
+
+                    <label class="cancel-recupero">
+
+                        <input type="checkbox"
+                               @bind="_cancelacionGeneraRecupero" />
+
+                        <span>
+                            <strong>Generar recupero a los bebés de esta clase</strong>
+                            <small>
+                                @(_cancelacionGeneraRecupero
+                                    ? "Cada bebé recibe un recupero cuando llega el día de la clase."
+                                    : "Los bebés no reciben recupero (por ejemplo, si la clase se reprograma).")
+                                Los recuperos reservados para esta clase se liberan igual.
+                            </small>
+                        </span>
+
+                    </label>
 
 
                     <button type="button"
@@ -2332,6 +2350,9 @@ private bool _quitandoTurno;
     private string _motivoCancelacion =
         string.Empty;
 
+    private bool _cancelacionGeneraRecupero =
+        true;
+
 
     private int TotalInscriptos =>
         _agenda.Sum(x => x.Inscriptos);
@@ -2572,7 +2593,7 @@ private async Task GuardarClasePuntual()
     catch (Exception ex)
     {
         _errorEditarClase =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -2682,7 +2703,7 @@ private async Task ConfirmarQuitarTurno()
     catch (Exception ex)
     {
         _errorQuitarTurno =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -2770,7 +2791,7 @@ private async Task CargarGrillaSemanalAsync()
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -2878,7 +2899,7 @@ private async Task CargarDiasNoLaborablesAsync()
     catch (Exception ex)
     {
         _errorDia =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -3086,7 +3107,7 @@ private async Task GuardarDiaNoLaborable()
     catch (Exception ex)
     {
         _errorDia =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -3122,7 +3143,7 @@ private async Task CambiarEstadoDia(
     catch (Exception ex)
     {
         _errorDia =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
 }
 
@@ -3367,7 +3388,7 @@ if (cicloActual is not null)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -3393,7 +3414,7 @@ if (cicloActual is not null)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -3608,7 +3629,7 @@ private void PrepararNuevoTurno(
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -3779,7 +3800,7 @@ if (_volverAGrillaDespuesDeGuardar)
         catch (Exception ex)
         {
             _errorFormulario =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -3837,7 +3858,7 @@ if (_volverAGrillaDespuesDeGuardar)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -3873,11 +3894,14 @@ if (_volverAGrillaDespuesDeGuardar)
 
             _motivoCancelacion =
                 string.Empty;
+
+            _cancelacionGeneraRecupero =
+                true;
         }
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -3908,10 +3932,13 @@ if (_volverAGrillaDespuesDeGuardar)
         {
             await TurneraService.CancelarSesionAsync(
                 _sesionDetalle.Sesion.Id,
-                _motivoCancelacion);
+                _motivoCancelacion,
+                _cancelacionGeneraRecupero);
 
             _mensaje =
-                "Clase cancelada.";
+                _cancelacionGeneraRecupero
+                    ? "Clase cancelada. Los bebés reciben su recupero el día de la clase."
+                    : "Clase cancelada sin recupero.";
 
             CerrarSesion();
 
@@ -3920,7 +3947,7 @@ if (_volverAGrillaDespuesDeGuardar)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -3945,7 +3972,7 @@ if (_volverAGrillaDespuesDeGuardar)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -3970,7 +3997,7 @@ if (_volverAGrillaDespuesDeGuardar)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -4403,7 +4430,7 @@ private async Task PublicarCiclo()
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {

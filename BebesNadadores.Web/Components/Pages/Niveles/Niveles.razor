@@ -1,6 +1,6 @@
 @page "/niveles"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.Niveles
 @using BebesNadadores.Application.Niveles.Dtos
@@ -737,7 +737,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -915,7 +915,7 @@
         catch (Exception ex)
         {
             _errorFormulario =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -950,7 +950,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 

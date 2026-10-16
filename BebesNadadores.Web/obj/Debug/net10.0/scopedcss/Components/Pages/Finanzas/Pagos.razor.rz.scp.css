@@ -1608,7 +1608,8 @@
 
         77px
 
-        100px;
+        100px
+        32px;
 
 
 
@@ -4472,5 +4473,104 @@
 
     .amount-column[b-2zs4hivhh8] {
         font-size: 11px;
+    }
+}
+
+
+/* =========================================================
+   ANULACIONES
+   ========================================================= */
+
+.void-action[b-2zs4hivhh8],
+.void-info[b-2zs4hivhh8] {
+    width: 32px;
+    height: 32px;
+
+    display: grid;
+    place-items: center;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: transparent;
+}
+
+.void-action[b-2zs4hivhh8] {
+    color: #9aa9b2;
+    cursor: pointer;
+
+    transition: color .15s, background .15s;
+}
+
+.void-action:hover[b-2zs4hivhh8] {
+    color: #bc3d49;
+    background: rgba(228, 95, 105, .10);
+}
+
+.void-info[b-2zs4hivhh8] {
+    color: #9aa9b2;
+    cursor: help;
+}
+
+.void-action.restore-action:hover[b-2zs4hivhh8] {
+    color: #0b7fc4;
+    background: rgba(11, 145, 223, .10);
+}
+
+.fee-period .fee-reactivated[b-2zs4hivhh8] {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    margin-top: 2px;
+
+    color: #0b7fc4;
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: help;
+}
+
+.fee-period .fee-reactivated[b-2zs4hivhh8]  .mud-icon-root {
+    font-size: 14px;
+}
+
+.void-badge[b-2zs4hivhh8] {
+    padding: 4px 9px;
+
+    border-radius: 999px;
+
+    color: #bc3d49;
+    background: rgba(228, 95, 105, .10);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: help;
+}
+
+.payment-item.is-voided[b-2zs4hivhh8] {
+    opacity: .6;
+}
+
+/* Cuota anulada: se atenúa todo menos el botón de reactivar. */
+.fee-item.is-voided > :not(.restore-action)[b-2zs4hivhh8] {
+    opacity: .6;
+}
+
+.fee-item.is-voided .fee-period strong[b-2zs4hivhh8] {
+    text-decoration: line-through;
+}
+
+.payment-item.is-voided .payment-total[b-2zs4hivhh8] {
+    text-decoration: line-through;
+}
+
+@media (max-width: 800px) {
+    .fee-item .void-action[b-2zs4hivhh8],
+    .fee-item .void-info[b-2zs4hivhh8] {
+        grid-column: 2;
+        grid-row: 3;
+        justify-self: end;
     }
 }

@@ -1,0 +1,239 @@
+@using BebesNadadores.Application.Avisos
+@implements IDisposable
+
+@inject IAvisosService AvisosService
+@inject NavigationManager Navigation
+@inject PermisosUsuario Permisos
+
+@*
+    =================================================================
+    CAMPANA DE AVISOS (barra superior)
+    =================================================================
+
+    Muestra avisos calculados en el momento (ver IAvisosService):
+    caja sin abrir o sin cerrar, cuotas vencidas, aptos médicos,
+    recuperos por vencer, cumpleaños, planes sin tarifa...
+    Cada rol ve solo lo suyo. Al resolver el problema, el aviso
+    desaparece solo.
+
+    Se actualiza al abrir el panel y al cambiar de pantalla (como
+    máximo una vez por minuto).
+*@
+
+@if (TieneAvisos)
+{
+<div class="bn-avisos">
+
+    <button type="button"
+            class="topbar-icon-button notification-button"
+            title="Avisos"
+            @onclick="AlternarAsync">
+
+        <MudIcon Icon="@(_avisos.Count > 0
+                          ? Icons.Material.Filled.NotificationsActive
+                          : Icons.Material.Filled.NotificationsNone)" />
+
+        @if (_avisos.Count > 0)
+        {
+            <span class="notification-count @(HayUrgentes ? "" : "suave")">
+                @(_avisos.Count > 9 ? "9+" : _avisos.Count.ToString())
+            </span>
+        }
+
+    </button>
+
+
+    @if (_abierto)
+    {
+        <div class="bn-avisos-backdrop"
+             @onclick="Cerrar"></div>
+
+        <div class="bn-avisos-panel">
+
+            <div class="bn-avisos-header">
+                <strong>Avisos</strong>
+                <small>
+                    @(_avisos.Count == 0
+                        ? "Nada pendiente"
+                        : _avisos.Count == 1 ? "1 pendiente" : $"{_avisos.Count} pendientes")
+                </small>
+            </div>
+
+            @if (_cargando && _avisos.Count == 0)
+            {
+                <div class="bn-avisos-vacio">
+                    <MudProgressCircular Size="Size.Small"
+                                         Indeterminate="true" />
+                </div>
+            }
+            else if (_avisos.Count == 0)
+            {
+                <div class="bn-avisos-vacio">
+                    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" />
+                    <span>Todo en orden.</span>
+                </div>
+            }
+            else
+            {
+                <div class="bn-avisos-lista">
+
+                    @foreach (var aviso in _avisos)
+                    {
+                        <button type="button"
+                                class="bn-aviso nivel-@aviso.Nivel.ToString().ToLowerInvariant()"
+                                @onclick="() => Ir(aviso)">
+
+                            <span class="bn-aviso-icono">
+                                <MudIcon Icon="@ObtenerIcono(aviso.Nivel)"
+                                         Size="Size.Small" />
+                            </span>
+
+                            <span class="bn-aviso-texto">
+                                <strong>@aviso.Titulo</strong>
+                                <small>@aviso.Detalle</small>
+                            </span>
+
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                                     Size="Size.Small"
+                                     Class="bn-aviso-ir" />
+
+                        </button>
+                    }
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>
+}
+
+
+@code {
+
+    private static readonly TimeSpan IntervaloMinimo =
+        TimeSpan.FromMinutes(1);
+
+    private List<AvisoDto> _avisos = [];
+
+    private AlcanceAvisos? _alcance;
+
+    private DateTime _ultimaCarga = DateTime.MinValue;
+
+    private bool _abierto;
+
+    private bool _cargando;
+
+
+    /*
+     * Un rol sin ningún grupo de avisos (Solo lectura) no ve la campana.
+     */
+    private bool TieneAvisos =>
+        _alcance is { } a && (a.Caja || a.Administrativos || a.Medicos || a.Administracion);
+
+
+    private bool HayUrgentes =>
+        _avisos.Any(x => x.Nivel >= NivelAviso.Advertencia);
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _alcance =
+            new AlcanceAvisos(
+                Caja: await Permisos.TieneAsync(PoliticasSistema.GestionCaja),
+                Administrativos: await Permisos.TieneAsync(PoliticasSistema.GestionAdministrativa),
+                Medicos: await Permisos.TieneAsync(PoliticasSistema.GestionMedica),
+                Administracion: await Permisos.TieneAsync(PoliticasSistema.SoloAdministrador));
+
+        Navigation.LocationChanged += AlNavegar;
+
+        await CargarAsync(forzar: true);
+    }
+
+
+    private async Task CargarAsync(
+        bool forzar)
+    {
+        if (_alcance is null || _cargando)
+            return;
+
+        if (!forzar && DateTime.UtcNow - _ultimaCarga < IntervaloMinimo)
+            return;
+
+        try
+        {
+            _cargando = true;
+
+            _avisos =
+                (await AvisosService.ObtenerAsync(_alcance))
+                    .ToList();
+
+            _ultimaCarga = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            // Los avisos nunca rompen la barra: el detalle queda en el log.
+            _ = Errores.Mensaje(ex);
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+
+    private async Task AlternarAsync()
+    {
+        _abierto = !_abierto;
+
+        if (_abierto)
+            await CargarAsync(forzar: true);
+    }
+
+
+    private void Cerrar()
+    {
+        _abierto = false;
+    }
+
+
+    private void Ir(
+        AvisoDto aviso)
+    {
+        _abierto = false;
+
+        Navigation.NavigateTo(aviso.Url);
+    }
+
+
+    private void AlNavegar(
+        object? sender,
+        LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            _abierto = false;
+
+            await CargarAsync(forzar: false);
+
+            StateHasChanged();
+        });
+    }
+
+
+    private static string ObtenerIcono(
+        NivelAviso nivel) =>
+        nivel switch
+        {
+            NivelAviso.Urgente => Icons.Material.Filled.ErrorOutline,
+            NivelAviso.Advertencia => Icons.Material.Filled.WarningAmber,
+            _ => Icons.Material.Outlined.Info
+        };
+
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= AlNavegar;
+    }
+}

@@ -1608,7 +1608,8 @@
 
         77px
 
-        100px;
+        100px
+        32px;
 
 
 
@@ -4472,5 +4473,104 @@
 
     .amount-column {
         font-size: 11px;
+    }
+}
+
+
+/* =========================================================
+   ANULACIONES
+   ========================================================= */
+
+.void-action,
+.void-info {
+    width: 32px;
+    height: 32px;
+
+    display: grid;
+    place-items: center;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: transparent;
+}
+
+.void-action {
+    color: #9aa9b2;
+    cursor: pointer;
+
+    transition: color .15s, background .15s;
+}
+
+.void-action:hover {
+    color: #bc3d49;
+    background: rgba(228, 95, 105, .10);
+}
+
+.void-info {
+    color: #9aa9b2;
+    cursor: help;
+}
+
+.void-action.restore-action:hover {
+    color: #0b7fc4;
+    background: rgba(11, 145, 223, .10);
+}
+
+.fee-period .fee-reactivated {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    margin-top: 2px;
+
+    color: #0b7fc4;
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: help;
+}
+
+.fee-period .fee-reactivated ::deep .mud-icon-root {
+    font-size: 14px;
+}
+
+.void-badge {
+    padding: 4px 9px;
+
+    border-radius: 999px;
+
+    color: #bc3d49;
+    background: rgba(228, 95, 105, .10);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: help;
+}
+
+.payment-item.is-voided {
+    opacity: .6;
+}
+
+/* Cuota anulada: se atenúa todo menos el botón de reactivar. */
+.fee-item.is-voided > :not(.restore-action) {
+    opacity: .6;
+}
+
+.fee-item.is-voided .fee-period strong {
+    text-decoration: line-through;
+}
+
+.payment-item.is-voided .payment-total {
+    text-decoration: line-through;
+}
+
+@media (max-width: 800px) {
+    .fee-item .void-action,
+    .fee-item .void-info {
+        grid-column: 2;
+        grid-row: 3;
+        justify-self: end;
     }
 }

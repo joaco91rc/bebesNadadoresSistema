@@ -1,6 +1,6 @@
 @page "/profesores"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.Profesores
 @using BebesNadadores.Application.Profesores.Dtos
@@ -1092,7 +1092,7 @@ private async Task CargarNivelesAsync()
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
 }
 
@@ -1115,7 +1115,7 @@ private async Task CargarNivelesAsync()
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1252,7 +1252,7 @@ private async Task CargarNivelesAsync()
         catch (Exception ex)
         {
             _errorFormulario =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1291,7 +1291,7 @@ private async Task CargarNivelesAsync()
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -1484,7 +1484,7 @@ private async Task ConsultarHorariosAsync()
     catch (Exception ex)
     {
         _errorHorarios =
-            ex.Message;
+            Errores.Mensaje(ex);
 
         _horariosProfesor =
             [];

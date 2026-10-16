@@ -1,6 +1,6 @@
 @page "/configuracion"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrador")]
+@attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
 
 @using BebesNadadores.Application.Configuracion.Dtos
 @using BebesNadadores.Infrastructure.Identity

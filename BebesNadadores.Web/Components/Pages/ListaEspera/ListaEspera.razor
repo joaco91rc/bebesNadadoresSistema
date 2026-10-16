@@ -1,6 +1,6 @@
 @page "/lista-espera"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.ListaEspera.Dtos
 @using BebesNadadores.Domain.Enums

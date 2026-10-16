@@ -183,7 +183,7 @@ public partial class Recuperos : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
 
             _clasesCompatibles = [];
         }
@@ -299,7 +299,7 @@ public partial class Recuperos : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -392,7 +392,7 @@ public partial class Recuperos : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -432,7 +432,7 @@ public partial class Recuperos : ComponentBase
         }
         catch (Exception ex)
         {
-            _errorModal = ex.Message;
+            _errorModal = Errores.Mensaje(ex);
 
             _candidatos.Clear();
         }
@@ -505,7 +505,7 @@ public partial class Recuperos : ComponentBase
         }
         catch (Exception ex)
         {
-            _errorModal = ex.Message;
+            _errorModal = Errores.Mensaje(ex);
         }
         finally
         {
@@ -533,7 +533,7 @@ public partial class Recuperos : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -655,14 +655,7 @@ public partial class Recuperos : ComponentBase
 
     protected static string ObtenerTipoRecuperoTexto(TipoRecuperacion tipo)
     {
-        return tipo switch
-        {
-            TipoRecuperacion.AusenciaConAviso => "Ausencia con aviso",
-
-            TipoRecuperacion.ClaseNoDictada => "Clase no dictada",
-
-            _ => tipo.ToString(),
-        };
+        return tipo.ObtenerTexto();
     }
 
     // =========================================================

@@ -432,7 +432,10 @@ public sealed class DashboardService(
     // APTOS MÉDICOS - SOLO BEBÉS ACTIVOS
     // =========================================================
 
-    private static async Task<ResumenMedicoInterno>
+    /*
+     * También la usa AvisosService (campana): misma cuenta.
+     */
+    internal static async Task<ResumenMedicoInterno>
         ObtenerResumenMedicoAsync(
             AppDbContext db,
             IReadOnlyCollection<Guid> bebeIds,
@@ -606,7 +609,7 @@ public sealed class DashboardService(
     }
 
 
-    private sealed record ResumenMedicoInterno(
+    internal sealed record ResumenMedicoInterno(
         int SinApto,
         int Vencidos,
         int PorVencer,

@@ -62,7 +62,7 @@
    PRINCIPAL
    ----------------------------------------------------- *@
 
-<AuthorizeView Roles="Administrador,Administrativa,Profesor,SoloLectura">
+<AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
     <Authorized>
 
         @if (!Collapsed)
@@ -98,7 +98,7 @@
            ADMINISTRACIÓN / ADMIN
            ===================================================== *@
 
-        <AuthorizeView Roles="Administrador,Administrativa,Profesor">
+        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
 
             <Authorized>
 
@@ -124,7 +124,7 @@
         </AuthorizeView>
 
 
-        <AuthorizeView Roles="Administrador,Administrativa,Profesor">
+        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
 
             <Authorized>
 
@@ -150,7 +150,7 @@
         </AuthorizeView>
 
 
-        <AuthorizeView Roles="Administrador,Administrativa">
+        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
 
             <Authorized>
 
@@ -198,7 +198,7 @@
    FINANZAS
    ----------------------------------------------------- *@
 
-<AuthorizeView Roles="Administrador,Administrativa">
+<AuthorizeView Policy="@PoliticasSistema.GestionCaja">
 
     <Authorized>
 
@@ -313,7 +313,7 @@
            PERSONAS
            ----------------------------------------------------- *@
 
-        <AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
+        <AuthorizeView Policy="@PoliticasSistema.ConsultaGeneral">
 
             <Authorized>
 
@@ -355,7 +355,7 @@
       
 
 
-      <AuthorizeView Roles="Administrador,Administrativa">
+      <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
 
     <Authorized>
 
@@ -407,7 +407,7 @@
 
 </AuthorizeView>
 
-<AuthorizeView Roles="Administrador,Medica">
+<AuthorizeView Policy="@PoliticasSistema.GestionMedica">
     <Authorized>
 
         @if (!Collapsed)
@@ -442,7 +442,7 @@
            REPORTES
            ----------------------------------------------------- *@
 
-        <AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
+        <AuthorizeView Policy="@PoliticasSistema.ConsultaGeneral">
 
             <Authorized>
 
@@ -480,7 +480,7 @@
            CONFIGURACIÓN
            ----------------------------------------------------- *@
 
-        <AuthorizeView Roles="Administrador">
+        <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
 
             <Authorized>
 

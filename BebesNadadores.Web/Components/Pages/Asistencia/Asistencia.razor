@@ -1,6 +1,6 @@
 @page "/asistencia"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using System.Globalization
 @using System.Security.Claims
@@ -890,7 +890,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1038,7 +1038,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -1158,7 +1158,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1218,7 +1218,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1300,7 +1300,7 @@
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {

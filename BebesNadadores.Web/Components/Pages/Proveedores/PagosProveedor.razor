@@ -1,11 +1,11 @@
 @page "/proveedores/{ProveedorId:guid}/pagos"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador,Administrativa")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Proveedores.Dtos
 @using BebesNadadores.Application.Bancos.Dtos
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Web.Components.Shared.Utils
 
 <PageTitle>Pagos a proveedor | Bebés Nadadores</PageTitle>
 
@@ -176,7 +176,7 @@
                     </small>
 
                     <strong>
-                        @_pagos.Count
+                        @PagosVigentes.Count()
                     </strong>
 
                 </div>
@@ -311,12 +311,14 @@
                             Importe
                         </span>
 
+                        <span></span>
+
                     </div>
 
 
                     @foreach (var pago in _pagos)
                     {
-                        <div class="payment-row">
+                        <div class="payment-row @(pago.Anulado ? "is-voided" : "")">
 
                             <div class="date-cell">
 
@@ -337,7 +339,14 @@
                                     @pago.Concepto
                                 </strong>
 
-                                @if (!string.IsNullOrWhiteSpace(
+                                @if (pago.Anulado)
+                                {
+                                    <small class="void-text"
+                                           title="@pago.MotivoAnulacion">
+                                        Anulado · @pago.MotivoAnulacion
+                                    </small>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(
                                     pago.Observaciones))
                                 {
                                     <small>
@@ -396,6 +405,22 @@
 
                             </strong>
 
+
+                            @if (!pago.Anulado)
+                            {
+                                <button type="button"
+                                        class="void-action"
+                                        title="Anular pago"
+                                        @onclick="() => AbrirAnularPago(pago)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Block"
+                                             Size="Size.Small" />
+                                </button>
+                            }
+                            else
+                            {
+                                <span></span>
+                            }
+
                         </div>
                     }
 
@@ -406,6 +431,21 @@
     }
 
 </div>
+
+
+@* =============================================================
+   ANULAR PAGO A PROVEEDOR
+   ============================================================= *@
+
+<BnAnulacionModal Visible="_pagoAAnular is not null"
+                  Titulo="Anular pago a proveedor"
+                  Detalle="@(_pagoAAnular is null ? null : $"{_pagoAAnular.Concepto} · {ObtenerMedioPagoTexto(_pagoAAnular.MedioPago)}")"
+                  Importe="@_pagoAAnular?.Importe"
+                  Aviso="@(_pagoAAnular?.MedioPago == MedioPago.Efectivo
+                      ? "El dinero vuelve a la caja de hoy como ingreso (tiene que estar abierta)."
+                      : "Se registra la reversa en la cuenta bancaria.")"
+                  OnConfirmar="ConfirmarAnulacionAsync"
+                  OnCerrar="CerrarAnulacion" />
 
 
 @* =============================================================

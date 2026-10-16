@@ -1,7 +1,6 @@
 @page "/reportes"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador,Administrativa,SoloLectura")]
+@attribute [Authorize(Policy = PoliticasSistema.ConsultaGeneral)]
 
 @using BebesNadadores.Application.Reportes.Dtos
 @using BebesNadadores.Web.Components.Shared.Utils
@@ -1160,12 +1159,15 @@
                                                 </td>
 
                                                 <td class="table-action">
-                                                    <button type="button"
-                                                            title="Abrir pagos del bebé"
-                                                            @onclick="() => AbrirPagos(item.BebeId)">
-                                                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
-                                                                 Size="Size.Small" />
-                                                    </button>
+                                                    @if (_puedeVerPagos)
+                                                    {
+                                                        <button type="button"
+                                                                title="Abrir pagos del bebé"
+                                                                @onclick="() => AbrirPagos(item.BebeId)">
+                                                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                                                     Size="Size.Small" />
+                                                        </button>
+                                                    }
                                                 </td>
                                             </tr>
                                         }
@@ -1635,7 +1637,7 @@
 
                 </div>
 
-                <AuthorizeView Roles="Administrador">
+                <AuthorizeView Policy="@PoliticasSistema.GestionMedica">
                     <Authorized>
 
                         <div class="medical-report-action">

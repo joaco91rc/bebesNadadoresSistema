@@ -26,4 +26,20 @@ public class Pago : EntidadAuditable
     public Guid? CuentaBancariaId { get; set; }
 
 public CuentaBancaria? CuentaBancaria { get; set; }
+
+
+    // =========================================================
+    // ANULACIÓN
+    //
+    // El pago no se borra: queda marcado con quién, cuándo y por qué.
+    // =========================================================
+
+    public DateTimeOffset? AnuladoUtc { get; set; }
+
+    public Guid? AnuladoPorUsuarioId { get; set; }
+
+    public string? MotivoAnulacion { get; set; }
+
+    public bool Anulado =>
+        AnuladoUtc.HasValue;
 }

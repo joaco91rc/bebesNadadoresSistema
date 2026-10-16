@@ -14,4 +14,6 @@ public sealed record PagoProveedorDto(
     Guid? CajaId,
     Guid? CuentaBancariaId,
     string? CuentaBancaria,
-    string? Banco);
+    string? Banco,
+    bool Anulado = false,
+    string? MotivoAnulacion = null);

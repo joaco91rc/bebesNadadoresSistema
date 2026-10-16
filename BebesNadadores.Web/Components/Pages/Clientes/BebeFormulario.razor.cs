@@ -87,7 +87,26 @@ public partial class BebeFormulario : ComponentBase
     protected string NombreBebeParaHorario =>
         string.IsNullOrWhiteSpace(_form.Nombre) ? "el bebé" : _form.Nombre.Trim();
 
+    /*
+     * Fecha que eligió la administrativa en el calendario. Si es del
+     * 15 en adelante, BnInicioMitadMes ofrece arrancar ese día (media
+     * cuota + recupero) o el 1° del mes siguiente.
+     */
+    private DateOnly? _fechaElegidaInicio;
+
+    protected DateOnly FechaElegidaInicio =>
+        _fechaElegidaInicio ?? _form.FechaInicioInscripcion;
+
     private async Task FechaInicioCambiadaAsync(DateOnly fecha)
+    {
+        _fechaElegidaInicio = fecha;
+
+        _form.FechaInicioInscripcion = fecha;
+
+        await FechaInicioCambioAsync();
+    }
+
+    private async Task ElegirInicioAsync(DateOnly fecha)
     {
         _form.FechaInicioInscripcion = fecha;
 
@@ -145,7 +164,7 @@ public partial class BebeFormulario : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -206,7 +225,7 @@ public partial class BebeFormulario : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -511,7 +530,7 @@ public partial class BebeFormulario : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -650,6 +669,12 @@ public partial class BebeFormulario : ComponentBase
 
     protected async Task GuardarAsync()
     {
+        // Evita doble alta (bebé + pago) por doble click.
+        if (_guardando)
+        {
+            return;
+        }
+
         _error = null;
 
         // =========================================================
@@ -860,12 +885,12 @@ public partial class BebeFormulario : ComponentBase
             // PAGO INICIAL
             // =====================================================
 
-            if (_form.MedioPagoInicial == MedioPago.Transferencia)
+            if (_form.MedioPagoInicial.RequiereCuentaBancaria())
             {
                 if (!_form.CuentaBancariaId.HasValue)
                 {
                     _error =
-                        "Debe seleccionar la cuenta bancaria " + "que recibió la transferencia.";
+                        "Debe seleccionar la cuenta que recibió el pago inicial.";
 
                     return;
                 }
@@ -902,7 +927,7 @@ public partial class BebeFormulario : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {

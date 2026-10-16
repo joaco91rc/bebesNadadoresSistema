@@ -2,7 +2,7 @@
 
 
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 
 
@@ -1247,6 +1247,23 @@
 
 
 
+
+
+                                                        @if (vacante.ClaseInicial > 0)
+                                                        {
+                                                            <div class="capacity-chip reserved">
+
+                                                                <MudIcon Icon="@Icons.Material.Filled.ChildCare"
+                                                                         Size="Size.Small" />
+
+                                                                @vacante.ClaseInicial
+
+                                                                @(vacante.ClaseInicial == 1
+                                                                    ? " clase inicial"
+                                                                    : " clases iniciales")
+
+                                                            </div>
+                                                        }
 
 
                                                         @if (vacante.VacantesFijas > 0)

@@ -122,7 +122,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -226,7 +226,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -341,7 +341,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -395,7 +395,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -472,7 +472,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -510,7 +510,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -620,7 +620,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -669,7 +669,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -710,7 +710,7 @@ public partial class Configuracion : ComponentBase
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {

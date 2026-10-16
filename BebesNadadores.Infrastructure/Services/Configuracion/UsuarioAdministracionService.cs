@@ -356,6 +356,21 @@ public sealed class UsuarioAdministracionService(
             await userManager
                 .GetRolesAsync(usuario);
 
+        /*
+         * Para cortar la sesión si se desactiva o cambia de rol
+         * (ver "INVALIDAR SESIONES" más abajo).
+         */
+        var estabaActivo =
+            usuario.Activo;
+
+        var cambiaRol =
+            rolesActuales.Count != 1
+            ||
+            !string.Equals(
+                rolesActuales[0],
+                dto.Rol,
+                StringComparison.OrdinalIgnoreCase);
+
         var eraAdministrador =
             rolesActuales.Contains(
                 RolesSistema.Administrador,
@@ -499,6 +514,27 @@ public sealed class UsuarioAdministracionService(
             dto.Rol,
             dto.ProfesorId,
             ct);
+
+        // =========================================================
+        // INVALIDAR SESIONES
+        //
+        // Cambiar el security stamp invalida la cookie (se valida
+        // cada 1 minuto) y el circuito de Blazor que esté abierto
+        // (RevalidacionUsuarioAuthenticationStateProvider).
+        // Así un usuario desactivado o con otro rol no sigue
+        // operando con la sesión vieja.
+        // =========================================================
+
+        if ((estabaActivo && !usuario.Activo) || cambiaRol)
+        {
+            var stamp =
+                await userManager
+                    .UpdateSecurityStampAsync(usuario);
+
+            ValidarResultadoIdentity(
+                stamp,
+                "No se pudo cerrar la sesión del usuario");
+        }
 
         return usuario.Id;
     }

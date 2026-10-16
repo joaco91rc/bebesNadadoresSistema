@@ -12,25 +12,96 @@
 
     <meta charset="utf-8" />
 
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1" />
+
     <title>
-        Acceso denegado
+        Bebés Nadadores - Acceso denegado
     </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/login.css" />
+
+    <style>
+        .denied-page {
+            justify-content: center;
+            padding: 24px 16px;
+        }
+
+        .denied-card {
+            position: relative;
+            z-index: 2;
+
+            width: min(440px, 100%);
+
+            padding: 36px 32px;
+
+            border: 1px solid rgba(182, 243, 255, .25);
+            border-radius: 22px;
+
+            background: rgba(3, 32, 54, .72);
+            backdrop-filter: blur(14px);
+
+            text-align: center;
+
+            box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+        }
+
+        .denied-card .logo {
+            width: 92px;
+            margin-bottom: 18px;
+        }
+
+        .denied-card h1 {
+            margin: 0 0 10px;
+            font-size: 24px;
+        }
+
+        .denied-card p {
+            margin: 0 0 26px;
+            color: rgba(255, 255, 255, .78);
+            line-height: 1.5;
+        }
+
+        .denied-card .login-button {
+            text-decoration: none;
+        }
+    </style>
 
 </head>
 
 <body>
 
-    <h1>
-        Acceso denegado
-    </h1>
+    <div class="login-page denied-page">
 
-    <p>
-        No posee permisos para acceder a esta sección.
-    </p>
+        <div class="background-circle circle-one"></div>
+        <div class="background-circle circle-two"></div>
 
-    <a href="/">
-        Volver al inicio
-    </a>
+        <main class="denied-card">
+
+            <img
+                src="/images/logo-bebes-nadadores.png"
+                class="logo"
+                alt="Bebés Nadadores" />
+
+            <h1>
+                Acceso denegado
+            </h1>
+
+            <p>
+                Tu usuario no tiene permisos para acceder a esta sección.
+                Si necesitás entrar, pedíselo a un administrador.
+            </p>
+
+            <a href="/" class="login-button">
+                Volver al inicio
+            </a>
+
+        </main>
+
+    </div>
 
 </body>
 

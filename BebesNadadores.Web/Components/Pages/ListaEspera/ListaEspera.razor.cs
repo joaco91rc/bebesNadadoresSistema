@@ -270,7 +270,7 @@ protected IJSRuntime JS { get; set; }
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -571,7 +571,7 @@ protected IJSRuntime JS { get; set; }
         catch (Exception ex)
         {
             _errorModal =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -667,7 +667,7 @@ protected IJSRuntime JS { get; set; }
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -738,14 +738,13 @@ protected async Task AvisarWhatsAppAsync(
 
 
         await JS.InvokeVoidAsync(
-            "open",
-            url,
-            "_blank");
+            "abrirWhatsAppBebesNadadores",
+            url);
     }
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
 }
 
@@ -956,17 +955,7 @@ protected async Task AvisarWhatsAppAsync(
     protected static string ObtenerTipoRecuperoTexto(
         TipoRecuperacion tipo)
     {
-        return tipo switch
-        {
-            TipoRecuperacion.AusenciaConAviso =>
-                "Ausencia con aviso",
-
-            TipoRecuperacion.ClaseNoDictada =>
-                "Clase no dictada",
-
-            _ =>
-                tipo.ToString()
-        };
+        return tipo.ObtenerTexto();
     }
 
 

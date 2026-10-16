@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 
@@ -19,4 +20,9 @@
 @using BebesNadadores.Web.Components.Layout
 @using BebesNadadores.Web.Components.Shared
 @using BebesNadadores.Web.Themes
+@using BebesNadadores.Web.Authorization
+@using BebesNadadores.Web.Diagnostico
+
+@* Mensajes de error en español + log (ver ManejadorErrores) *@
+@inject ManejadorErrores Errores
 @using BebesNadadores.Infrastructure.Identity

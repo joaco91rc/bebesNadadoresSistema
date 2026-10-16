@@ -1,6 +1,6 @@
 @page "/profesores/control-docente"
 
-@attribute [Authorize(Roles = "Administrador,Administrativa")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using Microsoft.AspNetCore.Authorization
 @using BebesNadadores.Application.ControlDocente
@@ -871,7 +871,7 @@ protected override async Task OnInitializedAsync()
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
 }
 
@@ -1032,7 +1032,7 @@ private async Task CorregirComoDicto()
     catch (Exception ex)
     {
         _errorCorreccion =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -1122,7 +1122,7 @@ await CargarAsync();
     catch (Exception ex)
     {
         _errorReemplazo =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -1150,7 +1150,7 @@ await CargarAsync();
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1227,7 +1227,7 @@ await CargarAsync();
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -1257,7 +1257,7 @@ await CargarAsync();
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -1292,7 +1292,7 @@ await CargarAsync();
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 

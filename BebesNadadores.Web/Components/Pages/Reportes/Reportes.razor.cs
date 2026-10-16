@@ -3,6 +3,7 @@ using System.Globalization;
 using BebesNadadores.Application.Reportes;
 using BebesNadadores.Application.Reportes.Dtos;
 
+using BebesNadadores.Web.Authorization;
 using Microsoft.AspNetCore.Components;
 
 namespace BebesNadadores.Web.Components.Pages.Reportes;
@@ -20,6 +21,16 @@ public partial class Reportes : ComponentBase
     [Inject]
     protected NavigationManager Navigation { get; set; }
         = null!;
+
+    [Inject]
+    protected PermisosUsuario Permisos { get; set; }
+        = null!;
+
+    /*
+     * SoloLectura ve los reportes pero no entra a la pantalla de
+     * Pagos (que permite registrar cobros).
+     */
+    protected bool _puedeVerPagos;
 
 
     // =============================================================
@@ -51,6 +62,10 @@ public partial class Reportes : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
+        _puedeVerPagos =
+            await Permisos.TieneAsync(
+                PoliticasSistema.GestionCaja);
+
         var hoy =
             ObtenerHoyArgentina();
 
@@ -99,7 +114,7 @@ public partial class Reportes : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -425,6 +440,9 @@ public partial class Reportes : ComponentBase
     protected void AbrirPagos(
         Guid bebeId)
     {
+        if (!_puedeVerPagos)
+            return;
+
         /*
          * Si tu pantalla de pagos usa otra ruta para abrir
          * un bebé puntual, cambiá solamente esta URL.

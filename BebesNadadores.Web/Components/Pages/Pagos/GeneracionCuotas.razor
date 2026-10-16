@@ -1,7 +1,6 @@
 @page "/pagos/cuotas"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador")]
+@attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
 
 @using BebesNadadores.Application.Cuotas.Dtos
 

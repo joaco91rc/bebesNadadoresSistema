@@ -19,4 +19,5 @@ public sealed record CajaDetalleDto(
     Guid? UsuarioCierreId,
     string? UsuarioCierre,
     string? Observaciones,
-    IReadOnlyList<MovimientoCajaDto> Movimientos);
+    IReadOnlyList<MovimientoCajaDto> Movimientos,
+    IReadOnlyList<CajaReaperturaDto>? Reaperturas = null);

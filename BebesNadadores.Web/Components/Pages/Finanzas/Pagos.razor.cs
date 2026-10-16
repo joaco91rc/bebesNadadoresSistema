@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using BebesNadadores.Application.Anulaciones;
 using BebesNadadores.Application.Bancos;
 using BebesNadadores.Application.Bancos.Dtos;
 using BebesNadadores.Application.Caja;
@@ -186,7 +187,8 @@ private IReadOnlyList<MovimientoCuentaViewModel>
 
                 Concepto =
                     $"Pago - " +
-                    $"{ObtenerMedioPagoTexto(pago.MedioPago)}",
+                    $"{ObtenerMedioPagoTexto(pago.MedioPago)}" +
+                    (pago.Anulado ? " (anulado)" : ""),
 
                 Detalle =
                     detalle,
@@ -200,6 +202,53 @@ private IReadOnlyList<MovimientoCuentaViewModel>
                 MedioPago =
                     pago.MedioPago
             });
+
+
+        /*
+         * Pago anulado: se muestra el pago original y, en la fecha
+         * de la anulación, el contra-movimiento (débito) que lo
+         * revierte. Así el saldo queda bien y se ve el historial.
+         */
+        if (pago.Anulado)
+        {
+            var fechaAnulacion =
+                ConvertirFechaArgentina(
+                    pago.AnuladoUtc ?? pago.FechaUtc);
+
+            movimientos.Add(
+                new MovimientoCuentaViewModel
+                {
+                    Fecha =
+                        fechaAnulacion,
+
+                    Orden =
+                        2,
+
+                    FechaTexto =
+                        fechaAnulacion
+                            .ToString(
+                                "dd/MM/yyyy HH:mm"),
+
+                    Tipo =
+                        "Anulación",
+
+                    Concepto =
+                        $"Anulación de pago - " +
+                        $"{ObtenerMedioPagoTexto(pago.MedioPago)}",
+
+                    Detalle =
+                        pago.MotivoAnulacion,
+
+                    Debito =
+                        pago.Importe,
+
+                    Credito =
+                        0,
+
+                    MedioPago =
+                        pago.MedioPago
+                });
+        }
     }
 
 
@@ -428,9 +477,33 @@ protected sealed class MovimientoCuentaViewModel
     // INIT
     // =========================================================
 
+    /*
+     * /pagos?bebe={id}: abre directo la cuenta de ese bebé
+     * (lo usa el buscador de la barra superior).
+     */
+    [SupplyParameterFromQuery(Name = "bebe")]
+    public Guid? BebeQuery { get; set; }
+
+
     protected override async Task OnInitializedAsync()
     {
+        _bebeSeleccionadoId ??=
+            BebeQuery;
+
         await CargarTodoAsync();
+    }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Otra búsqueda estando ya en Pagos: cambia el bebé.
+        if (!_cargando &&
+            BebeQuery.HasValue &&
+            BebeQuery != _bebeSeleccionadoId)
+        {
+            await SeleccionarBebeAsync(
+                BebeQuery.Value);
+        }
     }
 
 
@@ -481,7 +554,7 @@ protected sealed class MovimientoCuentaViewModel
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -541,7 +614,7 @@ protected sealed class MovimientoCuentaViewModel
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -714,7 +787,7 @@ protected sealed class MovimientoCuentaViewModel
         catch (Exception ex)
         {
             _errorPago =
-                ex.Message;
+                Errores.Mensaje(ex);
 
             _preview =
                 null;
@@ -787,7 +860,7 @@ protected async Task BuscarCambioAsync(
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -830,7 +903,7 @@ protected async Task LimpiarBusquedaAsync()
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -907,7 +980,8 @@ protected async Task LimpiarBusquedaAsync()
 
     protected async Task RegistrarPagoAsync()
     {
-        if (_cuenta is null)
+        // Evita pagos duplicados por doble click en conexiones lentas.
+        if (_cuenta is null || _procesandoPago)
             return;
 
 
@@ -999,13 +1073,183 @@ protected async Task LimpiarBusquedaAsync()
         catch (Exception ex)
         {
             _errorPago =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
             _procesandoPago =
                 false;
         }
+    }
+
+
+    // =========================================================
+    // ANULACIONES
+    // =========================================================
+
+    private enum AccionAnulacion
+    {
+        AnularPago,
+        AnularCuota,
+        ReactivarCuota
+    }
+
+
+    /*
+     * Una sola ventana (BnAnulacionModal) para las tres acciones con
+     * motivo de esta pantalla: anular pago, anular cuota y
+     * reactivar cuota.
+     */
+    private sealed record AnulacionPendiente(
+        AccionAnulacion Accion,
+        Guid Id,
+        string Eyebrow,
+        string Titulo,
+        string TextoConfirmar,
+        string Detalle,
+        decimal Importe,
+        string Aviso)
+    {
+        public bool EsReactivacion =>
+            Accion == AccionAnulacion.ReactivarCuota;
+    }
+
+
+    private AnulacionPendiente? _anulacion;
+
+
+    protected void AbrirAnularPago(
+        PagoCuentaCorrienteDto pago)
+    {
+        _anulacion =
+            new AnulacionPendiente(
+                Accion: AccionAnulacion.AnularPago,
+                Id: pago.Id,
+                Eyebrow: "ANULAR PAGO · REVIERTE EL DINERO",
+                Titulo: "Anular pago",
+                TextoConfirmar: "Anular pago",
+                Detalle:
+                    $"{ObtenerMedioPagoTexto(pago.MedioPago)} · " +
+                    $"{FormatearFechaHora(pago.FechaUtc)}",
+                Importe: pago.Importe,
+                Aviso: ObtenerAvisoAnulacionPago(pago));
+    }
+
+
+    protected void AbrirAnularCuota(
+        CuotaCuentaCorrienteDto cuota)
+    {
+        _anulacion =
+            new AnulacionPendiente(
+                Accion: AccionAnulacion.AnularCuota,
+                Id: cuota.Id,
+                Eyebrow: "ANULAR CUOTA · NO MUEVE DINERO",
+                Titulo: $"Anular cuota {FormatearPeriodo(cuota.Periodo)}",
+                TextoConfirmar: "Anular cuota",
+                Detalle: $"Cuota {FormatearPeriodo(cuota.Periodo)}",
+                Importe: cuota.Importe,
+                Aviso:
+                    (cuota.ImportePagado > 0
+                        ? "La cuota deja de cobrarse y no vuelve a generarse. Lo ya pagado " +
+                          $"({FormatearMoneda(cuota.ImportePagado)}) queda como saldo a favor " +
+                          "y se aplica a otras cuotas pendientes. "
+                        : "La cuota deja de cobrarse y no vuelve a generarse. ") +
+                    "No registra ningún movimiento en caja ni en banco. " +
+                    "Si lo que querés es devolver o corregir un cobro, anulá el PAGO " +
+                    "desde el Historial de pagos.");
+    }
+
+
+    protected void AbrirReactivarCuota(
+        CuotaCuentaCorrienteDto cuota)
+    {
+        _anulacion =
+            new AnulacionPendiente(
+                Accion: AccionAnulacion.ReactivarCuota,
+                Id: cuota.Id,
+                Eyebrow: "REACTIVAR CUOTA · NO MUEVE DINERO",
+                Titulo: $"Reactivar cuota {FormatearPeriodo(cuota.Periodo)}",
+                TextoConfirmar: "Reactivar cuota",
+                Detalle:
+                    $"Anulada: {cuota.MotivoAnulacion ?? "sin motivo registrado"}",
+                Importe: cuota.Importe,
+                Aviso:
+                    "La cuota vuelve a cobrarse: queda Pendiente o Vencida según su " +
+                    "vencimiento. Si el bebé tiene saldo a favor, se aplica solo. " +
+                    "No registra movimientos en caja ni en banco. " +
+                    "Queda registrado quién la reactivó, cuándo y por qué.");
+    }
+
+
+    /*
+     * Dice exactamente dónde se registra la reversa, para que no
+     * se confunda con anular una cuota.
+     */
+    private string ObtenerAvisoAnulacionPago(
+        PagoCuentaCorrienteDto pago)
+    {
+        var importe =
+            FormatearMoneda(pago.Importe);
+
+        var destino =
+            pago.MedioPago == MedioPago.Efectivo
+                ? $"Se registra un egreso de {importe} en la caja de hoy (tiene que estar abierta)."
+                : pago.CuentaBancariaId.HasValue
+                    ? $"Se registra un egreso de {importe} en {pago.CuentaBancaria ?? "la cuenta bancaria"}."
+                    : "Este medio de pago no tiene caja ni cuenta asociada: no se registra movimiento de dinero.";
+
+        return "Las cuotas que cancelaba vuelven a quedar pendientes. " + destino;
+    }
+
+
+    protected void CerrarAnulacion()
+    {
+        _anulacion = null;
+    }
+
+
+    protected async Task ConfirmarAnulacionAsync(
+        string motivo)
+    {
+        if (_anulacion is null)
+            return;
+
+        var usuarioId =
+            await ObtenerUsuarioIdAsync();
+
+        switch (_anulacion.Accion)
+        {
+            case AccionAnulacion.AnularPago:
+                await AnulacionService.AnularPagoAsync(
+                    _anulacion.Id,
+                    motivo,
+                    usuarioId);
+
+                _mensaje = "Pago anulado correctamente.";
+                break;
+
+            case AccionAnulacion.AnularCuota:
+                await AnulacionService.AnularCuotaAsync(
+                    _anulacion.Id,
+                    motivo,
+                    usuarioId);
+
+                _mensaje = "Cuota anulada correctamente.";
+                break;
+
+            case AccionAnulacion.ReactivarCuota:
+                await AnulacionService.ReactivarCuotaAsync(
+                    _anulacion.Id,
+                    motivo,
+                    usuarioId);
+
+                _mensaje = "Cuota reactivada correctamente.";
+                break;
+        }
+
+        _error = null;
+
+        await RecargarDespuesDePagoAsync();
     }
 
 

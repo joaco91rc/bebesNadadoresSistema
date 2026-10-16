@@ -1,0 +1,82 @@
+@using System.Globalization
+@using BebesNadadores.Application.Caja.Dtos
+
+@*
+    Historial de reaperturas de una caja (auditoría).
+    Se usa en la caja de hoy y en el detalle de cajas anteriores.
+*@
+
+@if (Reaperturas is { Count: > 0 })
+{
+    <section class="reopen-history">
+
+        <header>
+            <MudIcon Icon="@Icons.Material.Filled.History"
+                     Size="Size.Small" />
+
+            <strong>
+                Reabierta @Reaperturas.Count @(Reaperturas.Count == 1 ? "vez" : "veces")
+            </strong>
+        </header>
+
+        <ul>
+            @foreach (var r in Reaperturas)
+            {
+                <li>
+                    <div class="reopen-line">
+                        <span class="reopen-when">
+                            @FormatearFechaHora(r.FechaUtc)
+                        </span>
+                        <span>
+                            Reabierta por <strong>@r.Usuario</strong>
+                        </span>
+                    </div>
+
+                    <div class="reopen-detail">
+                        Había cerrado <strong>@r.UsuarioCierreAnterior</strong>
+                        a las @FormatearFechaHora(r.FechaCierreAnteriorUtc)
+                        con <strong>@FormatearMoneda(r.SaldoFinalDeclaradoAnterior)</strong> declarados.
+                    </div>
+
+                    <div class="reopen-reason">
+                        “@r.Motivo”
+                    </div>
+                </li>
+            }
+        </ul>
+
+    </section>
+}
+
+
+@code {
+
+    [Parameter]
+    public IReadOnlyList<CajaReaperturaDto>? Reaperturas { get; set; }
+
+
+    private static readonly CultureInfo CulturaAr =
+        CultureInfo.GetCultureInfo("es-AR");
+
+    private static readonly TimeZoneInfo ZonaAr = CrearZona();
+
+
+    private static string FormatearMoneda(decimal valor) =>
+        valor.ToString("C0", CulturaAr);
+
+
+    private static string FormatearFechaHora(DateTimeOffset utc) =>
+        TimeZoneInfo.ConvertTime(utc, ZonaAr).ToString("dd/MM HH:mm", CulturaAr);
+
+
+    private static TimeZoneInfo CrearZona()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires"); }
+        catch { /* Windows */ }
+
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Argentina Standard Time"); }
+        catch { /* fallback */ }
+
+        return TimeZoneInfo.CreateCustomTimeZone("Argentina", TimeSpan.FromHours(-3), "Argentina", "Argentina");
+    }
+}

@@ -13,4 +13,9 @@ public sealed record PagoCuentaCorrienteDto(
     string? CuentaBancaria,
     Guid? CajaId,
     string? ReferenciaExterna,
-    string? Observaciones);
+    string? Observaciones,
+    bool Anulado = false,
+    string? MotivoAnulacion = null,
+    DateTimeOffset? AnuladoUtc = null,
+    string? RegistradoPor = null,
+    string? AnuladoPor = null);

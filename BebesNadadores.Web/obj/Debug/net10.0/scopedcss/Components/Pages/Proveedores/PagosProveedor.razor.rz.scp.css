@@ -166,7 +166,7 @@
 }
 
 .payment-row[b-xzp59bi7r4] {
-    min-width: 930px;
+    min-width: 975px;
     min-height: 61px;
     padding: 9px 16px;
     display: grid;
@@ -176,7 +176,8 @@
         130px
         180px
         150px
-        135px;
+        135px
+        40px;
     gap: 10px;
     align-items: center;
     border-top: 1px solid var(--mud-palette-lines-default);
@@ -576,4 +577,44 @@
     .cancel-action[b-xzp59bi7r4] {
         font-size: 12px;
     }
+}
+
+
+/* =========================================================
+   ANULACIONES
+   ========================================================= */
+
+.void-action[b-xzp59bi7r4] {
+    width: 32px;
+    height: 32px;
+
+    display: grid;
+    place-items: center;
+
+    border: 0;
+    border-radius: 9px;
+
+    color: #9aa9b2;
+    background: transparent;
+
+    cursor: pointer;
+
+    transition: color .15s, background .15s;
+}
+
+.void-action:hover[b-xzp59bi7r4] {
+    color: #bc3d49;
+    background: rgba(228, 95, 105, .10);
+}
+
+.void-text[b-xzp59bi7r4] {
+    color: #bc3d49 !important;
+}
+
+.payment-row.is-voided[b-xzp59bi7r4] {
+    opacity: .6;
+}
+
+.payment-row.is-voided .payment-value[b-xzp59bi7r4] {
+    text-decoration: line-through;
 }

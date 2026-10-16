@@ -4,13 +4,13 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using BebesNadadores.Application.Configuracion;
+using BebesNadadores.Infrastructure.Services.Recuperos;
 
 namespace BebesNadadores.Infrastructure.Services.Turnera;
 
 public sealed class DiaNoLaborableService(
     IDbContextFactory<AppDbContext> factory,
-    IConfiguracionSistemaService configuracionService)
+    GeneradorRecuperosClasesNoDictadas generadorRecuperos)
     : IDiaNoLaborableService
 {
     // =========================================================
@@ -364,6 +364,10 @@ public sealed class DiaNoLaborableService(
                 sesion.MotivoCancelacion =
                     cierre.Descripcion;
 
+                // Con un cierre, el recupero lo decide el cierre.
+                sesion.CancelacionGeneraRecupero =
+                    false;
+
                 continue;
             }
 
@@ -389,6 +393,21 @@ public sealed class DiaNoLaborableService(
         }
 
 
+        /*
+         * Quien había reservado un recupero para usarlo en una
+         * clase que ahora queda cerrada, lo recupera.
+         */
+        await GeneradorRecuperosClasesNoDictadas.LiberarReservasEnSesionesAsync(
+            db,
+            sesiones
+                .Where(x =>
+                    x.Estado == EstadoSesionClase.Cancelada &&
+                    x.DiaNoLaborableId.HasValue)
+                .Select(x => x.Id)
+                .ToList(),
+            ct);
+
+
         await db.SaveChangesAsync(ct);
 
 
@@ -410,16 +429,9 @@ public sealed class DiaNoLaborableService(
             IReadOnlyCollection<DiaNoLaborable> cierres,
             CancellationToken ct)
     {
-
-        var configuracion =
-    await configuracionService.ObtenerAsync(ct);
         if (sesiones.Count == 0)
             return;
 
-
-        var hoy =
-            DateOnly.FromDateTime(
-                DateTime.Today);
 
         var sesionIds =
             sesiones
@@ -438,7 +450,9 @@ public sealed class DiaNoLaborableService(
 
 
         // -----------------------------------------------------
-        // Anular recuperos si el cierre dejó de aplicar.
+        // Anular los recuperos que dejaron de corresponder
+        // (se sacó el cierre, o el cierre ya no genera recupero).
+        // Una cancelación MANUAL que genera recupero se respeta.
         // -----------------------------------------------------
 
         foreach (var recupero in recuperosExistentes)
@@ -448,10 +462,19 @@ public sealed class DiaNoLaborableService(
                     x.Id ==
                     recupero.SesionOrigenId);
 
+            var cierre =
+                sesion.DiaNoLaborableId.HasValue
+                    ? cierres.FirstOrDefault(x =>
+                        x.Id ==
+                        sesion.DiaNoLaborableId.Value)
+                    : null;
+
             var corresponde =
                 sesion.Estado ==
                     EstadoSesionClase.Cancelada &&
-                sesion.DiaNoLaborableId.HasValue;
+                (sesion.DiaNoLaborableId.HasValue
+                    ? cierre is { GeneraRecupero: true }
+                    : sesion.CancelacionGeneraRecupero);
 
 
             if (!corresponde &&
@@ -461,137 +484,29 @@ public sealed class DiaNoLaborableService(
             {
                 recupero.Estado =
                     EstadoRecuperacion.Anulada;
-            }
-        }
 
-
-        var canceladas =
-            sesiones
-                .Where(x =>
-                    x.Fecha <= hoy &&
-                    x.Estado ==
-                        EstadoSesionClase.Cancelada &&
-                    x.DiaNoLaborableId.HasValue)
-                .ToList();
-
-
-        if (canceladas.Count == 0)
-        {
-            await db.SaveChangesAsync(ct);
-
-            return;
-        }
-
-
-        var turnos =
-            canceladas
-                .Select(x => x.TurnoId)
-                .Distinct()
-                .ToList();
-
-
-        var inscripciones =
-            await db.InscripcionesTurnos
-                .AsNoTracking()
-                .Include(x => x.Inscripcion)
-                .Where(x =>
-                    turnos.Contains(
-                        x.TurnoId))
-                .ToListAsync(ct);
-
-
-        var existentes =
-            recuperosExistentes
-                .Select(x =>
-                    (
-                        x.BebeId,
-                        x.SesionOrigenId
-                    ))
-                .ToHashSet();
-
-
-        foreach (var sesion in canceladas)
-        {
-            var cierre =
-                cierres.FirstOrDefault(x =>
-                    x.Id ==
-                    sesion.DiaNoLaborableId);
-
-            if (cierre is null ||
-                !cierre.GeneraRecupero)
-            {
-                continue;
-            }
-
-
-            var inscriptos =
-                inscripciones
-                    .Where(x =>
-                        x.TurnoId ==
-                            sesion.TurnoId &&
-                        InscripcionValidaEnFecha(
-                            x.Inscripcion,
-                            sesion.Fecha));
-
-
-            foreach (var inscripto in inscriptos)
-            {
-                var bebeId =
-                    inscripto
-                        .Inscripcion
-                        .BebeId;
-
-
-                if (existentes.Contains(
-                    (bebeId, sesion.Id)))
-                {
-                    continue;
-                }
-
-
-                db.Recuperaciones.Add(
-                    new Recuperacion
-                    {
-                        Id =
-                            Guid.NewGuid(),
-
-                        BebeId =
-                            bebeId,
-
-                        InscripcionId =
-                            inscripto.InscripcionId,
-
-                        SesionOrigenId =
-                            sesion.Id,
-
-                        AsistenciaOrigenId =
-                            null,
-
-                        Tipo =
-                            TipoRecuperacion
-                                .ClaseNoDictada,
-
-                        FechaGeneracion =
-                            sesion.Fecha,
-
-                        FechaVencimiento =
-                            cierre.RecuperoSinVencimiento
-                                ? null
-                                : sesion.Fecha.AddDays(
-    configuracion.DiasVigenciaRecupero),
-
-                        Estado =
-                            EstadoRecuperacion.Disponible
-                    });
-
-
-                existentes.Add(
-                    (bebeId, sesion.Id));
+                recupero.SesionUsoId =
+                    null;
             }
         }
 
 
         await db.SaveChangesAsync(ct);
+
+
+        // -----------------------------------------------------
+        // Generar los que falten (solo si la fecha ya llegó;
+        // si es futura, los genera el job diario ese día).
+        // -----------------------------------------------------
+
+        var fecha =
+            sesiones.First().Fecha;
+
+        await generadorRecuperos.GenerarAsync(
+            db,
+            fecha,
+            fecha,
+            ct);
     }
 
 
@@ -779,34 +694,4 @@ public sealed class DiaNoLaborableService(
             inicio2 < fin1;
     }
 
-
-    private static bool InscripcionValidaEnFecha(
-        Inscripcion inscripcion,
-        DateOnly fecha)
-    {
-        if (inscripcion.Estado is
-            EstadoInscripcion.Cancelada or
-            EstadoInscripcion.Pausada)
-        {
-            return false;
-        }
-
-
-        if (inscripcion.FechaInicio >
-            fecha)
-        {
-            return false;
-        }
-
-
-        if (inscripcion.FechaFin.HasValue &&
-            inscripcion.FechaFin.Value <
-            fecha)
-        {
-            return false;
-        }
-
-
-        return true;
-    }
 }

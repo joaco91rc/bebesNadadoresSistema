@@ -238,7 +238,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -364,7 +364,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -399,7 +399,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -528,7 +528,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -626,7 +626,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -661,7 +661,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -710,7 +710,7 @@ public partial class Bancos : ComponentBase
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {

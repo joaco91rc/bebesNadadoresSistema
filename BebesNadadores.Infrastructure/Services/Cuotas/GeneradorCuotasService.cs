@@ -19,7 +19,19 @@ public sealed class GeneradorCuotasService(
     // GENERAR
     // =========================================================
 
-    public async Task<GeneracionCuotasResultadoDto> GenerarAsync(
+    public Task<GeneracionCuotasResultadoDto> GenerarAsync(
+        DateOnly periodo,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => GenerarInternoAsync(
+                periodo,
+                ct),
+            ct);
+    }
+
+
+    private async Task<GeneracionCuotasResultadoDto> GenerarInternoAsync(
         DateOnly periodo,
         CancellationToken ct = default
     )
@@ -61,186 +73,212 @@ public sealed class GeneradorCuotasService(
             ct
         );
 
-        try
+        // Sin try/catch con Rollback manual: si la transacción ya está
+        // abortada, el Rollback explota y tapa el error real. El
+        // "await using" hace el rollback solo.
+        // =====================================================
+        // INSCRIPCIONES QUE CORRESPONDEN AL PERÍODO
+        // =====================================================
+
+        /*
+         * La inscripción tiene que existir al comenzar
+         * el mes.
+         *
+         * Esto es importante para cambios de plan:
+         *
+         * Plan A hasta 14/10
+         * Plan B desde 15/10
+         *
+         * Octubre pertenece al Plan A.
+         * Noviembre pertenece al Plan B.
+         */
+
+        var inscripciones = await db
+            .Inscripciones.AsNoTracking()
+            .Include(x => x.Bebe)
+            .Where(x =>
+                x.FechaInicio <= periodo
+                && (!x.FechaFin.HasValue || x.FechaFin.Value >= periodo)
+                && x.Estado != EstadoInscripcion.Cancelada
+                && x.Estado != EstadoInscripcion.Pausada
+                /*
+                 * Red de seguridad: un bebé dado de baja nunca
+                 * genera cuota nueva, aunque haya quedado una
+                 * inscripción abierta por datos viejos.
+                 */
+                && x.Bebe.Estado == EstadoBebe.Activo
+            )
+            .OrderBy(x => x.Bebe.Apellido)
+            .ThenBy(x => x.Bebe.Nombre)
+            .ToListAsync(ct);
+
+        evaluadas = inscripciones.Count;
+
+        if (inscripciones.Count == 0)
         {
-            // =====================================================
-            // INSCRIPCIONES QUE CORRESPONDEN AL PERÍODO
-            // =====================================================
+            await transaction.CommitAsync(ct);
 
-            /*
-             * La inscripción tiene que existir al comenzar
-             * el mes.
-             *
-             * Esto es importante para cambios de plan:
-             *
-             * Plan A hasta 14/10
-             * Plan B desde 15/10
-             *
-             * Octubre pertenece al Plan A.
-             * Noviembre pertenece al Plan B.
-             */
+            return new GeneracionCuotasResultadoDto(periodo, 0, 0, 0, 0, []);
+        }
 
-            var inscripciones = await db
-                .Inscripciones.AsNoTracking()
-                .Include(x => x.Bebe)
-                .Where(x =>
-                    x.FechaInicio <= periodo
-                    && (!x.FechaFin.HasValue || x.FechaFin.Value >= periodo)
-                    && x.Estado != EstadoInscripcion.Cancelada
-                    && x.Estado != EstadoInscripcion.Pausada
-                )
-                .OrderBy(x => x.Bebe.Apellido)
-                .ThenBy(x => x.Bebe.Nombre)
-                .ToListAsync(ct);
+        // =====================================================
+        // CUOTAS YA EXISTENTES
+        // =====================================================
 
-            evaluadas = inscripciones.Count;
+        var inscripcionIds = inscripciones.Select(x => x.Id).ToList();
 
-            if (inscripciones.Count == 0)
-            {
-                await transaction.CommitAsync(ct);
+        var cuotasExistentes = await db
+            .Cuotas.AsNoTracking()
+            .Where(x => x.Periodo == periodo && inscripcionIds.Contains(x.InscripcionId))
+            .Select(x => x.InscripcionId)
+            .ToListAsync(ct);
 
-                return new GeneracionCuotasResultadoDto(periodo, 0, 0, 0, 0, []);
-            }
+        var existentes = cuotasExistentes.ToHashSet();
 
-            // =====================================================
-            // CUOTAS YA EXISTENTES
-            // =====================================================
+        /*
+         * La cuota es del BEBÉ por período, no de la inscripción.
+         *
+         * Caso: cambio de plan aplicado el día 1. La inscripción
+         * vieja ya tiene la cuota del mes (generada a las 03:05) y
+         * la nueva arranca ese mismo día 1. Sin este control se
+         * generaba una segunda cuota del mismo mes.
+         */
+        var bebeIds = inscripciones.Select(x => x.BebeId).Distinct().ToList();
 
-            var inscripcionIds = inscripciones.Select(x => x.Id).ToList();
-
-            var cuotasExistentes = await db
+        var bebesConCuota = (
+            await db
                 .Cuotas.AsNoTracking()
-                .Where(x => x.Periodo == periodo && inscripcionIds.Contains(x.InscripcionId))
-                .Select(x => x.InscripcionId)
-                .ToListAsync(ct);
-
-            var existentes = cuotasExistentes.ToHashSet();
-
-            // =====================================================
-            // TARIFAS VIGENTES
-            // =====================================================
-
-            var planIds = inscripciones.Select(x => x.PlanId).Distinct().ToList();
-
-            var tarifas = await db
-                .TarifasPlan.AsNoTracking()
                 .Where(x =>
-                    planIds.Contains(x.PlanId)
-                    && x.VigenciaDesde <= periodo
-                    && (!x.VigenciaHasta.HasValue || x.VigenciaHasta.Value >= periodo)
+                    x.Periodo == periodo
+                    && x.Estado != EstadoCuota.Anulada
+                    && bebeIds.Contains(x.Inscripcion.BebeId)
                 )
-                .OrderByDescending(x => x.VigenciaDesde)
-                .ToListAsync(ct);
+                .Select(x => x.Inscripcion.BebeId)
+                .ToListAsync(ct)
+        ).ToHashSet();
 
-            // =====================================================
-            // GENERAR
-            // =====================================================
+        // =====================================================
+        // TARIFAS VIGENTES
+        // =====================================================
 
-            foreach (var inscripcion in inscripciones)
+        var planIds = inscripciones.Select(x => x.PlanId).Distinct().ToList();
+
+        var tarifas = await db
+            .TarifasPlan.AsNoTracking()
+            .Where(x =>
+                planIds.Contains(x.PlanId)
+                && x.VigenciaDesde <= periodo
+                && (!x.VigenciaHasta.HasValue || x.VigenciaHasta.Value >= periodo)
+            )
+            .OrderByDescending(x => x.VigenciaDesde)
+            .ToListAsync(ct);
+
+        // =====================================================
+        // GENERAR
+        // =====================================================
+
+        foreach (var inscripcion in inscripciones)
+        {
+            // ---------------------------------------------
+            // YA EXISTE
+            // ---------------------------------------------
+
+            if (existentes.Contains(inscripcion.Id) || bebesConCuota.Contains(inscripcion.BebeId))
             {
-                // ---------------------------------------------
-                // YA EXISTE
-                // ---------------------------------------------
-
-                if (existentes.Contains(inscripcion.Id))
-                {
-                    yaExistentes++;
-
-                    /*
-                     * Aunque ya exista la cuota,
-                     * igualmente queremos que al llegar
-                     * al período se intente aplicar
-                     * cualquier saldo a favor.
-                     */
-                    bebeIdsParaAplicarSaldo.Add(inscripcion.BebeId);
-
-                    continue;
-                }
-
-                // ---------------------------------------------
-                // TARIFA DEL PLAN
-                // ---------------------------------------------
-
-                var tarifa = tarifas
-                    .Where(x => x.PlanId == inscripcion.PlanId)
-                    .OrderByDescending(x => x.VigenciaDesde)
-                    .FirstOrDefault();
-
-                if (tarifa is null)
-                {
-                    sinTarifa++;
-
-                    advertencias.Add(
-                        $"{inscripcion.Bebe.Apellido}, "
-                            + $"{inscripcion.Bebe.Nombre}: "
-                            + $"el plan no posee tarifa vigente "
-                            + $"para {periodo:MM/yyyy}."
-                    );
-
-                    continue;
-                }
-
-                // ---------------------------------------------
-                // IMPORTE
-                // ---------------------------------------------
-
-                var importe = CalcularImporte(
-                    tarifa.PrecioMensual,
-                    inscripcion.TipoDescuento,
-                    inscripcion.ValorDescuento
-                );
-
-                // ---------------------------------------------
-                // ESTADO INICIAL
-                // ---------------------------------------------
-
-                var estado = fechaVencimiento < hoy ? EstadoCuota.Vencida : EstadoCuota.Pendiente;
-
-                // ---------------------------------------------
-                // CUOTA
-                // ---------------------------------------------
-
-                var cuota = new Cuota
-                {
-                    Id = Guid.NewGuid(),
-
-                    InscripcionId = inscripcion.Id,
-
-                    Periodo = periodo,
-
-                    FechaVencimiento = fechaVencimiento,
-
-                    Importe = importe,
-
-                    Estado = estado,
-
-                    Descripcion = $"Cuota mensual " + $"{periodo:MM/yyyy}",
-                };
-
-                db.Cuotas.Add(cuota);
+                yaExistentes++;
 
                 /*
-                 * También la agregamos al HashSet
-                 * en memoria para evitar duplicados
-                 * dentro de la misma ejecución.
+                 * Aunque ya exista la cuota,
+                 * igualmente queremos que al llegar
+                 * al período se intente aplicar
+                 * cualquier saldo a favor.
                  */
-                existentes.Add(inscripcion.Id);
-
                 bebeIdsParaAplicarSaldo.Add(inscripcion.BebeId);
 
-                generadas++;
+                continue;
             }
 
-            await db.SaveChangesAsync(ct);
+            // ---------------------------------------------
+            // TARIFA DEL PLAN
+            // ---------------------------------------------
 
-            await transaction.CommitAsync(ct);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(ct);
+            var tarifa = tarifas
+                .Where(x => x.PlanId == inscripcion.PlanId)
+                .OrderByDescending(x => x.VigenciaDesde)
+                .FirstOrDefault();
 
-            throw;
+            if (tarifa is null)
+            {
+                sinTarifa++;
+
+                advertencias.Add(
+                    $"{inscripcion.Bebe.Apellido}, "
+                        + $"{inscripcion.Bebe.Nombre}: "
+                        + $"el plan no posee tarifa vigente "
+                        + $"para {periodo:MM/yyyy}."
+                );
+
+                continue;
+            }
+
+            // ---------------------------------------------
+            // IMPORTE
+            // ---------------------------------------------
+
+            var importe = CalcularImporte(
+                tarifa.PrecioMensual,
+                inscripcion.TipoDescuento,
+                inscripcion.ValorDescuento
+            );
+
+            // ---------------------------------------------
+            // ESTADO INICIAL
+            // ---------------------------------------------
+
+            var estado = fechaVencimiento < hoy ? EstadoCuota.Vencida : EstadoCuota.Pendiente;
+
+            // ---------------------------------------------
+            // CUOTA
+            // ---------------------------------------------
+
+            var cuota = new Cuota
+            {
+                Id = Guid.NewGuid(),
+
+                InscripcionId = inscripcion.Id,
+
+                Periodo = periodo,
+
+                FechaVencimiento = fechaVencimiento,
+
+                Importe = importe,
+
+                Estado = estado,
+
+                Descripcion = $"Cuota mensual " + $"{periodo:MM/yyyy}",
+            };
+
+            db.Cuotas.Add(cuota);
+
+            /*
+             * También la agregamos al HashSet
+             * en memoria para evitar duplicados
+             * dentro de la misma ejecución.
+             */
+            existentes.Add(inscripcion.Id);
+
+            bebesConCuota.Add(inscripcion.BebeId);
+
+            bebeIdsParaAplicarSaldo.Add(inscripcion.BebeId);
+
+            generadas++;
         }
+
+        await db.SaveChangesAsync(ct);
+
+        await transaction.CommitAsync(ct);
+    
+
 
         // =========================================================
         // SALDOS A FAVOR
@@ -299,33 +337,7 @@ public sealed class GeneradorCuotasService(
         decimal? valorDescuento
     )
     {
-        var descuento = CalcularDescuento(tarifa, tipoDescuento, valorDescuento);
-
-        var importe = Math.Max(0, tarifa - descuento);
-
-        return decimal.Round(importe, 2, MidpointRounding.AwayFromZero);
-    }
-
-    private static decimal CalcularDescuento(
-        decimal tarifa,
-        TipoDescuento? tipoDescuento,
-        decimal? valorDescuento
-    )
-    {
-        if (!tipoDescuento.HasValue || !valorDescuento.HasValue || valorDescuento.Value <= 0)
-        {
-            return 0;
-        }
-
-        var valor = valorDescuento.Value;
-
-        return tipoDescuento.Value switch
-        {
-            TipoDescuento.Porcentaje => Math.Min(tarifa, tarifa * valor / 100m),
-
-            TipoDescuento.MontoFijo => Math.Min(tarifa, valor),
-
-            _ => 0,
-        };
+        // Misma cuenta que el alta y la reinscripción.
+        return ReglasCuota.CalcularImporteMensual(tarifa, tipoDescuento, valorDescuento);
     }
 }

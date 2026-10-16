@@ -54,7 +54,11 @@ public sealed class PagoProveedorService(
 
                     x.CuentaBancaria == null
                         ? null
-                        : x.CuentaBancaria.Banco.Nombre))
+                        : x.CuentaBancaria.Banco.Nombre,
+
+                    x.AnuladoUtc.HasValue,
+
+                    x.MotivoAnulacion))
 
             .ToListAsync(ct);
     }
@@ -64,8 +68,21 @@ public sealed class PagoProveedorService(
     // REGISTRAR
     // =========================================================
 
-    public async Task<Guid>
-        RegistrarAsync(
+    public Task<Guid> RegistrarAsync(
+        RegistrarPagoProveedorDto dto,
+        Guid usuarioId,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => RegistrarInternoAsync(
+                dto,
+                usuarioId,
+                ct),
+            ct);
+    }
+
+
+    private async Task<Guid> RegistrarInternoAsync(
             RegistrarPagoProveedorDto dto,
             Guid usuarioId,
             CancellationToken ct = default)

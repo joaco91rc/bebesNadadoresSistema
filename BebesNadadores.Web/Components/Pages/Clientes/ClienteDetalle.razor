@@ -1,6 +1,6 @@
 @page "/clientes/{BebeId:guid}"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.ConsultaGeneral)]
 
 @using System.Globalization
 @using BebesNadadores.Application.Bebes
@@ -9,6 +9,8 @@
 
 @inject IBebeLegajoService LegajoService
 @inject NavigationManager Navigation
+@inject BebesNadadores.Application.Comunicaciones.IWhatsAppService WhatsAppService
+@inject PermisosUsuario Permisos
 
 <PageTitle>Legajo | Bebés Nadadores</PageTitle>
 
@@ -1047,7 +1049,7 @@ else if (_legajo is not null)
                     </div>
 
 
-                    @if (_legajo.InscripcionActual is not null)
+                    @if (_legajo.InscripcionActual is not null && _puedeGestionar)
                     {
                         <button type="button" class="manage-enrollment-button" @onclick="GestionarInscripcion">
 
@@ -1076,13 +1078,16 @@ else if (_legajo is not null)
                         </p>
 
 
-                        <button type="button" class="create-enrollment-button" @onclick="GestionarInscripcion">
+                        @if (_puedeGestionar)
+                        {
+                            <button type="button" class="create-enrollment-button" @onclick="GestionarInscripcion">
 
-                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" />
 
-                            Crear inscripción
+                                Crear inscripción
 
-                        </button>
+                            </button>
+                        }
 
                     </div>
                 }
@@ -1826,6 +1831,17 @@ else if (_legajo is not null)
     }
 
 
+    private bool _puedeGestionar;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _puedeGestionar =
+            await Permisos.TieneAsync(
+                PoliticasSistema.GestionAdministrativa);
+    }
+
+
     protected override async Task OnParametersSetAsync()
     {
         await CargarAsync();
@@ -1858,7 +1874,7 @@ else if (_legajo is not null)
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -2099,59 +2115,41 @@ else if (_legajo is not null)
     private static string TipoRecuperoTexto(
         TipoRecuperacion tipo)
     {
-        return tipo switch
-        {
-            TipoRecuperacion.AusenciaConAviso =>
-                "Ausencia con aviso",
-
-            TipoRecuperacion.ClaseNoDictada =>
-                "Clase no dictada",
-
-            _ =>
-                tipo.ToString()
-        };
+        return tipo.ObtenerTexto();
     }
 
 
     private void AbrirAsistencia(
         Guid sesionId)
     {
+        // SoloLectura no tiene acceso a la pantalla de asistencia.
+        if (!_puedeGestionar)
+            return;
+
         Navigation.NavigateTo(
             $"/asistencia?sesionId={sesionId}");
     }
 
     private void GestionarInscripcion()
     {
+        if (!_puedeGestionar)
+            return;
+
         Navigation.NavigateTo(
             $"/clientes/{BebeId}/inscripcion/editar");
     }
 
     private string ObtenerWhatsAppUrl()
     {
-        var numero =
-            _legajo?
-                .ResponsablePrincipal?
-                .WhatsApp;
-
-        if (string.IsNullOrWhiteSpace(
-            numero))
-        {
-            return "#";
-        }
-
-        var limpio =
-            new string(
-                numero
-                    .Where(char.IsDigit)
-                    .ToArray());
-
-        if (string.IsNullOrWhiteSpace(
-            limpio))
-        {
-            return "#";
-        }
-
-        return $"https://wa.me/{limpio}";
+        /*
+         * Mismo armado de número que el resto del sistema
+         * (agrega 549 y saca el 0 del código de área).
+         */
+        return WhatsAppService.CrearUrlChat(
+                   _legajo?
+                       .ResponsablePrincipal?
+                       .WhatsApp)
+               ?? "#";
     }
 
 

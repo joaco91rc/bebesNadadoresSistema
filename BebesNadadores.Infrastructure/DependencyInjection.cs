@@ -1,3 +1,12 @@
+using BebesNadadores.Application.Avisos;
+using BebesNadadores.Application.Busqueda;
+using BebesNadadores.Infrastructure.Services.Avisos;
+using BebesNadadores.Infrastructure.Services.Busqueda;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using BebesNadadores.Application.Abstractions;
+using BebesNadadores.Infrastructure.Persistence.Auditoria;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using BebesNadadores.Application.Anulaciones;
 using BebesNadadores.Application.AptosMedicos;
 using BebesNadadores.Application.Asistencia;
 using BebesNadadores.Application.Bancos;
@@ -20,6 +29,7 @@ using BebesNadadores.Application.Reportes;
 using BebesNadadores.Application.Turnera;
 using BebesNadadores.Infrastructure.Identity;
 using BebesNadadores.Infrastructure.Persistence;
+using BebesNadadores.Infrastructure.Services.Anulaciones;
 using BebesNadadores.Infrastructure.Services.AptosMedicos;
 using BebesNadadores.Infrastructure.Services.Asistencias;
 using BebesNadadores.Infrastructure.Services.Bancos;
@@ -64,16 +74,38 @@ public static class DependencyInjection
         // DATABASE
         // =====================================================
 
-        services.AddDbContextFactory<AppDbContext>(options =>
-        {
-            options.UseNpgsql(
-                connectionString,
-                npgsql =>
-                {
-                    npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                }
-            );
-        });
+        /*
+         * Auditoría automática (CreadoPor / ModificadoPor): el
+         * interceptor necesita al usuario del circuito / request, por
+         * eso la fábrica es Scoped (en Blazor Server, un scope por
+         * usuario conectado). La Web registra el IUsuarioActual real;
+         * sin Web (jobs, pruebas) queda SinUsuarioActual.
+         */
+        services.TryAddScoped<IUsuarioActual, SinUsuarioActual>();
+        services.AddScoped<AuditoriaInterceptor>();
+
+        services.AddDbContextFactory<AppDbContext>(
+            (sp, options) =>
+            {
+                options.UseNpgsql(
+                    connectionString,
+                    npgsql =>
+                    {
+                        npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                    }
+                );
+
+                options.AddInterceptors(
+                    sp.GetRequiredService<AuditoriaInterceptor>());
+
+                /*
+                 * Aviso informativo de EF ("varios Include de colecciones")
+                 * que no es un error: sin esto llenaba errores-*.log.
+                 */
+                options.ConfigureWarnings(w =>
+                    w.Ignore(RelationalEventId.MultipleCollectionIncludeWarning));
+            },
+            ServiceLifetime.Scoped);
 
         // =====================================================
         // AUTHENTICATION
@@ -119,6 +151,10 @@ public static class DependencyInjection
         // =====================================================
 
         services.AddScoped<ITurneraService, TurneraService>();
+        services.AddScoped<GeneradorRecuperosClasesNoDictadas>();
+        services.AddScoped<IRecuperosClasesNoDictadasService>(
+            sp => sp.GetRequiredService<GeneradorRecuperosClasesNoDictadas>());
+        services.AddScoped<IRecuperosInicioMitadMesService, GeneradorRecuperosInicioMitadMes>();
 
         services.AddScoped<IDiaNoLaborableService, DiaNoLaborableService>();
 
@@ -140,6 +176,8 @@ public static class DependencyInjection
         services.AddScoped<IBancoService, BancoService>();
         services.AddScoped<ICuentaBancariaService, CuentaBancariaService>();
         services.AddScoped<IMovimientoBancarioService, MovimientoBancarioService>();
+        services.AddScoped<RegistradorCobros>();
+        services.AddScoped<IAnulacionService, AnulacionService>();
         services.AddScoped<IPagoService, PagoService>();
         services.AddScoped<ICajaService, CajaService>();
         services.AddScoped<IConceptoCajaService, ConceptoCajaService>();
@@ -149,6 +187,8 @@ public static class DependencyInjection
         services.AddScoped<IWhatsAppService, WhatsAppService>();
         services.AddScoped<IAptoMedicoService, AptoMedicoService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IBusquedaGlobalService, BusquedaGlobalService>();
+        services.AddScoped<IAvisosService, AvisosService>();
         services.AddScoped<IConfiguracionSistemaService, ConfiguracionSistemaService>();
         services.AddScoped<IReporteService, ReporteService>();
         services.AddScoped<IReporteExportService, ReporteExportService>();

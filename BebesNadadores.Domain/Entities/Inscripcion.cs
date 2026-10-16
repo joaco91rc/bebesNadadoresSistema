@@ -31,4 +31,11 @@ public string? MotivoDescuento { get; set; }
 
 public ICollection<ReservaSesionClase> ReservasSesiones { get; set; }
     = new List<ReservaSesionClase>();
+
+    /*
+     * Arrancó a mitad de mes (desde el día 15): pagó media cuota
+     * y le corresponde un recupero de regalo (ver ReglasCuota).
+     * El recupero lo crea GeneradorRecuperosInicioMitadMes.
+     */
+    public bool BonificaRecuperoInicio { get; set; }
 }

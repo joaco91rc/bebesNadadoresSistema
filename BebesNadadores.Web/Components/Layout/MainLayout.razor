@@ -39,13 +39,15 @@
         <TopBar
             IsDarkMode="_isDarkMode"
             OnThemeChanged="ToggleTheme"
-            OnMenuToggle="ToggleMenu"
-            NotificationsCount="3" />
+            OnMenuToggle="ToggleMenu" />
 
 
         <main class="app-content">
 
-            @Body
+            @* Un error no controlado muestra un aviso en lugar de congelar la pantalla. *@
+            <BnErrorBoundary @ref="_errorBoundary">
+                @Body
+            </BnErrorBoundary>
 
         </main>
 
@@ -59,6 +61,17 @@
     private bool _isDarkMode = true;
 
     private bool _menuCollapsed;
+
+    private BnErrorBoundary? _errorBoundary;
+
+
+    /*
+     * Al navegar a otra pantalla se limpia el aviso de error.
+     */
+    protected override void OnParametersSet()
+    {
+        _errorBoundary?.Recover();
+    }
 
 
     private void ToggleTheme()

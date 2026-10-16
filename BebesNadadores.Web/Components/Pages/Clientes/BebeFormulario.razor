@@ -4,7 +4,7 @@
 
 @page "/clientes/{BebeId:guid}/editar"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.Bebes
 
@@ -19,6 +19,7 @@
 @using BebesNadadores.Application.Inscripciones.Dtos
 
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Application.Cuotas
 
 @using BebesNadadores.Web.Components.Shared.Utils
 
@@ -1122,6 +1123,12 @@
 
               ValueChanged="FechaInicioCambiadaAsync" />
 
+                       @* Del 15 en adelante: media cuota + recupero o arrancar el 1° del mes siguiente *@
+                       <BnInicioMitadMes FechaElegida="FechaElegidaInicio"
+                                         FechaActual="_form.FechaInicioInscripcion"
+                                         ImporteMensual="@(PlanSeleccionado?.PrecioMensual is decimal precioMes ? CalcularTotal(precioMes) : null)"
+                                         OnElegir="ElegirInicioAsync" />
+
                     </div>
 
                     @* MEDIO DE PAGO *@
@@ -1321,14 +1328,25 @@
 
 @if (PlanSeleccionado?.PrecioMensual is decimal precioPagoInicial)
 {
+    /*
+     * Misma regla que el servidor (ReglasCuota):
+     * cuota completa -> se cobra el 50 %; media cuota -> se cobra entera.
+     */
+    var mediaCuota =
+        ReglasCuota.EsInicioAMitadDeMes(_form.FechaInicioInscripcion);
+
     var totalPrimeraCuota =
-        CalcularTotal(precioPagoInicial);
+        ReglasCuota.CalcularImportePrimerMes(
+            CalcularTotal(precioPagoInicial),
+            _form.FechaInicioInscripcion);
 
     var importePagoInicial =
-        Math.Round(
-            totalPrimeraCuota * 0.50m,
-            2,
-            MidpointRounding.AwayFromZero);
+        mediaCuota
+            ? totalPrimeraCuota
+            : Math.Round(
+                totalPrimeraCuota * 0.50m,
+                2,
+                MidpointRounding.AwayFromZero);
 
     var saldoPosterior =
         totalPrimeraCuota -
@@ -1337,12 +1355,12 @@
     <div class="discount-summary initial-payment-summary">
 
         <div>
-            <span>Primera cuota</span>
+            <span>@(mediaCuota ? "Media cuota (inicio a mitad de mes)" : "Primera cuota")</span>
             <strong>@FormatearPrecio(totalPrimeraCuota)</strong>
         </div>
 
         <div>
-            <span>Pago para confirmar · 50%</span>
+            <span>@(mediaCuota ? "Se cobra completa" : "Pago para confirmar · 50%")</span>
             <strong>@FormatearPrecio(importePagoInicial)</strong>
         </div>
 
@@ -1367,13 +1385,12 @@
                 }
 
             </select>
-            @if (_form.MedioPagoInicial ==
-    MedioPago.Transferencia)
+            @if (_form.MedioPagoInicial.RequiereCuentaBancaria())
 {
     <div class="form-field">
 
         <label>
-            Cuenta destino *
+            Cuenta que recibió el pago *
         </label>
 
         <select @bind="_form.CuentaBancariaId">
@@ -1403,6 +1420,12 @@
         </select>
 
     </div>
+}
+else if (_form.MedioPagoInicial.IngresaACaja())
+{
+    <small class="field-hint">
+        Se registra en la caja del día. La caja tiene que estar abierta.
+    </small>
 }
         </div>
 

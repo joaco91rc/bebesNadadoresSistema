@@ -1,13 +1,15 @@
 @page "/caja"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador,Administrativa")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Caja
 @using BebesNadadores.Application.Caja.Dtos
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Application.Anulaciones
+@using BebesNadadores.Web.Components.Shared.Utils
 
 @inject ICajaService CajaService
+@inject IAnulacionService AnulacionService
 
 @inject IConceptoCajaService ConceptoCajaService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -88,6 +90,19 @@
                              Size="Size.Small" />
 
                     Cerrar caja
+
+                </button>
+            }
+            else if (PuedeReabrirCajaHoy)
+            {
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="AbrirReapertura">
+
+                    <MudIcon Icon="@Icons.Material.Filled.LockOpen"
+                             Size="Size.Small" />
+
+                    Reabrir caja
 
                 </button>
             }
@@ -314,6 +329,8 @@
 
                 </div>
 
+                <CajaReaperturasLista Reaperturas="_cajaHoy.Reaperturas" />
+
             </section>
 
 
@@ -471,6 +488,8 @@
                                 Importe
                             </span>
 
+                            <span></span>
+
                         </div>
 
 
@@ -478,10 +497,14 @@
                             _cajaHoy.Movimientos
                                 .OrderByDescending(x => x.FechaUtc))
                         {
-                            <div class="movement-row">
+                            <div class="movement-row @(movimiento.Anulado ? "is-voided" : "")">
 
-                                <span class="movement-time">
+                                <span class="movement-time"
+                                      title="@($"Cargado por {movimiento.RegistradoPor ?? "el sistema"}")">
                                     @FormatearHora(movimiento.FechaUtc)
+                                    <small class="movement-user">
+                                        @(movimiento.RegistradoPor ?? "Sistema")
+                                    </small>
                                 </span>
 
 
@@ -503,10 +526,29 @@
                                             @movimiento.Concepto
                                         </strong>
 
-                                        @if (movimiento.PagoId.HasValue)
+                                        @if (movimiento.Anulado)
+                                        {
+                                            <small class="void-text"
+                                                   title="@movimiento.MotivoAnulacion">
+                                                Anulado · @movimiento.MotivoAnulacion
+                                            </small>
+                                        }
+                                        else if (movimiento.EsAnulacion)
+                                        {
+                                            <small class="void-text">
+                                                Reversa de una anulación
+                                            </small>
+                                        }
+                                        else if (movimiento.PagoId.HasValue)
                                         {
                                             <small>
                                                 Pago de cliente
+                                            </small>
+                                        }
+                                        else if (movimiento.PagoProveedorId.HasValue)
+                                        {
+                                            <small>
+                                                Pago a proveedor
                                             </small>
                                         }
 
@@ -538,6 +580,22 @@
                                     @FormatearMoneda(movimiento.Importe)
 
                                 </strong>
+
+
+                                @if (PuedeAnularMovimiento(movimiento))
+                                {
+                                    <button type="button"
+                                            class="void-action"
+                                            title="Anular movimiento"
+                                            @onclick="() => AbrirAnularMovimiento(movimiento)">
+                                        <MudIcon Icon="@Icons.Material.Filled.Block"
+                                                 Size="Size.Small" />
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span></span>
+                                }
 
                             </div>
                         }
@@ -1370,6 +1428,9 @@
             </div>
 
 
+            <CajaReaperturasLista Reaperturas="_detalleHistorico.Reaperturas" />
+
+
             <div class="drawer-movements">
 
                 <h3>
@@ -1403,6 +1464,17 @@
         @FormatearHora(movimiento.FechaUtc)
         ·
         @ObtenerTipoMovimientoTexto(movimiento.Tipo)
+
+        @if (movimiento.Anulado)
+        {
+            <text>
+                · ANULADO
+            </text>
+        }
+
+        <text>
+            · por @(movimiento.RegistradoPor ?? "Sistema")
+        </text>
 
         @if (!string.IsNullOrWhiteSpace(
             movimiento.Detalle))
@@ -1993,3 +2065,34 @@ else
 
     </div>
 }
+
+
+
+@* =========================================================
+   REABRIR CAJA DE HOY (cerrada por error)
+   ========================================================= *@
+
+<BnAnulacionModal Visible="_mostrarReapertura"
+                  Eyebrow="REAPERTURA"
+                  Titulo="Reabrir la caja de hoy"
+                  Detalle="@(_cajaHoy is null ? null : $"Caja del {_cajaHoy.FechaOperativa:dd/MM/yyyy} · cerrada con {FormatearMoneda(_cajaHoy.SaldoFinalDeclarado ?? 0)} declarados")"
+                  Aviso="La caja vuelve a quedar abierta con todos sus movimientos. El cierre anterior (quién, cuándo y con qué saldo) queda guardado en el historial de reaperturas. Al terminar hay que cerrarla de nuevo."
+                  Placeholder="Ej.: se cerró antes de tiempo, faltaba cargar un cobro..."
+                  Icono="@Icons.Material.Filled.LockOpen"
+                  TextoConfirmar="Reabrir caja"
+                  TextoProcesando="Reabriendo..."
+                  Tono="normal"
+                  OnConfirmar="ConfirmarReaperturaAsync"
+                  OnCerrar="CerrarReapertura" />
+
+@* =========================================================
+   ANULACIÓN DE MOVIMIENTO MANUAL
+   ========================================================= *@
+
+<BnAnulacionModal Visible="_movimientoAAnular is not null"
+                  Titulo="Anular movimiento de caja"
+                  Detalle="@(_movimientoAAnular is null ? null : $"{_movimientoAAnular.Concepto} · {ObtenerTipoMovimientoTexto(_movimientoAAnular.Tipo)}")"
+                  Importe="@_movimientoAAnular?.Importe"
+                  Aviso="Se registra un movimiento inverso en la caja de hoy. El original queda marcado como anulado."
+                  OnConfirmar="ConfirmarAnulacionMovimientoAsync"
+                  OnCerrar="CerrarAnulacionMovimiento" />

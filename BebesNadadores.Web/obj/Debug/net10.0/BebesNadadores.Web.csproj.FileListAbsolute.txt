@@ -245,7 +245,6 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\n
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\Proveedores\Proveedores.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\Proveedores\PagosProveedor.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\Pagos\GeneracionCuotas.razor.rz.scp.css
-C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\18uf97kf91-{0}-qtgiymambr-qtgiymambr.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\AptoMedico\AptosMedicos.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\Configuracion\Configuracion.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\Reportes\Reportes.razor.rz.scp.css
@@ -275,5 +274,12 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\bin\Debug\n
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\bin\Debug\net10.0\runtimes\win-x64\native\qpdf.dll
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\bin\Debug\net10.0\runtimes\win-x86\native\QuestPdfSkia.dll
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\bin\Debug\net10.0\runtimes\win-x86\native\qpdf.dll
-C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\xt5s1wgigs-{0}-g6ftvxgv83-g6ftvxgv83.gz
-C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\93cok610il-{0}-g6ftvxgv83-g6ftvxgv83.gz
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Shared\Utils\BnAnulacionModal.razor.rz.scp.css
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Pages\Finanzas\CajaReaperturasLista.razor.rz.scp.css
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\18uf97kf91-{0}-aydh8fr7wh-aydh8fr7wh.gz
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Shared\BnErrorBoundary.razor.rz.scp.css
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Shared\Utils\BnInicioMitadMes.razor.rz.scp.css
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Layout\AvisosCampana.razor.rz.scp.css
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Layout\BusquedaGlobal.razor.rz.scp.css
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\xt5s1wgigs-{0}-24hrcwv37j-24hrcwv37j.gz
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\93cok610il-{0}-24hrcwv37j-24hrcwv37j.gz

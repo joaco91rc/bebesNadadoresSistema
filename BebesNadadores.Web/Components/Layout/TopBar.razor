@@ -26,20 +26,8 @@
         </button>
 
 
-        <div class="global-search">
-
-            <span class="search-icon">
-
-                <MudIcon Icon="@Icons.Material.Filled.Search"
-                         Size="Size.Small" />
-
-            </span>
-
-            <input type="search"
-                   placeholder="Buscar bebé, turno o comprobante..."
-                   aria-label="Buscar" />
-
-        </div>
+        @* Bebés, responsables, DNI, teléfono o comprobante *@
+        <BusquedaGlobal />
 
     </div>
 
@@ -67,27 +55,8 @@
         </button>
 
 
-        @* Notificaciones *@
-
-        <button type="button"
-                class="topbar-icon-button notification-button"
-                title="Notificaciones">
-
-            <MudIcon Icon="@Icons.Material.Filled.NotificationsNone" />
-
-
-            @if (NotificationsCount > 0)
-            {
-                <span class="notification-count">
-
-                    @(NotificationsCount > 9
-                        ? "9+"
-                        : NotificationsCount.ToString())
-
-                </span>
-            }
-
-        </button>
+        @* Avisos reales según el rol (caja, cuotas vencidas, aptos, recuperos...) *@
+        <AvisosCampana />
 
 
         <div class="topbar-separator"></div>
@@ -267,8 +236,6 @@
     public EventCallback OnMenuToggle { get; set; }
 
 
-    [Parameter]
-    public int NotificationsCount { get; set; }
 
 
     private string _nombreCompleto =

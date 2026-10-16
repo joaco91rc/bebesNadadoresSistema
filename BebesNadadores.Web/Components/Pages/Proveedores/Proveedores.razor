@@ -1,7 +1,6 @@
 @page "/proveedores"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador,Administrativa")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Proveedores
 @using BebesNadadores.Application.Proveedores.Dtos

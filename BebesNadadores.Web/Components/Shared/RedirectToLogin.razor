@@ -2,7 +2,11 @@
 
 @code {
 
-    protected override void OnInitialized()
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
     {
         var relative =
             Navigation.ToBaseRelativePath(
@@ -13,6 +17,28 @@
 
         var encoded =
             Uri.EscapeDataString(returnUrl);
+
+
+        /*
+         * Si el usuario YA está logueado y llegó acá, es porque su
+         * rol no tiene permiso para la página: se muestra
+         * "Acceso denegado" en lugar de mandarlo al login (que lo
+         * rebotaba al inicio sin explicación).
+         */
+        var usuario =
+            AuthenticationState is null
+                ? null
+                : (await AuthenticationState).User;
+
+        if (usuario?.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo(
+                $"/Account/AccessDenied?ReturnUrl={encoded}",
+                forceLoad: true);
+
+            return;
+        }
+
 
         Navigation.NavigateTo(
             $"/Account/Login?returnUrl={encoded}",

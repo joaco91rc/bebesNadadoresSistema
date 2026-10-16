@@ -2247,3 +2247,16 @@
         flex: 1;
     }
 }
+
+
+/* Aviso debajo del medio de pago inicial (efectivo -> caja del día). */
+.field-hint {
+    display: block;
+    margin-top: 6px;
+
+    color:
+        var(--mud-palette-text-secondary);
+
+    font-size: 12px;
+    line-height: 1.4;
+}

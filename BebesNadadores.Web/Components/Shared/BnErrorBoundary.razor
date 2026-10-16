@@ -1,0 +1,74 @@
+@inherits ErrorBoundaryBase
+@inject ILogger<BnErrorBoundary> Logger
+
+@*
+    =================================================================
+    ERROR NO CONTROLADO EN UNA PANTALLA
+    =================================================================
+
+    Envuelve el contenido de MainLayout. Si una pantalla tira un
+    error que nadie atrapó, en lugar de congelar el sistema muestra
+    un aviso en español con un código, lo registra en el log y deja
+    seguir usando el menú. Al navegar a otra pantalla se limpia solo.
+*@
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else
+{
+    <div class="bn-error-pantalla" role="alert">
+
+        <span class="bn-error-icono">
+            <MudIcon Icon="@Icons.Material.Filled.ReportProblem" />
+        </span>
+
+        <h2>Algo salió mal en esta pantalla</h2>
+
+        <p>
+            El error quedó registrado. Podés volver a intentar o ir a
+            otra sección desde el menú. Si se repite, avisale al
+            administrador con este código:
+        </p>
+
+        <strong class="bn-error-codigo">@_codigo</strong>
+
+        <button type="button"
+                class="bn-error-reintentar"
+                @onclick="Reintentar">
+            <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                     Size="Size.Small" />
+            Volver a intentar
+        </button>
+
+    </div>
+}
+
+@code {
+
+    private string? _codigo;
+
+
+    protected override Task OnErrorAsync(
+        Exception exception)
+    {
+        _codigo =
+            Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+
+        Logger.LogError(
+            exception,
+            "Error no controlado [{Codigo}] en una pantalla.",
+            _codigo);
+
+        return Task.CompletedTask;
+    }
+
+
+    private void Reintentar()
+    {
+        _codigo = null;
+
+        Recover();
+    }
+}

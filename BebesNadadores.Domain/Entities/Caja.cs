@@ -37,4 +37,11 @@ public class Caja : EntidadAuditable
     public ICollection<Pago>
         Pagos { get; set; }
             = new List<Pago>();
+
+    /*
+     * Historial de reaperturas (cierres deshechos).
+     */
+    public ICollection<CajaReapertura>
+        Reaperturas { get; set; }
+            = new List<CajaReapertura>();
 }

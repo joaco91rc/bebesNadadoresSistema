@@ -211,7 +211,7 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
         var pagos = await db
             .Pagos.AsNoTracking()
             .Include(x => x.Responsable)
-            .Where(x => x.BebeId == bebeId)
+            .Where(x => x.BebeId == bebeId && !x.AnuladoUtc.HasValue)
             .OrderByDescending(x => x.FechaUtc)
             .Take(100)
             .ToListAsync(ct);

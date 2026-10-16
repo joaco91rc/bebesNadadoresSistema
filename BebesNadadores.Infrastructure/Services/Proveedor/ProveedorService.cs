@@ -51,12 +51,16 @@ public sealed class ProveedorService(
 
                 // TOTAL PAGADO
                 x.Pagos
+                    .Where(p =>
+                        !p.AnuladoUtc.HasValue)
                     .Sum(p =>
                         (decimal?)p.Importe)
                 ?? 0m,
 
                 // ÚLTIMO PAGO
                 x.Pagos
+                    .Where(p =>
+                        !p.AnuladoUtc.HasValue)
                     .Max(p =>
                         (DateTimeOffset?)p.FechaUtc)
             ))
@@ -94,12 +98,16 @@ public sealed class ProveedorService(
 
                 // TOTAL PAGADO
                 x.Pagos
+                    .Where(p =>
+                        !p.AnuladoUtc.HasValue)
                     .Sum(p =>
                         (decimal?)p.Importe)
                 ?? 0m,
 
                 // ÚLTIMO PAGO
                 x.Pagos
+                    .Where(p =>
+                        !p.AnuladoUtc.HasValue)
                     .Max(p =>
                         (DateTimeOffset?)p.FechaUtc)
             ))

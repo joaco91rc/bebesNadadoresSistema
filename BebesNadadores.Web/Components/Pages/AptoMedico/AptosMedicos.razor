@@ -1,5 +1,5 @@
 @page "/aptos-medicos"
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = "GestionMedica")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionMedica)]
 
 @using BebesNadadores.Application.AptosMedicos.Dtos
 @using BebesNadadores.Domain.Enums

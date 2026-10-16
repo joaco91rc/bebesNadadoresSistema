@@ -73,7 +73,10 @@ public enum EstadoAsistencia
 public enum TipoRecuperacion
 {
     AusenciaConAviso = 1,
-    ClaseNoDictada = 2
+    ClaseNoDictada = 2,
+
+    // Regalo por arrancar a mitad de mes (ver ReglasCuota)
+    InicioMitadDeMes = 3
 }
 
 public enum EstadoRecuperacion

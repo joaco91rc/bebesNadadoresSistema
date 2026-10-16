@@ -142,7 +142,7 @@ _mesesVigenciaApto =
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -256,7 +256,7 @@ _mesesVigenciaApto =
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
@@ -360,7 +360,7 @@ _mesesVigenciaApto =
         }
         catch (Exception ex)
         {
-            _errorModal = ex.Message;
+            _errorModal = Errores.Mensaje(ex);
         }
         finally
         {
@@ -454,7 +454,7 @@ _mesesVigenciaApto =
         }
         catch (Exception ex)
         {
-            _errorModal = ex.Message;
+            _errorModal = Errores.Mensaje(ex);
         }
         finally
         {

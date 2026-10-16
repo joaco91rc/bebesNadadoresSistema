@@ -303,8 +303,21 @@ public sealed class CajaService(
     // ABRIR CAJA
     // =========================================================
 
-    public async Task<Guid>
-        AbrirAsync(
+    public Task<Guid> AbrirAsync(
+        AbrirCajaDto dto,
+        Guid usuarioId,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => AbrirInternoAsync(
+                dto,
+                usuarioId,
+                ct),
+            ct);
+    }
+
+
+    private async Task<Guid> AbrirInternoAsync(
             AbrirCajaDto dto,
             Guid usuarioId,
             CancellationToken ct = default)
@@ -354,148 +367,143 @@ public sealed class CajaService(
                     ct);
 
 
-        try
+        // Sin try/catch con Rollback manual: si la transacción ya está
+        // abortada, el Rollback explota y tapa el error real. El
+        // "await using" hace el rollback solo.
+        // =================================================
+        // USUARIO
+        // =================================================
+
+        var usuarioExiste =
+            await db.Users
+                .AnyAsync(
+                    x =>
+                        x.Id ==
+                            usuarioId,
+                    ct);
+
+
+        if (!usuarioExiste)
         {
-            // =================================================
-            // USUARIO
-            // =================================================
-
-            var usuarioExiste =
-                await db.Users
-                    .AnyAsync(
-                        x =>
-                            x.Id ==
-                                usuarioId,
-                        ct);
-
-
-            if (!usuarioExiste)
-            {
-                throw new InvalidOperationException(
-                    "El usuario indicado no existe.");
-            }
-
-
-            // =================================================
-            // CAJA ANTERIOR ABIERTA
-            // =================================================
-
-            var cajaAnteriorAbierta =
-                await db.Cajas
-                    .AsNoTracking()
-
-                    .Where(x =>
-                        x.Estado ==
-                            EstadoCaja.Abierta)
-
-                    .OrderBy(x =>
-                        x.FechaOperativa)
-
-                    .FirstOrDefaultAsync(ct);
-
-
-            if (
-                cajaAnteriorAbierta is not null
-                &&
-                cajaAnteriorAbierta.FechaOperativa !=
-                    hoy)
-            {
-                throw new InvalidOperationException(
-                    $"Existe una caja del " +
-                    $"{cajaAnteriorAbierta.FechaOperativa:dd/MM/yyyy} " +
-                    $"que todavía se encuentra abierta. " +
-                    $"Debe cerrarla antes de abrir la caja de hoy.");
-            }
-
-
-            // =================================================
-            // YA EXISTE CAJA HOY
-            // =================================================
-
-            var cajaHoy =
-                await db.Cajas
-                    .AsNoTracking()
-
-                    .FirstOrDefaultAsync(
-                        x =>
-                            x.FechaOperativa ==
-                                hoy,
-                        ct);
-
-
-            if (cajaHoy is not null)
-            {
-                if (cajaHoy.Estado ==
-                    EstadoCaja.Abierta)
-                {
-                    throw new InvalidOperationException(
-                        "La caja del día ya se encuentra abierta.");
-                }
-
-
-                throw new InvalidOperationException(
-                    "La caja del día ya fue cerrada. " +
-                    "No puede abrirse una segunda caja para la misma fecha.");
-            }
-
-
-            // =================================================
-            // CREAR
-            // =================================================
-
-            var caja =
-                new Domain.Entities.Caja
-                {
-                    Id =
-                        Guid.NewGuid(),
-
-                    FechaOperativa =
-                        hoy,
-
-                    FechaAperturaUtc =
-                        DateTimeOffset.UtcNow,
-
-                    SaldoInicial =
-                        dto.SaldoInicial,
-
-                    SaldoFinalDeclarado =
-                        null,
-
-                    UsuarioAperturaId =
-                        usuarioId,
-
-                    UsuarioCierreId =
-                        null,
-
-                    Estado =
-                        EstadoCaja.Abierta,
-
-                    Observaciones =
-                        observaciones
-                };
-
-
-            db.Cajas.Add(
-                caja);
-
-
-            await db.SaveChangesAsync(
-                ct);
-
-
-            await transaction
-                .CommitAsync(ct);
-
-
-            return caja.Id;
+            throw new InvalidOperationException(
+                "El usuario indicado no existe.");
         }
-        catch
+
+
+        // =================================================
+        // CAJA ANTERIOR ABIERTA
+        // =================================================
+
+        var cajaAnteriorAbierta =
+            await db.Cajas
+                .AsNoTracking()
+
+                .Where(x =>
+                    x.Estado ==
+                        EstadoCaja.Abierta)
+
+                .OrderBy(x =>
+                    x.FechaOperativa)
+
+                .FirstOrDefaultAsync(ct);
+
+
+        if (
+            cajaAnteriorAbierta is not null
+            &&
+            cajaAnteriorAbierta.FechaOperativa !=
+                hoy)
         {
-            await transaction
-                .RollbackAsync(ct);
-
-            throw;
+            throw new InvalidOperationException(
+                $"Existe una caja del " +
+                $"{cajaAnteriorAbierta.FechaOperativa:dd/MM/yyyy} " +
+                $"que todavía se encuentra abierta. " +
+                $"Debe cerrarla antes de abrir la caja de hoy.");
         }
+
+
+        // =================================================
+        // YA EXISTE CAJA HOY
+        // =================================================
+
+        var cajaHoy =
+            await db.Cajas
+                .AsNoTracking()
+
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.FechaOperativa ==
+                            hoy,
+                    ct);
+
+
+        if (cajaHoy is not null)
+        {
+            if (cajaHoy.Estado ==
+                EstadoCaja.Abierta)
+            {
+                throw new InvalidOperationException(
+                    "La caja del día ya se encuentra abierta.");
+            }
+
+
+            throw new InvalidOperationException(
+                "La caja del día ya fue cerrada. " +
+                "No puede abrirse una segunda caja para la misma fecha.");
+        }
+
+
+        // =================================================
+        // CREAR
+        // =================================================
+
+        var caja =
+            new Domain.Entities.Caja
+            {
+                Id =
+                    Guid.NewGuid(),
+
+                FechaOperativa =
+                    hoy,
+
+                FechaAperturaUtc =
+                    DateTimeOffset.UtcNow,
+
+                SaldoInicial =
+                    dto.SaldoInicial,
+
+                SaldoFinalDeclarado =
+                    null,
+
+                UsuarioAperturaId =
+                    usuarioId,
+
+                UsuarioCierreId =
+                    null,
+
+                Estado =
+                    EstadoCaja.Abierta,
+
+                Observaciones =
+                    observaciones
+            };
+
+
+        db.Cajas.Add(
+            caja);
+
+
+        await db.SaveChangesAsync(
+            ct);
+
+
+        await transaction
+            .CommitAsync(ct);
+
+
+        return caja.Id;
+    
+
     }
 
 
@@ -503,8 +511,23 @@ public sealed class CajaService(
     // CERRAR CAJA
     // =========================================================
 
-    public async Task<CerrarCajaResultadoDto>
-        CerrarAsync(
+    public Task<CerrarCajaResultadoDto> CerrarAsync(
+        Guid cajaId,
+        CerrarCajaDto dto,
+        Guid usuarioId,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => CerrarInternoAsync(
+                cajaId,
+                dto,
+                usuarioId,
+                ct),
+            ct);
+    }
+
+
+    private async Task<CerrarCajaResultadoDto> CerrarInternoAsync(
             Guid cajaId,
             CerrarCajaDto dto,
             Guid usuarioId,
@@ -559,111 +582,265 @@ public sealed class CajaService(
                     ct);
 
 
-        try
+        // Sin try/catch con Rollback manual: si la transacción ya está
+        // abortada, el Rollback explota y tapa el error real. El
+        // "await using" hace el rollback solo.
+        var usuarioExiste =
+            await db.Users
+                .AnyAsync(
+                    x =>
+                        x.Id ==
+                            usuarioId,
+                    ct);
+
+
+        if (!usuarioExiste)
         {
-            var usuarioExiste =
-                await db.Users
-                    .AnyAsync(
-                        x =>
-                            x.Id ==
-                                usuarioId,
-                        ct);
+            throw new InvalidOperationException(
+                "El usuario indicado no existe.");
+        }
 
 
-            if (!usuarioExiste)
-            {
-                throw new InvalidOperationException(
-                    "El usuario indicado no existe.");
-            }
+        var caja =
+            await db.Cajas
+
+                .Include(x =>
+                    x.Movimientos)
+
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id ==
+                            cajaId,
+                    ct)
+
+            ??
+            throw new InvalidOperationException(
+                "La caja indicada no existe.");
 
 
-            var caja =
-                await db.Cajas
-
-                    .Include(x =>
-                        x.Movimientos)
-
-                    .FirstOrDefaultAsync(
-                        x =>
-                            x.Id ==
-                                cajaId,
-                        ct)
-
-                ??
-                throw new InvalidOperationException(
-                    "La caja indicada no existe.");
+        if (caja.Estado ==
+            EstadoCaja.Cerrada)
+        {
+            throw new InvalidOperationException(
+                "La caja ya se encuentra cerrada.");
+        }
 
 
-            if (caja.Estado ==
-                EstadoCaja.Cerrada)
-            {
-                throw new InvalidOperationException(
-                    "La caja ya se encuentra cerrada.");
-            }
+        var totales =
+            CalcularTotales(
+                caja,
+                caja.Movimientos);
 
 
-            var totales =
-                CalcularTotales(
-                    caja,
-                    caja.Movimientos);
+        caja.SaldoFinalDeclarado =
+            dto.SaldoFinalDeclarado;
 
 
-            caja.SaldoFinalDeclarado =
-                dto.SaldoFinalDeclarado;
+        caja.FechaCierreUtc =
+            DateTimeOffset.UtcNow;
 
 
-            caja.FechaCierreUtc =
-                DateTimeOffset.UtcNow;
+        caja.UsuarioCierreId =
+            usuarioId;
 
 
-            caja.UsuarioCierreId =
-                usuarioId;
+        caja.Estado =
+            EstadoCaja.Cerrada;
 
 
-            caja.Estado =
-                EstadoCaja.Cerrada;
+        /*
+         * Si el usuario escribió observaciones al cerrar,
+         * las agregamos sin perder las de apertura.
+         */
+        if (observaciones is not null)
+        {
+            caja.Observaciones =
+                CombinarObservaciones(
+                    caja.Observaciones,
+                    observaciones);
+        }
 
 
-            /*
-             * Si el usuario escribió observaciones al cerrar,
-             * las agregamos sin perder las de apertura.
-             */
-            if (observaciones is not null)
-            {
-                caja.Observaciones =
-                    CombinarObservaciones(
-                        caja.Observaciones,
-                        observaciones);
-            }
+        await db.SaveChangesAsync(
+            ct);
 
 
-            await db.SaveChangesAsync(
+        await transaction
+            .CommitAsync(ct);
+
+
+        var diferencia =
+            dto.SaldoFinalDeclarado
+            -
+            totales.SaldoEsperado;
+
+
+        return new CerrarCajaResultadoDto(
+            caja.Id,
+            totales.SaldoEsperado,
+            dto.SaldoFinalDeclarado,
+            diferencia);
+    
+
+    }
+
+
+    // =========================================================
+    // REABRIR CAJA (solo la de hoy)
+    // =========================================================
+
+    /*
+     * Si la caja de HOY se cerró por error se puede reabrir:
+     * vuelve a quedar Abierta y se borra el cierre (saldo
+     * declarado, fecha y usuario de cierre). Queda registrado en
+     * las observaciones quién la reabrió, cuándo y por qué.
+     *
+     * Una caja de un día anterior NO se reabre: ese día ya se
+     * contó el efectivo. Las correcciones se hacen con anulaciones,
+     * que registran la reversa en la caja de hoy.
+     */
+    public Task ReabrirAsync(
+        Guid cajaId,
+        string motivo,
+        Guid usuarioId,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => ReabrirInternoAsync(
+                cajaId,
+                motivo,
+                usuarioId,
+                ct),
+            ct);
+    }
+
+
+    private async Task ReabrirInternoAsync(
+        Guid cajaId,
+        string motivo,
+        Guid usuarioId,
+        CancellationToken ct)
+    {
+        if (usuarioId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "No se pudo determinar el usuario que reabre la caja.");
+        }
+
+        var motivoNormalizado =
+            Normalizar(motivo)
+            ?? throw new InvalidOperationException(
+                "Debe indicar el motivo de la reapertura.");
+
+        if (motivoNormalizado.Length > 300)
+        {
+            throw new InvalidOperationException(
+                "El motivo no puede superar los 300 caracteres.");
+        }
+
+        var hoy =
+            ObtenerFechaArgentina();
+
+        await using var db =
+            await factory.CreateDbContextAsync(ct);
+
+        await using var transaction =
+            await db.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable,
                 ct);
 
+        var caja =
+            await db.Cajas
+                .FirstOrDefaultAsync(
+                    x => x.Id == cajaId,
+                    ct)
+            ?? throw new InvalidOperationException(
+                "La caja indicada no existe.");
 
-            await transaction
-                .CommitAsync(ct);
-
-
-            var diferencia =
-                dto.SaldoFinalDeclarado
-                -
-                totales.SaldoEsperado;
-
-
-            return new CerrarCajaResultadoDto(
-                caja.Id,
-                totales.SaldoEsperado,
-                dto.SaldoFinalDeclarado,
-                diferencia);
-        }
-        catch
+        if (caja.Estado != EstadoCaja.Cerrada)
         {
-            await transaction
-                .RollbackAsync(ct);
-
-            throw;
+            throw new InvalidOperationException(
+                "La caja ya se encuentra abierta.");
         }
+
+        if (caja.FechaOperativa != hoy)
+        {
+            throw new InvalidOperationException(
+                $"Solo se puede reabrir la caja del día. La caja del " +
+                $"{caja.FechaOperativa:dd/MM/yyyy} ya quedó cerrada; si hay que " +
+                $"corregir algo, anulá el movimiento y la reversa se registra hoy.");
+        }
+
+        /*
+         * No puede haber dos cajas abiertas a la vez.
+         * (Por cómo funciona la apertura no debería pasar, pero se
+         * valida igual: la reapertura es una acción sensible.)
+         */
+        var otraAbierta =
+            await db.Cajas
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id != caja.Id
+                    && x.Estado == EstadoCaja.Abierta)
+                .Select(x => (DateOnly?)x.FechaOperativa)
+                .FirstOrDefaultAsync(ct);
+
+        if (otraAbierta.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Hay otra caja abierta (del {otraAbierta.Value:dd/MM/yyyy}). " +
+                $"Cerrala antes de reabrir la de hoy.");
+        }
+
+        var usuarioExiste =
+            await db.Users
+                .AnyAsync(
+                    x => x.Id == usuarioId,
+                    ct);
+
+        if (!usuarioExiste)
+        {
+            throw new InvalidOperationException(
+                "El usuario indicado no existe.");
+        }
+
+        if (!caja.FechaCierreUtc.HasValue
+            || !caja.UsuarioCierreId.HasValue
+            || !caja.SaldoFinalDeclarado.HasValue)
+        {
+            throw new InvalidOperationException(
+                "La caja no tiene registrados los datos de su cierre; " +
+                "no se puede reabrir sin perder esa información.");
+        }
+
+        /*
+         * Antes de limpiar el cierre, se guarda una "foto" del cierre
+         * anterior: quién la cerró, cuándo y con qué saldo.
+         * Los movimientos no se tocan: siguen en la misma caja.
+         */
+        db.CajasReaperturas.Add(
+            new CajaReapertura
+            {
+                Id = Guid.NewGuid(),
+                CajaId = caja.Id,
+                FechaUtc = DateTimeOffset.UtcNow,
+                UsuarioId = usuarioId,
+                Motivo = motivoNormalizado,
+                FechaCierreAnteriorUtc = caja.FechaCierreUtc.Value,
+                UsuarioCierreAnteriorId = caja.UsuarioCierreId.Value,
+                SaldoFinalDeclaradoAnterior = caja.SaldoFinalDeclarado.Value
+            });
+
+        caja.Estado = EstadoCaja.Abierta;
+        caja.SaldoFinalDeclarado = null;
+        caja.FechaCierreUtc = null;
+        caja.UsuarioCierreId = null;
+        caja.ModificadoUtc = DateTimeOffset.UtcNow;
+        caja.ModificadoPorUsuarioId = usuarioId;
+
+        await db.SaveChangesAsync(ct);
+
+        await transaction.CommitAsync(ct);
     }
 
 
@@ -671,8 +848,21 @@ public sealed class CajaService(
     // MOVIMIENTO MANUAL
     // =========================================================
 
-    public async Task<Guid>
-    RegistrarMovimientoManualAsync(
+    public Task<Guid> RegistrarMovimientoManualAsync(
+        Guid cajaId,
+        RegistrarMovimientoCajaDto dto,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => RegistrarMovimientoManualInternoAsync(
+                cajaId,
+                dto,
+                ct),
+            ct);
+    }
+
+
+    private async Task<Guid> RegistrarMovimientoManualInternoAsync(
         Guid cajaId,
         RegistrarMovimientoCajaDto dto,
         CancellationToken ct = default)
@@ -745,108 +935,102 @@ public sealed class CajaService(
                 ct);
 
 
-    try
+    // Sin try/catch con Rollback manual: si la transacción ya está
+    // abortada, el Rollback explota y tapa el error real. El
+    // "await using" hace el rollback solo.
+    var caja =
+        await db.Cajas
+            .FirstOrDefaultAsync(
+                x =>
+                    x.Id ==
+                        cajaId,
+                ct)
+
+        ??
+        throw new InvalidOperationException(
+            "La caja indicada no existe.");
+
+
+    if (caja.Estado !=
+        EstadoCaja.Abierta)
     {
-        var caja =
-            await db.Cajas
-                .FirstOrDefaultAsync(
-                    x =>
-                        x.Id ==
-                            cajaId,
-                    ct)
-
-            ??
-            throw new InvalidOperationException(
-                "La caja indicada no existe.");
-
-
-        if (caja.Estado !=
-            EstadoCaja.Abierta)
-        {
-            throw new InvalidOperationException(
-                "No pueden registrarse movimientos en una caja cerrada.");
-        }
-
-
-        if (caja.FechaOperativa !=
-            hoy)
-        {
-            throw new InvalidOperationException(
-                "Sólo pueden registrarse movimientos en la caja del día actual.");
-        }
-
-
-        var concepto =
-            await db.ConceptosCaja
-                .FirstOrDefaultAsync(
-                    x =>
-                        x.Id ==
-                            dto.ConceptoCajaId
-                        &&
-                        x.Activo,
-                    ct)
-
-            ??
-            throw new InvalidOperationException(
-                "El concepto seleccionado no existe o está inactivo.");
-
-
-        var movimiento =
-            new MovimientoCaja
-            {
-                Id =
-                    Guid.NewGuid(),
-
-                CajaId =
-                    caja.Id,
-
-                FechaUtc =
-                    DateTimeOffset.UtcNow,
-
-                Tipo =
-                    concepto.Tipo,
-
-                ConceptoCajaId =
-                    concepto.Id,
-
-                Concepto =
-                    concepto.Nombre,
-
-                Detalle =
-                    detalle,
-
-                Importe =
-                    dto.Importe,
-
-                Referencia =
-                    referencia,
-
-                PagoId =
-                    null
-            };
-
-
-        db.MovimientosCaja.Add(
-            movimiento);
-
-
-        await db.SaveChangesAsync(
-            ct);
-
-
-        await transaction
-            .CommitAsync(ct);
-
-
-        return movimiento.Id;
+        throw new InvalidOperationException(
+            "No pueden registrarse movimientos en una caja cerrada.");
     }
-    catch
+
+
+    if (caja.FechaOperativa !=
+        hoy)
     {
-        await transaction
-            .RollbackAsync(ct);
-
-        throw;
+        throw new InvalidOperationException(
+            "Sólo pueden registrarse movimientos en la caja del día actual.");
     }
+
+
+    var concepto =
+        await db.ConceptosCaja
+            .FirstOrDefaultAsync(
+                x =>
+                    x.Id ==
+                        dto.ConceptoCajaId
+                    &&
+                    x.Activo,
+                ct)
+
+        ??
+        throw new InvalidOperationException(
+            "El concepto seleccionado no existe o está inactivo.");
+
+
+    var movimiento =
+        new MovimientoCaja
+        {
+            Id =
+                Guid.NewGuid(),
+
+            CajaId =
+                caja.Id,
+
+            FechaUtc =
+                DateTimeOffset.UtcNow,
+
+            Tipo =
+                concepto.Tipo,
+
+            ConceptoCajaId =
+                concepto.Id,
+
+            Concepto =
+                concepto.Nombre,
+
+            Detalle =
+                detalle,
+
+            Importe =
+                dto.Importe,
+
+            Referencia =
+                referencia,
+
+            PagoId =
+                null
+        };
+
+
+    db.MovimientosCaja.Add(
+        movimiento);
+
+
+    await db.SaveChangesAsync(
+        ct);
+
+
+    await transaction
+        .CommitAsync(ct);
+
+
+    return movimiento.Id;
+
 }
 
 
@@ -890,6 +1074,13 @@ public sealed class CajaService(
                 caja.UsuarioCierreId.Value);
         }
 
+        // Quién cargó cada movimiento (auditoría).
+        usuarioIds.AddRange(
+            movimientos
+                .Where(x => x.CreadoPorUsuarioId.HasValue)
+                .Select(x => x.CreadoPorUsuarioId!.Value)
+                .Distinct());
+
 
         var usuarios =
             await db.Users
@@ -908,6 +1099,54 @@ public sealed class CajaService(
         usuarios.TryGetValue(
             caja.UsuarioAperturaId,
             out var usuarioApertura);
+
+
+        // -----------------------------------------------------
+        // REAPERTURAS (auditoría)
+        // -----------------------------------------------------
+
+        var reaperturas =
+            await db.CajasReaperturas
+                .AsNoTracking()
+                .Where(x => x.CajaId == caja.Id)
+                .OrderBy(x => x.FechaUtc)
+                .ToListAsync(ct);
+
+        var idsUsuariosReapertura =
+            reaperturas
+                .SelectMany(x => new[] { x.UsuarioId, x.UsuarioCierreAnteriorId })
+                .Where(x => !usuarios.ContainsKey(x))
+                .Distinct()
+                .ToList();
+
+        if (idsUsuariosReapertura.Count > 0)
+        {
+            var extra =
+                await db.Users
+                    .AsNoTracking()
+                    .Where(x => idsUsuariosReapertura.Contains(x.Id))
+                    .ToDictionaryAsync(
+                        x => x.Id,
+                        x => x.NombreCompleto,
+                        ct);
+
+            foreach (var par in extra)
+            {
+                usuarios[par.Key] = par.Value;
+            }
+        }
+
+        var reaperturasDto =
+            reaperturas
+                .Select(x =>
+                    new CajaReaperturaDto(
+                        x.FechaUtc,
+                        usuarios.GetValueOrDefault(x.UsuarioId) ?? "—",
+                        x.Motivo,
+                        x.FechaCierreAnteriorUtc,
+                        usuarios.GetValueOrDefault(x.UsuarioCierreAnteriorId) ?? "—",
+                        x.SaldoFinalDeclaradoAnterior))
+                .ToList();
 
 
         string? usuarioCierre =
@@ -934,7 +1173,14 @@ public sealed class CajaService(
                 x.Detalle,
                 x.Importe,
                 x.Referencia,
-                x.PagoId))
+                x.PagoId,
+                x.PagoProveedorId,
+                x.AnuladoUtc.HasValue,
+                x.AnulaMovimientoId.HasValue,
+                x.MotivoAnulacion,
+                x.CreadoPorUsuarioId.HasValue
+                    ? usuarios.GetValueOrDefault(x.CreadoPorUsuarioId.Value)
+                    : null))
         .ToList();
 
 
@@ -967,7 +1213,9 @@ public sealed class CajaService(
 
             caja.Observaciones,
 
-            movimientosDto);
+            movimientosDto,
+
+            reaperturasDto);
     }
 
 

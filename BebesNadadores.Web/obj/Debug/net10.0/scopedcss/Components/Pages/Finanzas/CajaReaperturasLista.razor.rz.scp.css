@@ -1,0 +1,64 @@
+.reopen-history[b-el878lreuv] {
+    margin-top: 14px;
+    padding: 12px 14px;
+
+    border: 1px solid rgba(11, 145, 223, .18);
+    border-radius: 14px;
+
+    background: rgba(11, 145, 223, .05);
+
+    font-size: 13px;
+}
+
+.reopen-history header[b-el878lreuv] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #0b7fc4;
+}
+
+.reopen-history ul[b-el878lreuv] {
+    margin: 8px 0 0;
+    padding: 0;
+
+    list-style: none;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.reopen-history li[b-el878lreuv] {
+    padding-top: 8px;
+
+    border-top: 1px solid rgba(11, 145, 223, .14);
+}
+
+.reopen-history li:first-child[b-el878lreuv] {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.reopen-line[b-el878lreuv] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+}
+
+.reopen-when[b-el878lreuv] {
+    color: #0b7fc4;
+    font-weight: 700;
+}
+
+.reopen-detail[b-el878lreuv] {
+    margin-top: 2px;
+
+    color: var(--mud-palette-text-secondary, #6b7c87);
+}
+
+.reopen-reason[b-el878lreuv] {
+    margin-top: 2px;
+
+    font-style: italic;
+}

@@ -52,9 +52,17 @@ Task<GeneracionSesionesDto> GenerarSesionesFaltantesCicloAsync(
         CancellationToken ct = default);
 
 
+    /*
+     * Cancela una clase a mano.
+     * - generaRecupero: los bebés de la clase reciben un recupero
+     *   (se genera cuando llega el día de la clase).
+     * - Los recuperos que estaban reservados para usarse en esta
+     *   clase vuelven a quedar disponibles.
+     */
     Task CancelarSesionAsync(
         Guid sesionId,
         string motivo,
+        bool generaRecupero = true,
         CancellationToken ct = default);
 
 

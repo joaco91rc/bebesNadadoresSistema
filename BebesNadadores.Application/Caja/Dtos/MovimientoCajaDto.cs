@@ -11,4 +11,9 @@ public sealed record MovimientoCajaDto(
     string? Detalle,
     decimal Importe,
     string? Referencia,
-    Guid? PagoId);
+    Guid? PagoId,
+    Guid? PagoProveedorId = null,
+    bool Anulado = false,
+    bool EsAnulacion = false,
+    string? MotivoAnulacion = null,
+    string? RegistradoPor = null);

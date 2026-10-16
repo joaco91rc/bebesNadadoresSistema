@@ -1,6 +1,6 @@
 @page "/bancos"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Bancos
 @using BebesNadadores.Application.Bancos.Dtos

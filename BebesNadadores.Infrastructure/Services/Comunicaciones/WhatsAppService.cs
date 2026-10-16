@@ -51,6 +51,25 @@ public sealed class WhatsAppService
         $"&text={mensajeCodificado}";
 }
 
+    public string? CrearUrlChat(
+        string? telefono)
+    {
+        if (string.IsNullOrWhiteSpace(
+            telefono))
+        {
+            return null;
+        }
+
+        var numero =
+            NormalizarNumeroArgentina(
+                telefono);
+
+        return string.IsNullOrWhiteSpace(numero)
+            ? null
+            : $"https://wa.me/{numero}";
+    }
+
+
 private static string CodificarUtf8(
     string texto)
 {

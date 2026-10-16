@@ -1,3 +1,7 @@
+using BebesNadadores.Application.Cuotas;
+using BebesNadadores.Application.Pagos;
+using BebesNadadores.Application.Recuperos;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using BebesNadadores.Application.Inscripciones;
 using BebesNadadores.Application.Inscripciones.Dtos;
@@ -11,10 +15,27 @@ namespace BebesNadadores.Infrastructure.Services.Inscripciones;
 
 public sealed class InscripcionService(
     IDbContextFactory<AppDbContext> factory,
-    IConfiguracionSistemaService configuracionService)
+    IConfiguracionSistemaService configuracionService,
+    IPagoService pagoService,
+    IRecuperosInicioMitadMesService recuperosInicio,
+    ILogger<InscripcionService> logger)
     : IInscripcionService
 {
-    public async Task CambiarAsync(
+    public Task CambiarAsync(
+        Guid bebeId,
+        CambiarInscripcionDto dto,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => CambiarInternoAsync(
+                bebeId,
+                dto,
+                ct),
+            ct);
+    }
+
+
+    private async Task CambiarInternoAsync(
         Guid bebeId,
         CambiarInscripcionDto dto,
         CancellationToken ct = default)
@@ -612,6 +633,40 @@ if (
     }
 
     public async Task CrearPrimeraAsync(
+        Guid bebeId,
+        CambiarInscripcionDto dto,
+        CancellationToken ct = default)
+    {
+        await ReintentoTransaccional.EjecutarAsync(
+            () => CrearPrimeraInternoAsync(
+                bebeId,
+                dto,
+                ct),
+            ct);
+
+        /*
+         * Después del commit (cada uno usa su propio DbContext):
+         * - si tenía saldo a favor de antes, se aplica a la cuota nueva;
+         * - si arrancó a mitad de mes, se genera su recupero de regalo.
+         * Si algo de esto falla, la reinscripción ya quedó hecha y el
+         * job diario lo vuelve a intentar.
+         */
+        try
+        {
+            await pagoService.AplicarSaldosAFavorAsync(bebeId, ct);
+            await recuperosInicio.GenerarPendientesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Reinscripción del bebé {BebeId}: no se pudo aplicar saldo a favor o generar el recupero de inicio.",
+                bebeId);
+        }
+    }
+
+
+    private async Task CrearPrimeraInternoAsync(
     Guid bebeId,
     CambiarInscripcionDto dto,
     CancellationToken ct = default)
@@ -637,13 +692,20 @@ if (
 
 
     // =========================================================
-    // POR AHORA LOS CAMBIOS SE APLICAN DESDE HOY
+    // FECHA DE INICIO: HOY O EL 1° DEL MES SIGUIENTE
+    //
+    // Del 15 en adelante la administrativa puede elegir arrancar
+    // hoy (media cuota + recupero) o el 1° del mes siguiente.
     // =========================================================
 
-    if (dto.AplicarDesde != hoy)
+    var primeroMesSiguiente =
+        ReglasCuota.PrimerDiaMesSiguiente(hoy);
+
+    if (dto.AplicarDesde != hoy &&
+        dto.AplicarDesde != primeroMesSiguiente)
     {
         throw new InvalidOperationException(
-            "Por el momento la inscripción debe comenzar en la fecha actual.");
+            $"La inscripción puede comenzar hoy o el {primeroMesSiguiente:dd/MM/yyyy}.");
     }
 
 
@@ -1112,10 +1174,124 @@ if (
         inscripcion);
 
 
+    // =========================================================
+    // CUOTA DEL PRIMER MES
+    //
+    // Antes la reinscripción no cobraba el mes en que arrancaba
+    // (el generador solo toma inscripciones vigentes el día 1).
+    // =========================================================
+
+    await AgregarCuotaPrimerMesAsync(
+        db,
+        inscripcion,
+        configuracion.DiaVencimientoCuota,
+        hoy,
+        ct);
+
+
     await db.SaveChangesAsync(ct);
 
 
     await transaction.CommitAsync(ct);
+}
+
+
+/*
+ * Regla del primer mes (ReglasCuota):
+ *
+ * - Arranca el día 1 (o el 1° del mes siguiente): no se crea nada,
+ *   la cuota la genera el generador mensual ese día.
+ * - Arranca del 2 al 14: cuota completa del mes.
+ * - Arranca del 15 en adelante: media cuota + recupero de regalo
+ *   (BonificaRecuperoInicio).
+ *
+ * La cuota queda pendiente y se cobra desde Pagos.
+ * Si el bebé ya tiene una cuota vigente de ese mes (por ejemplo,
+ * se dio de baja y vuelve en el mismo mes), no se cobra otra.
+ */
+private static async Task AgregarCuotaPrimerMesAsync(
+    AppDbContext db,
+    Inscripcion inscripcion,
+    int diaVencimiento,
+    DateOnly hoy,
+    CancellationToken ct)
+{
+    var inicio =
+        inscripcion.FechaInicio;
+
+    if (inicio.Day == 1)
+        return;
+
+    var periodo =
+        new DateOnly(
+            inicio.Year,
+            inicio.Month,
+            1);
+
+    var yaTieneCuota =
+        await db.Cuotas
+            .AnyAsync(
+                x =>
+                    x.Inscripcion.BebeId == inscripcion.BebeId
+                    && x.Periodo == periodo
+                    && x.Estado != EstadoCuota.Anulada,
+                ct);
+
+    if (yaTieneCuota)
+        return;
+
+    var tarifa =
+        await db.TarifasPlan
+            .AsNoTracking()
+            .Where(x =>
+                x.PlanId == inscripcion.PlanId
+                && x.VigenciaDesde <= inicio
+                && (!x.VigenciaHasta.HasValue || x.VigenciaHasta.Value >= inicio))
+            .OrderByDescending(x => x.VigenciaDesde)
+            .FirstOrDefaultAsync(ct)
+        ?? throw new InvalidOperationException(
+            "El plan seleccionado no tiene una tarifa vigente.");
+
+    var importeMensual =
+        ReglasCuota.CalcularImporteMensual(
+            tarifa.PrecioMensual,
+            inscripcion.TipoDescuento,
+            inscripcion.ValorDescuento);
+
+    var mitadDeMes =
+        ReglasCuota.EsInicioAMitadDeMes(inicio);
+
+    var importe =
+        ReglasCuota.CalcularImportePrimerMes(
+            importeMensual,
+            inicio);
+
+    if (importe <= 0)
+        return;
+
+    var vencimientoDelMes =
+        new DateOnly(
+            periodo.Year,
+            periodo.Month,
+            Math.Clamp(diaVencimiento, 1, DateTime.DaysInMonth(periodo.Year, periodo.Month)));
+
+    db.Cuotas.Add(
+        new Cuota
+        {
+            Id = Guid.NewGuid(),
+            InscripcionId = inscripcion.Id,
+            Inscripcion = inscripcion,
+            Periodo = periodo,
+            FechaVencimiento = vencimientoDelMes > hoy ? vencimientoDelMes : hoy,
+            Importe = importe,
+            Estado = EstadoCuota.Pendiente,
+            Descripcion = mitadDeMes
+                ? $"Media cuota {periodo:MM/yyyy} (inicio {inicio:dd/MM})"
+                : $"Cuota {periodo:MM/yyyy}"
+        });
+
+    inscripcion.BonificaRecuperoInicio =
+        mitadDeMes;
 }
 
 private static int CalcularEdadMesesInscripcion(

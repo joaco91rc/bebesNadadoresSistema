@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using BebesNadadores.Application.Anulaciones;
 using BebesNadadores.Application.Bancos;
 using BebesNadadores.Application.Bancos.Dtos;
 using BebesNadadores.Application.Proveedores;
@@ -19,6 +20,10 @@ public partial class PagosProveedor
 
     [Inject]
     protected IProveedorService ProveedorService { get; set; }
+        = null!;
+
+    [Inject]
+    protected IAnulacionService AnulacionService { get; set; }
         = null!;
 
     [Inject]
@@ -81,13 +86,22 @@ public partial class PagosProveedor
     // CALCULADOS
     // =========================================================
 
+    /*
+     * Los pagos anulados se siguen listando (tachados) pero no
+     * cuentan en ningún total.
+     */
+    protected IEnumerable<PagoProveedorDto> PagosVigentes =>
+        _pagos.Where(x =>
+            !x.Anulado);
+
+
     protected decimal TotalPagado =>
-        _pagos.Sum(x =>
+        PagosVigentes.Sum(x =>
             x.Importe);
 
 
     protected decimal TotalEfectivo =>
-        _pagos
+        PagosVigentes
             .Where(x =>
                 x.MedioPago ==
                     MedioPago.Efectivo)
@@ -96,7 +110,7 @@ public partial class PagosProveedor
 
 
     protected decimal TotalBancario =>
-        _pagos
+        PagosVigentes
             .Where(x =>
                 x.MedioPago !=
                     MedioPago.Efectivo)
@@ -117,6 +131,56 @@ public partial class PagosProveedor
         OnParametersSetAsync()
     {
         await CargarAsync();
+    }
+
+
+    // =========================================================
+    // ANULAR PAGO
+    // =========================================================
+
+    protected PagoProveedorDto? _pagoAAnular;
+
+
+    protected void AbrirAnularPago(
+        PagoProveedorDto pago)
+    {
+        _pagoAAnular = pago;
+    }
+
+
+    protected void CerrarAnulacion()
+    {
+        _pagoAAnular = null;
+    }
+
+
+    protected async Task ConfirmarAnulacionAsync(
+        string motivo)
+    {
+        if (_pagoAAnular is null)
+            return;
+
+        var auth =
+            await AuthenticationStateProvider
+                .GetAuthenticationStateAsync();
+
+        if (!Guid.TryParse(
+                auth.User.FindFirstValue(ClaimTypes.NameIdentifier),
+                out var usuarioId))
+        {
+            throw new InvalidOperationException(
+                "No se pudo determinar el usuario autenticado.");
+        }
+
+        await AnulacionService.AnularPagoProveedorAsync(
+            _pagoAAnular.Id,
+            motivo,
+            usuarioId);
+
+        _mensaje = "El pago al proveedor fue anulado.";
+        _error = null;
+
+        await RecargarPagosAsync();
     }
 
 
@@ -178,7 +242,7 @@ public partial class PagosProveedor
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -337,7 +401,7 @@ public partial class PagosProveedor
         catch (Exception ex)
         {
             _errorModal =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {

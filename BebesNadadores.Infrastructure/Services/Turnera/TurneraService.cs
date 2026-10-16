@@ -5,13 +5,14 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Application.Configuracion;
 using BebesNadadores.Infrastructure.Persistence;
+using BebesNadadores.Infrastructure.Services.Recuperos;
 using Microsoft.EntityFrameworkCore;
 
 namespace BebesNadadores.Infrastructure.Services.Turnera;
 
 public sealed class TurneraService(
     IDbContextFactory<AppDbContext> factory,
-    IConfiguracionSistemaService configuracionService)
+    GeneradorRecuperosClasesNoDictadas generadorRecuperos)
     : ITurneraService
 {
     // =========================================================
@@ -1109,7 +1110,7 @@ public sealed class TurneraService(
          * No generamos recuperos futuros antes de que
          * efectivamente llegue la clase perdida.
          */
-        await GenerarRecuperosPorClasesNoDictadasAsync(db, desde, hasta, ct);
+        await generadorRecuperos.GenerarAsync(db, desde, hasta, ct);
 
         return new GeneracionSesionesDto(generadas, yaExistentes);
     }
@@ -1260,7 +1261,9 @@ public sealed class TurneraService(
 
         detalleBebes = detalleBebes.OrderBy(x => x.NombreCompleto).ToList();
 
-        var sesionDto = MapearSesion(sesion, detalleBebes.Count);
+        var ocupacion = await CalculadoraCupoSesion.CalcularAsync(db, sesion, ct);
+
+        var sesionDto = MapearSesion(sesion, ocupacion);
 
         return new SesionClaseDetalleDto(sesionDto, detalleBebes);
     }
@@ -1272,6 +1275,7 @@ public sealed class TurneraService(
     public async Task CancelarSesionAsync(
         Guid sesionId,
         string motivo,
+        bool generaRecupero = true,
         CancellationToken ct = default
     )
     {
@@ -1291,6 +1295,11 @@ public sealed class TurneraService(
             throw new InvalidOperationException("No puede cancelar una clase finalizada.");
         }
 
+        if (sesion.Estado == EstadoSesionClase.Cancelada)
+        {
+            throw new InvalidOperationException("La clase ya se encuentra cancelada.");
+        }
+
         sesion.Estado = EstadoSesionClase.Cancelada;
 
         sesion.MotivoCancelacion = motivo.Trim();
@@ -1301,7 +1310,32 @@ public sealed class TurneraService(
          */
         sesion.DiaNoLaborableId = null;
 
+        sesion.CancelacionGeneraRecupero = generaRecupero;
+
+        /*
+         * Quien había reservado un recupero para usarlo en esta
+         * clase lo recupera para elegir otra.
+         */
+        await GeneradorRecuperosClasesNoDictadas.LiberarReservasEnSesionesAsync(
+            db,
+            [sesion.Id],
+            ct);
+
         await db.SaveChangesAsync(ct);
+
+        /*
+         * Si la clase es de hoy o ya pasó, el recupero se genera
+         * ahora. Si es futura, lo genera el job diario cuando
+         * llegue el día.
+         */
+        if (generaRecupero)
+        {
+            await generadorRecuperos.GenerarAsync(
+                db,
+                sesion.Fecha,
+                sesion.Fecha,
+                ct);
+        }
     }
 
     // =========================================================
@@ -1337,11 +1371,40 @@ public sealed class TurneraService(
             );
         }
 
+        /*
+         * Si la clase vuelve a dictarse, los recuperos que generó
+         * su cancelación dejan de corresponder. Si alguno ya se
+         * usó, no se puede reactivar (igual que con los cierres).
+         */
+        var recuperosGenerados = await db
+            .Recuperaciones.Where(x =>
+                x.SesionOrigenId == sesion.Id
+                && x.Tipo == TipoRecuperacion.ClaseNoDictada
+                && x.Estado != EstadoRecuperacion.Anulada
+            )
+            .ToListAsync(ct);
+
+        if (recuperosGenerados.Any(x => x.Estado == EstadoRecuperacion.Utilizada))
+        {
+            throw new InvalidOperationException(
+                "La clase no puede reactivarse porque uno de los recuperos que generó ya fue utilizado."
+            );
+        }
+
+        foreach (var recupero in recuperosGenerados)
+        {
+            recupero.Estado = EstadoRecuperacion.Anulada;
+            recupero.SesionUsoId = null;
+            recupero.UtilizadaUtc = null;
+        }
+
         sesion.Estado = EstadoSesionClase.Programada;
 
         sesion.MotivoCancelacion = null;
 
         sesion.DiaNoLaborableId = null;
+
+        sesion.CancelacionGeneraRecupero = false;
 
         await db.SaveChangesAsync(ct);
     }
@@ -1405,209 +1468,6 @@ public sealed class TurneraService(
     }
 
     // =========================================================
-    // RECUPEROS POR FERIADOS / CIERRES
-    // =========================================================
-
-    private async Task GenerarRecuperosPorClasesNoDictadasAsync(
-        AppDbContext db,
-        DateOnly desde,
-        DateOnly hasta,
-        CancellationToken ct
-    )
-    {
-
-        var configuracion =
-    await configuracionService.ObtenerAsync(ct);
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
-
-        var hastaReal = hasta > hoy ? hoy : hasta;
-
-        if (hastaReal < desde)
-            return;
-
-        // =========================================================
-        // SESIONES CANCELADAS POR DÍA NO LABORABLE
-        // =========================================================
-
-        var sesiones = await db
-            .SesionesClase.AsNoTracking()
-            .Include(x => x.DiaNoLaborable)
-            .Where(x =>
-                x.Fecha >= desde
-                && x.Fecha <= hastaReal
-                && x.Estado == EstadoSesionClase.Cancelada
-                && x.DiaNoLaborableId != null
-            )
-            .ToListAsync(ct);
-
-        sesiones = sesiones
-            .Where(x =>
-                x.DiaNoLaborable is not null
-                && x.DiaNoLaborable.Activo
-                && x.DiaNoLaborable.GeneraRecupero
-            )
-            .ToList();
-
-        if (sesiones.Count == 0)
-            return;
-
-        // =========================================================
-        // IDS
-        // =========================================================
-
-        var sesionIds = sesiones.Select(x => x.Id).ToList();
-
-        var turnoIds = sesiones.Select(x => x.TurnoId).Distinct().ToList();
-
-        // =========================================================
-        // RECUPEROS YA EXISTENTES
-        // =========================================================
-
-        var existentes = await db
-            .Recuperaciones.AsNoTracking()
-            .Where(x => sesionIds.Contains(x.SesionOrigenId))
-            .Select(x => new { x.BebeId, x.SesionOrigenId })
-            .ToListAsync(ct);
-
-        var claves = existentes.Select(x => (x.BebeId, x.SesionOrigenId)).ToHashSet();
-
-        // =========================================================
-        // INSCRIPCIONES REGULARES
-        // =========================================================
-
-        var inscripciones = await db
-            .InscripcionesTurnos.AsNoTracking()
-            .Include(x => x.Inscripcion)
-            .Where(x => turnoIds.Contains(x.TurnoId))
-            .ToListAsync(ct);
-
-        // =========================================================
-        // RESERVAS INICIALES
-        // =========================================================
-
-        var reservasIniciales = await db
-            .ReservasSesionesClase.AsNoTracking()
-            .Where(x =>
-                sesionIds.Contains(x.SesionClaseId) && x.Estado == EstadoReservaSesion.Activa
-            )
-            .ToListAsync(ct);
-
-        // =========================================================
-        // PROCESAR CADA SESIÓN
-        // =========================================================
-
-        foreach (var sesion in sesiones)
-        {
-            var cierre = sesion.DiaNoLaborable!;
-
-            // =====================================================
-            // 1. ALUMNOS REGULARES
-            // =====================================================
-
-            var asignaciones = inscripciones.Where(x =>
-                x.TurnoId == sesion.TurnoId && InscripcionValidaEnFecha(x.Inscripcion, sesion.Fecha)
-            );
-
-            foreach (var asignacion in asignaciones)
-            {
-                var bebeId = asignacion.Inscripcion.BebeId;
-
-                // Ya existe un recupero para
-                // bebé + sesión.
-                if (claves.Contains((bebeId, sesion.Id)))
-                {
-                    continue;
-                }
-
-                var recuperacion = new Recuperacion
-                {
-                    Id = Guid.NewGuid(),
-
-                    BebeId = bebeId,
-
-                    InscripcionId = asignacion.InscripcionId,
-
-                    SesionOrigenId = sesion.Id,
-
-                    AsistenciaOrigenId = null,
-
-                    Tipo = TipoRecuperacion.ClaseNoDictada,
-
-                    FechaGeneracion = sesion.Fecha,
-
-                    FechaVencimiento = cierre.RecuperoSinVencimiento
-                        ? null
-                        : sesion.Fecha.AddDays(
-    configuracion.DiasVigenciaRecupero),
-
-                    Estado = EstadoRecuperacion.Disponible,
-                };
-
-                db.Recuperaciones.Add(recuperacion);
-
-                claves.Add((bebeId, sesion.Id));
-            }
-
-            // =====================================================
-            // 2. RESERVAS DE PRIMERA CLASE
-            // =====================================================
-
-            var reservasSesion = reservasIniciales.Where(x => x.SesionClaseId == sesion.Id);
-
-            foreach (var reserva in reservasSesion)
-            {
-                var bebeId = reserva.BebeId;
-
-                /*
-                 * Si también era alumno regular,
-                 * el recupero ya fue generado arriba.
-                 *
-                 * Por eso las reservas se procesan
-                 * DESPUÉS de las inscripciones regulares.
-                 */
-                if (claves.Contains((bebeId, sesion.Id)))
-                {
-                    continue;
-                }
-
-                var recuperacion = new Recuperacion
-                {
-                    Id = Guid.NewGuid(),
-
-                    BebeId = bebeId,
-
-                    InscripcionId = reserva.InscripcionId,
-
-                    SesionOrigenId = sesion.Id,
-
-                    AsistenciaOrigenId = null,
-
-                    Tipo = TipoRecuperacion.ClaseNoDictada,
-
-                    FechaGeneracion = sesion.Fecha,
-
-                    FechaVencimiento = cierre.RecuperoSinVencimiento
-                        ? null
-                        : sesion.Fecha.AddDays(
-    configuracion.DiasVigenciaRecupero),
-
-                    Estado = EstadoRecuperacion.Disponible,
-                };
-
-                db.Recuperaciones.Add(recuperacion);
-
-                claves.Add((bebeId, sesion.Id));
-            }
-        }
-
-        // =========================================================
-        // GUARDAR
-        // =========================================================
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    // =========================================================
     // MAPEO SESIONES CON CUPO REAL
     // =========================================================
 
@@ -1620,107 +1480,15 @@ public sealed class TurneraService(
         if (sesiones.Count == 0)
             return [];
 
-        var turnoIds = sesiones.Select(x => x.TurnoId).Distinct().ToList();
+        /*
+         * Misma cuenta que Recuperos y el alta de bebé
+         * (ver CalculadoraCupoSesion).
+         */
+        var ocupacion = await CalculadoraCupoSesion.CalcularAsync(db, sesiones, ct);
 
-        var sesionIds = sesiones.Select(x => x.Id).ToList();
-
-        // =========================================================
-        // ALUMNOS REGULARES
-        // =========================================================
-
-        var inscripciones = await db
-            .InscripcionesTurnos.AsNoTracking()
-            .Include(x => x.Inscripcion)
-            .Where(x => turnoIds.Contains(x.TurnoId))
-            .ToListAsync(ct);
-
-        // =========================================================
-        // RECUPEROS RESERVADOS
-        // =========================================================
-
-        var recuperos = await db
-            .Recuperaciones.AsNoTracking()
-            .Where(x =>
-                x.SesionUsoId != null
-                && sesionIds.Contains(x.SesionUsoId.Value)
-                && (
-                    x.Estado == EstadoRecuperacion.Reservada
-                    || x.Estado == EstadoRecuperacion.Utilizada
-                )
-            )
-            .ToListAsync(ct);
-
-        // =========================================================
-        // RESERVAS DE PRIMERA CLASE
-        // =========================================================
-
-        var reservasIniciales = await db
-            .ReservasSesionesClase.AsNoTracking()
-            .Where(x =>
-                sesionIds.Contains(x.SesionClaseId) && x.Estado == EstadoReservaSesion.Activa
-            )
-            .ToListAsync(ct);
-
-        var resultado = new List<SesionClaseDto>();
-
-        foreach (var sesion in sesiones)
-        {
-            /*
-             * HashSet es importante:
-             *
-             * si por alguna situación el bebé aparece como
-             * regular y además tiene una reserva para esa misma
-             * sesión, ocupa UN solo lugar.
-             */
-            var bebes = new HashSet<Guid>();
-
-            // =====================================================
-            // REGULARES
-            // =====================================================
-
-            foreach (var relacion in inscripciones)
-            {
-                if (relacion.TurnoId != sesion.TurnoId)
-                {
-                    continue;
-                }
-
-                if (!InscripcionValidaEnFecha(relacion.Inscripcion, sesion.Fecha))
-                {
-                    continue;
-                }
-
-                bebes.Add(relacion.Inscripcion.BebeId);
-            }
-
-            // =====================================================
-            // RECUPEROS
-            // =====================================================
-
-            foreach (var recupero in recuperos)
-            {
-                if (recupero.SesionUsoId == sesion.Id)
-                {
-                    bebes.Add(recupero.BebeId);
-                }
-            }
-
-            // =====================================================
-            // RESERVAS INICIALES
-            // =====================================================
-
-            foreach (var reserva in reservasIniciales)
-            {
-                if (reserva.SesionClaseId == sesion.Id)
-                {
-                    bebes.Add(reserva.BebeId);
-                }
-            }
-
-            resultado.Add(MapearSesion(sesion, bebes.Count));
-        }
-
-        return resultado;
+        return sesiones
+            .Select(x => MapearSesion(x, ocupacion[x.Id]))
+            .ToList();
     }
 
     private static TurnoDto MapearTurno(Turno turno)
@@ -1751,7 +1519,15 @@ public sealed class TurneraService(
         );
     }
 
-    private static SesionClaseDto MapearSesion(SesionClase sesion, int inscriptos)
+    private static SesionClaseDto MapearSesion(SesionClase sesion, OcupacionSesion ocupacion)
+    {
+        return MapearSesion(
+            sesion,
+            ocupacion.Esperados,
+            ocupacion.Libres);
+    }
+
+    private static SesionClaseDto MapearSesion(SesionClase sesion, int inscriptos, int disponibles)
     {
         return new SesionClaseDto(
             sesion.Id,
@@ -1765,7 +1541,7 @@ public sealed class TurneraService(
             sesion.Nivel.Nombre,
             sesion.Cupo,
             inscriptos,
-            Math.Max(0, sesion.Cupo - inscriptos),
+            disponibles,
             sesion.Sector,
             sesion.Estado,
             sesion.MotivoCancelacion,
@@ -2481,7 +2257,7 @@ private async Task<GeneracionSesionesDto>
         await db.SaveChangesAsync(ct);
     }
 
-    await GenerarRecuperosPorClasesNoDictadasAsync(
+    await generadorRecuperos.GenerarAsync(
         db,
         desde,
         hasta,

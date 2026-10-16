@@ -1,0 +1,268 @@
+@using System.Globalization
+
+@*
+    =================================================================
+    MODAL DE CONFIRMACIÓN CON MOTIVO (reutilizable)
+    =================================================================
+
+    Pide el motivo (obligatorio), muestra sobre qué se va a actuar y
+    ejecuta la acción que le pasa la pantalla. Si la acción falla,
+    muestra el error sin cerrarse.
+
+    Por defecto es una ANULACIÓN (rojo). Para otras acciones con
+    motivo (ej.: reabrir caja) se cambian Eyebrow, TextoConfirmar,
+    Icono y Tono="normal".
+
+    Uso:
+
+    <BnAnulacionModal Visible="_anulacion is not null"
+                      Titulo="Anular pago"
+                      Detalle="Transferencia · 13/10/2026"
+                      Importe="30000"
+                      Aviso="Las cuotas que cancelaba vuelven a quedar pendientes."
+                      OnConfirmar="ConfirmarAnulacionAsync"
+                      OnCerrar="CerrarAnulacion" />
+*@
+
+@if (Visible)
+{
+    <div class="bn-anul-overlay"
+         @onclick="CerrarAsync">
+
+        <div class="bn-anul-modal @(Tono == "normal" ? "tono-normal" : "")"
+             role="dialog"
+             aria-modal="true"
+             @onclick:stopPropagation="true">
+
+            <header class="bn-anul-header">
+
+                <span class="bn-anul-icon">
+                    <MudIcon Icon="@(Icono ?? Icons.Material.Filled.Block)"
+                             Size="Size.Small" />
+                </span>
+
+                <div>
+                    <span class="bn-anul-eyebrow">
+                        @Eyebrow
+                    </span>
+
+                    <h3>
+                        @Titulo
+                    </h3>
+                </div>
+
+            </header>
+
+
+            <div class="bn-anul-body">
+
+                @if (!string.IsNullOrWhiteSpace(Detalle) || Importe.HasValue)
+                {
+                    <div class="bn-anul-resumen">
+
+                        <span>
+                            @Detalle
+                        </span>
+
+                        @if (Importe.HasValue)
+                        {
+                            <strong>
+                                @FormatearMoneda(Importe.Value)
+                            </strong>
+                        }
+
+                    </div>
+                }
+
+
+                @if (!string.IsNullOrWhiteSpace(Aviso))
+                {
+                    <p class="bn-anul-aviso">
+                        @Aviso
+                    </p>
+                }
+
+
+                <label class="bn-anul-label"
+                       for="bn-anul-motivo">
+                    Motivo *
+                </label>
+
+                <textarea id="bn-anul-motivo"
+                          rows="3"
+                          maxlength="300"
+                          placeholder="@Placeholder"
+                          disabled="@_procesando"
+                          @bind="_motivo"
+                          @bind:event="oninput">
+                </textarea>
+
+                <small class="bn-anul-contador">
+                    @(_motivo?.Length ?? 0)/300
+                </small>
+
+
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+                    <div class="bn-anul-error">
+                        @_error
+                    </div>
+                }
+
+            </div>
+
+
+            <footer class="bn-anul-footer">
+
+                <button type="button"
+                        class="bn-anul-cancelar"
+                        disabled="@_procesando"
+                        @onclick="CerrarAsync">
+                    Volver
+                </button>
+
+                <button type="button"
+                        class="bn-anul-confirmar"
+                        disabled="@(!PuedeConfirmar)"
+                        @onclick="ConfirmarAsync">
+
+                    @if (_procesando)
+                    {
+                        <MudProgressCircular Size="Size.Small"
+                                             Indeterminate="true" />
+                        <span>@TextoProcesando</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@(Icono ?? Icons.Material.Filled.Block)"
+                                 Size="Size.Small" />
+                        <span>@TextoConfirmar</span>
+                    }
+
+                </button>
+
+            </footer>
+
+        </div>
+
+    </div>
+}
+
+
+@code {
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Titulo { get; set; } = "Anular";
+
+    [Parameter]
+    public string? Detalle { get; set; }
+
+    [Parameter]
+    public decimal? Importe { get; set; }
+
+    [Parameter]
+    public string? Aviso { get; set; }
+
+    [Parameter]
+    public string Eyebrow { get; set; } = "ANULACIÓN";
+
+    [Parameter]
+    public string TextoConfirmar { get; set; } = "Anular";
+
+    [Parameter]
+    public string TextoProcesando { get; set; } = "Anulando...";
+
+    [Parameter]
+    public string? Icono { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } =
+        "Ej.: importe mal cargado, se registró dos veces...";
+
+    /*
+     * "peligro" (rojo, por defecto) o "normal" (azul).
+     */
+    [Parameter]
+    public string Tono { get; set; } = "peligro";
+
+    /*
+     * Recibe el motivo. Si lanza una excepción, el modal muestra el
+     * mensaje y queda abierto para corregir / reintentar.
+     */
+    [Parameter]
+    public Func<string, Task>? OnConfirmar { get; set; }
+
+    [Parameter]
+    public EventCallback OnCerrar { get; set; }
+
+
+    private string? _motivo;
+
+    private string? _error;
+
+    private bool _procesando;
+
+    private bool _visibleAnterior;
+
+
+    private bool PuedeConfirmar =>
+        !_procesando
+        && !string.IsNullOrWhiteSpace(_motivo);
+
+
+    protected override void OnParametersSet()
+    {
+        // Cada vez que se abre, arranca limpio.
+        if (Visible && !_visibleAnterior)
+        {
+            _motivo = null;
+            _error = null;
+            _procesando = false;
+        }
+
+        _visibleAnterior = Visible;
+    }
+
+
+    private async Task ConfirmarAsync()
+    {
+        if (!PuedeConfirmar || OnConfirmar is null)
+            return;
+
+        try
+        {
+            _procesando = true;
+            _error = null;
+
+            await OnConfirmar(_motivo!.Trim());
+
+            await OnCerrar.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = Errores.Mensaje(ex);
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+
+    private async Task CerrarAsync()
+    {
+        if (_procesando)
+            return;
+
+        await OnCerrar.InvokeAsync();
+    }
+
+
+    private static string FormatearMoneda(decimal valor) =>
+        valor.ToString(
+            "C0",
+            CultureInfo.GetCultureInfo("es-AR"));
+}

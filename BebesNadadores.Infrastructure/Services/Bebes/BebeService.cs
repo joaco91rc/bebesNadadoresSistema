@@ -1,13 +1,23 @@
+using BebesNadadores.Application.Cuotas;
+using BebesNadadores.Application.Recuperos;
+using Microsoft.Extensions.Logging;
 using BebesNadadores.Application.Bebes;
 using BebesNadadores.Application.Bebes.Dtos;
 using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
+using BebesNadadores.Infrastructure.Services.Pagos;
+using BebesNadadores.Infrastructure.Services.Turnera;
 using Microsoft.EntityFrameworkCore;
 
 namespace BebesNadadores.Infrastructure.Services.Bebes;
 
-public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebeService
+public sealed class BebeService(
+    IDbContextFactory<AppDbContext> factory,
+    RegistradorCobros registradorCobros,
+    IRecuperosInicioMitadMesService recuperosInicio,
+    ILogger<BebeService> logger
+) : IBebeService
 {
     // =========================================================
     // LISTAR
@@ -66,7 +76,40 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
     // CREAR
     // =========================================================
 
-    public async Task<Guid> CrearAsync(GuardarBebeDto dto, CancellationToken ct = default)
+    public async Task<Guid> CrearAsync(
+        GuardarBebeDto dto,
+        CancellationToken ct = default)
+    {
+        var bebeId =
+            await ReintentoTransaccional.EjecutarAsync(
+                () => CrearInternoAsync(
+                    dto,
+                    ct),
+                ct);
+
+        /*
+         * Si arrancó a mitad de mes le corresponde un recupero de
+         * regalo. Si falla (por ejemplo, la turnera todavía no tiene
+         * su primera clase), lo vuelve a intentar el job diario: el
+         * alta no se cae por esto.
+         */
+        try
+        {
+            await recuperosInicio.GenerarPendientesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "No se pudo generar el recupero de inicio a mitad de mes del bebé {BebeId}; lo reintenta el job diario.",
+                bebeId);
+        }
+
+        return bebeId;
+    }
+
+
+    private async Task<Guid> CrearInternoAsync(GuardarBebeDto dto, CancellationToken ct = default)
     {
         ValidarDto(dto);
 
@@ -86,6 +129,25 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
         // =========================================================
 
         var hoy = DateOnly.FromDateTime(DateTime.Today);
+
+        // =========================================================
+        // MEDIO DEL PAGO INICIAL
+        //
+        // Se valida al principio para no hacer todo el trabajo y
+        // fallar al final (ej.: caja cerrada).
+        // =========================================================
+
+        if (dto.MedioPagoInicial.IngresaACaja())
+        {
+            await RegistradorCobros.ObtenerCajaAbiertaHoyAsync(db, ct);
+        }
+        else if (dto.MedioPagoInicial.RequiereCuentaBancaria()
+            && !dto.CuentaBancariaId.HasValue)
+        {
+            throw new InvalidOperationException(
+                "Debe seleccionar la cuenta que recibió el pago inicial."
+            );
+        }
 
         if (dto.FechaNacimiento > hoy)
         {
@@ -245,26 +307,21 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
         // IMPORTE PRIMERA CUOTA
         // =========================================================
 
-        decimal importeDescuento = 0;
+        /*
+         * Regla del primer mes (ReglasCuota): del 1 al 14 cuota
+         * completa; del 15 en adelante media cuota + 1 recupero.
+         */
+        var importeMensual = ReglasCuota.CalcularImporteMensual(
+            tarifa.PrecioMensual,
+            dto.TipoDescuento,
+            dto.ValorDescuento
+        );
 
-        if (dto.TipoDescuento.HasValue && dto.ValorDescuento.HasValue)
-        {
-            importeDescuento = dto.TipoDescuento.Value switch
-            {
-                TipoDescuento.Porcentaje => tarifa.PrecioMensual * dto.ValorDescuento.Value / 100m,
+        var inicioAMitadDeMes = ReglasCuota.EsInicioAMitadDeMes(dto.FechaInicioInscripcion);
 
-                TipoDescuento.MontoFijo => dto.ValorDescuento.Value,
-
-                _ => 0m,
-            };
-        }
-
-        importeDescuento = Math.Round(importeDescuento, 2, MidpointRounding.AwayFromZero);
-
-        var importePrimeraCuota = Math.Round(
-            tarifa.PrecioMensual - importeDescuento,
-            2,
-            MidpointRounding.AwayFromZero
+        var importePrimeraCuota = ReglasCuota.CalcularImportePrimerMes(
+            importeMensual,
+            dto.FechaInicioInscripcion
         );
 
         if (importePrimeraCuota <= 0)
@@ -275,14 +332,15 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
         }
 
         // =========================================================
-        // PAGO INICIAL = 50 %
+        // PAGO INICIAL
+        //
+        // Cuota completa: se cobra el 50 % para confirmar.
+        // Media cuota: se cobra completa en el alta.
         // =========================================================
 
-        var importePagoInicial = Math.Round(
-            importePrimeraCuota * 0.50m,
-            2,
-            MidpointRounding.AwayFromZero
-        );
+        var importePagoInicial = inicioAMitadDeMes
+            ? importePrimeraCuota
+            : Math.Round(importePrimeraCuota * 0.50m, 2, MidpointRounding.AwayFromZero);
 
         // =========================================================
         // HORARIO HABITUAL
@@ -498,63 +556,17 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
 
             if (crearReservaInicial)
             {
-                // =================================================
-                // ALUMNOS REGULARES
-                // =================================================
+                /*
+                 * Misma cuenta que Turnera y Recuperos
+                 * (CalculadoraCupoSesion).
+                 */
+                var ocupacion = await CalculadoraCupoSesion.CalcularAsync(
+                    db,
+                    sesionInicial,
+                    ct
+                );
 
-                var bebesRegulares = await db
-                    .InscripcionesTurnos.AsNoTracking()
-                    .Where(x =>
-                        x.TurnoId == sesionInicial.TurnoId
-                        && x.Inscripcion.Estado == EstadoInscripcion.Activa
-                        && x.Inscripcion.FechaInicio <= sesionInicial.Fecha
-                        && (
-                            !x.Inscripcion.FechaFin.HasValue
-                            || x.Inscripcion.FechaFin.Value >= sesionInicial.Fecha
-                        )
-                    )
-                    .Select(x => x.Inscripcion.BebeId)
-                    .Distinct()
-                    .ToListAsync(ct);
-
-                // =================================================
-                // RECUPEROS
-                // =================================================
-
-                var bebesRecupero = await db
-                    .Recuperaciones.AsNoTracking()
-                    .Where(x =>
-                        x.SesionUsoId == sesionInicial.Id
-                        && (
-                            x.Estado == EstadoRecuperacion.Reservada
-                            || x.Estado == EstadoRecuperacion.Utilizada
-                        )
-                    )
-                    .Select(x => x.BebeId)
-                    .Distinct()
-                    .ToListAsync(ct);
-
-                // =================================================
-                // RESERVAS INICIALES EXISTENTES
-                // =================================================
-
-                var bebesReservados = await db
-                    .ReservasSesionesClase.AsNoTracking()
-                    .Where(x =>
-                        x.SesionClaseId == sesionInicial.Id
-                        && x.Estado == EstadoReservaSesion.Activa
-                    )
-                    .Select(x => x.BebeId)
-                    .Distinct()
-                    .ToListAsync(ct);
-
-                var ocupados = bebesRegulares
-                    .Concat(bebesRecupero)
-                    .Concat(bebesReservados)
-                    .Distinct()
-                    .Count();
-
-                if (ocupados >= sesionInicial.Cupo)
+                if (ocupacion.Libres <= 0)
                 {
                     throw new InvalidOperationException(
                         $"La clase del {sesionInicial.Fecha:dd/MM/yyyy} "
@@ -645,6 +657,8 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
             MotivoDescuento = string.IsNullOrWhiteSpace(dto.MotivoDescuento)
                 ? null
                 : dto.MotivoDescuento.Trim(),
+
+            BonificaRecuperoInicio = inicioAMitadDeMes,
         };
 
         // =========================================================
@@ -736,109 +750,39 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
 
             Estado = EstadoCuota.Pendiente,
 
-            Descripcion = $"Cuota {periodoPrimeraCuota:MM/yyyy}",
+            Descripcion = inicioAMitadDeMes
+                ? $"Media cuota {periodoPrimeraCuota:MM/yyyy} (inicio {dto.FechaInicioInscripcion:dd/MM})"
+                : $"Cuota {periodoPrimeraCuota:MM/yyyy}",
         };
 
         db.Cuotas.Add(cuota);
 
-        CuentaBancaria? cuentaBancaria = null;
-
-        if (dto.MedioPagoInicial == MedioPago.Transferencia)
-        {
-            if (!dto.CuentaBancariaId.HasValue)
-            {
-                throw new InvalidOperationException(
-                    "Debe seleccionar la cuenta bancaria que recibió la transferencia."
-                );
-            }
-
-            cuentaBancaria =
-                await db
-                    .CuentasBancarias.Include(x => x.Banco)
-                    .FirstOrDefaultAsync(
-                        x => x.Id == dto.CuentaBancariaId.Value && x.Activa && x.Banco.Activo,
-                        ct
-                    )
-                ?? throw new InvalidOperationException(
-                    "La cuenta bancaria seleccionada no existe o se encuentra inactiva."
-                );
-        }
-
         // =========================================================
         // PAGO INICIAL 50 %
+        //
+        // Se registra con el mismo componente que usa la pantalla
+        // de Pagos: efectivo -> caja del día, transferencia /
+        // tarjeta / Mercado Pago -> cuenta bancaria.
         // =========================================================
 
-        var pagoInicial = new Pago
-        {
-            Id = Guid.NewGuid(),
-
-            BebeId = bebe.Id,
-
-            Bebe = bebe,
-
-            ResponsableId = responsablePrincipalId,
-
-            FechaUtc = DateTimeOffset.UtcNow,
-
-            Importe = importePagoInicial,
-
-            MedioPago = dto.MedioPagoInicial,
-
-            ReferenciaExterna = null,
-
-            Observaciones = "Pago inicial de inscripción - 50% de la primera cuota.",
-
-            CajaId = null,
-            CuentaBancariaId = cuentaBancaria?.Id,
-        };
-
-        db.Pagos.Add(pagoInicial);
-
-        if (dto.MedioPagoInicial == MedioPago.Transferencia && cuentaBancaria is not null)
-        {
-            var movimientoBancario = new MovimientoBancario
-            {
-                Id = Guid.NewGuid(),
-
-                CuentaBancariaId = cuentaBancaria.Id,
-
-                FechaUtc = pagoInicial.FechaUtc,
-
-                Tipo = TipoMovimientoBancario.Ingreso,
-
-                Origen = OrigenMovimientoBancario.PagoBebe,
-
-                Importe = importePagoInicial,
-
-                Concepto = $"Pago inicial - " + $"{bebe.Nombre} {bebe.Apellido}",
-
-                PagoId = pagoInicial.Id,
-
-                ReferenciaExterna = pagoInicial.ReferenciaExterna,
-
-                Observaciones = "Ingreso generado automáticamente por inscripción inicial.",
-            };
-
-            db.MovimientosBancarios.Add(movimientoBancario);
-        }
-        // =========================================================
-        // IMPUTACIÓN
-        // =========================================================
-
-        var imputacion = new ImputacionPago
-        {
-            PagoId = pagoInicial.Id,
-
-            Pago = pagoInicial,
-
-            CuotaId = cuota.Id,
-
-            Cuota = cuota,
-
-            Importe = importePagoInicial,
-        };
-
-        db.ImputacionesPago.Add(imputacion);
+        await registradorCobros.RegistrarAsync(
+            db,
+            new NuevoCobro(
+                Bebe: bebe,
+                ResponsableId: responsablePrincipalId,
+                Importe: importePagoInicial,
+                MedioPago: dto.MedioPagoInicial,
+                CuentaBancariaId: dto.MedioPagoInicial.RequiereCuentaBancaria()
+                    ? dto.CuentaBancariaId
+                    : null,
+                ReferenciaExterna: null,
+                Observaciones: inicioAMitadDeMes
+                    ? "Pago inicial de inscripción - media cuota por inicio a mitad de mes."
+                    : "Pago inicial de inscripción - 50% de la primera cuota.",
+                CuotasAImputar: [cuota],
+                DetalleMovimiento: $"Pago inicial - {bebe.Nombre} {bebe.Apellido}",
+                UsuarioId: null),
+            ct);
 
         // =========================================================
         // GUARDAR
@@ -1124,7 +1068,23 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
             );
         }
 
+        var hoy = DateOnly.FromDateTime(DateTime.Today);
+
+        /*
+         * La baja impacta en el momento (el bebé deja de figurar como
+         * activo), por eso no se admite una fecha futura: si se va a
+         * fin de mes, se registra la baja ese día.
+         */
+        if (dto.Fecha > hoy)
+        {
+            throw new InvalidOperationException(
+                "La fecha de baja no puede ser futura. Registrá la baja el día que corresponda."
+            );
+        }
+
         await using var db = await factory.CreateDbContextAsync(ct);
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
         var bebe =
             await db.Bebes.FirstOrDefaultAsync(x => x.Id == id, ct)
@@ -1135,15 +1095,176 @@ public sealed class BebeService(IDbContextFactory<AppDbContext> factory) : IBebe
             return;
         }
 
-        bebe.DarDeBaja(dto.Fecha, dto.Motivo.Trim());
+        if (dto.Fecha < bebe.FechaAlta)
+        {
+            throw new InvalidOperationException(
+                $"La fecha de baja no puede ser anterior al alta del bebé ({bebe.FechaAlta:dd/MM/yyyy})."
+            );
+        }
+
+        var fechaBaja = dto.Fecha;
+
+        bebe.DarDeBaja(fechaBaja, dto.Motivo.Trim());
+
+        // =========================================================
+        // 1. INSCRIPCIONES
+        //
+        // Se cierran con FechaFin = fecha de baja. Así dejan de:
+        // - generar cuotas (GeneradorCuotasService),
+        // - figurar en la turnera / asistencia,
+        // - ocupar cupo en el turno.
+        // =========================================================
+
+        var inscripciones = await db
+            .Inscripciones.Where(x =>
+                x.BebeId == bebe.Id
+                && (
+                    x.Estado == EstadoInscripcion.Activa
+                    || x.Estado == EstadoInscripcion.Pausada
+                )
+            )
+            .ToListAsync(ct);
+
+        foreach (var inscripcion in inscripciones)
+        {
+            if (inscripcion.FechaInicio > fechaBaja)
+            {
+                // Nunca llegó a empezar.
+                inscripcion.Estado = EstadoInscripcion.Cancelada;
+                inscripcion.FechaFin = inscripcion.FechaInicio;
+            }
+            else
+            {
+                inscripcion.Estado = EstadoInscripcion.Finalizada;
+
+                if (!inscripcion.FechaFin.HasValue || inscripcion.FechaFin.Value > fechaBaja)
+                {
+                    inscripcion.FechaFin = fechaBaja;
+                }
+            }
+
+            inscripcion.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
+
+        // =========================================================
+        // 2. CUOTAS POSTERIORES AL MES DE BAJA
+        //
+        // Si la baja se carga con atraso (ej.: baja 30/09 cargada el
+        // 13/10), la cuota de octubre ya se generó. Se anula solo si
+        // no tiene pagos imputados; si tiene, queda como está para no
+        // perder el dinero recibido.
+        // =========================================================
+
+        var periodoBaja = new DateOnly(fechaBaja.Year, fechaBaja.Month, 1);
+
+        var cuotasPosteriores = await db
+            .Cuotas.Where(x =>
+                x.Inscripcion.BebeId == bebe.Id
+                && x.Periodo > periodoBaja
+                && x.Estado != EstadoCuota.Anulada
+                && !x.Imputaciones.Any()
+            )
+            .ToListAsync(ct);
+
+        foreach (var cuota in cuotasPosteriores)
+        {
+            cuota.Estado = EstadoCuota.Anulada;
+            cuota.AnuladaUtc = DateTimeOffset.UtcNow;
+            cuota.MotivoAnulacion = "Baja del bebé";
+            cuota.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
+
+        // =========================================================
+        // 3. RECUPEROS PENDIENTES
+        //
+        // Al anularse, los reservados liberan su lugar en la clase.
+        // =========================================================
+
+        var recuperos = await db
+            .Recuperaciones.Where(x =>
+                x.BebeId == bebe.Id
+                && (
+                    x.Estado == EstadoRecuperacion.Disponible
+                    || x.Estado == EstadoRecuperacion.Reservada
+                )
+            )
+            .ToListAsync(ct);
+
+        foreach (var recupero in recuperos)
+        {
+            recupero.Estado = EstadoRecuperacion.Anulada;
+            recupero.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
+
+        // =========================================================
+        // 4. RESERVAS DE CLASE INICIAL FUTURAS
+        // =========================================================
+
+        var reservas = await db
+            .ReservasSesionesClase.Where(x =>
+                x.BebeId == bebe.Id
+                && x.Estado == EstadoReservaSesion.Activa
+                && x.SesionClase.Fecha > fechaBaja
+            )
+            .ToListAsync(ct);
+
+        foreach (var reserva in reservas)
+        {
+            reserva.Estado = EstadoReservaSesion.Cancelada;
+            reserva.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
+
+        // =========================================================
+        // 5. LISTA DE ESPERA E INVITACIONES
+        // =========================================================
+
+        var solicitudes = await db
+            .ListaEspera.Where(x =>
+                x.BebeId == bebe.Id
+                && (
+                    x.Estado == EstadoListaEspera.Activa
+                    || x.Estado == EstadoListaEspera.Notificada
+                )
+            )
+            .ToListAsync(ct);
+
+        foreach (var solicitud in solicitudes)
+        {
+            solicitud.Estado = EstadoListaEspera.Cancelada;
+            solicitud.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
+
+        var invitaciones = await db
+            .InvitacionesVacante.Where(x =>
+                x.BebeId == bebe.Id
+                && (
+                    x.Estado == EstadoInvitacionVacante.Pendiente
+                    || x.Estado == EstadoInvitacionVacante.Enviada
+                )
+            )
+            .ToListAsync(ct);
+
+        foreach (var invitacion in invitaciones)
+        {
+            invitacion.Estado = EstadoInvitacionVacante.Vencida;
+            invitacion.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
 
         await db.SaveChangesAsync(ct);
+
+        await transaction.CommitAsync(ct);
     }
 
     // =========================================================
     // REACTIVAR
     // =========================================================
 
+    /*
+     * Reactivar NO revive la inscripción anterior (quedó Finalizada
+     * con la fecha de baja). Para volver a cursar se crea una nueva
+     * desde "Gestionar inscripción" (InscripcionService.CrearPrimeraAsync),
+     * eligiendo plan y horarios vigentes.
+     */
     public async Task ReactivarAsync(Guid id, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

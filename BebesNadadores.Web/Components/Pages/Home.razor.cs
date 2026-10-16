@@ -3,8 +3,10 @@ using BebesNadadores.Application.Bebes.Dtos;
 using BebesNadadores.Application.Dashboard.Dtos;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Identity;
+using BebesNadadores.Web.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.JSInterop;
+using MudBlazor;
 
 namespace BebesNadadores.Web.Components.Pages;
 
@@ -33,9 +35,25 @@ public partial class Home
     private void IrAAptosMedicos() =>
         Navigation.NavigateTo("/aptos-medicos");
 
-    private void AbrirAsistencia(Guid sesionClaseId) =>
+    private void AbrirAsistencia(Guid sesionClaseId)
+    {
+        if (!_puedeGestionar)
+            return;
+
         Navigation.NavigateTo(
             $"/asistencia?sesionId={sesionClaseId}");
+    }
+
+
+    // =========================================================
+    // PERMISOS (qué tarjetas y accesos ve cada rol)
+    // =========================================================
+
+    private bool _puedeGestionar;
+
+    private bool _puedeCaja;
+
+    private bool _puedeMedica;
 
 
     private string _nombreCompleto = "Usuario";
@@ -89,6 +107,9 @@ public partial class Home
 
     private void AbrirAsistenciaCompleta()
     {
+        if (!_puedeGestionar)
+            return;
+
         if (_claseActual is null)
         {
             Navigation.NavigateTo(
@@ -123,6 +144,19 @@ public partial class Home
 
             return;
         }
+
+
+        _puedeGestionar =
+            await Permisos.TieneAsync(
+                PoliticasSistema.GestionAdministrativa);
+
+        _puedeCaja =
+            await Permisos.TieneAsync(
+                PoliticasSistema.GestionCaja);
+
+        _puedeMedica =
+            await Permisos.TieneAsync(
+                PoliticasSistema.GestionMedica);
 
 
         if (principal.Identity?.IsAuthenticated == true)
@@ -305,19 +339,19 @@ public partial class Home
      "abrirWhatsAppBebesNadadores",
      url);
         }
-        catch
+        catch (Exception ex)
         {
-            /*
-             * Después, si querés, mostramos
-             * un mensaje visual en el dashboard.
-             */
+            Snackbar.Add(
+                Errores.Mensaje(ex),
+                Severity.Error);
         }
     }
     private async Task MarcarAsistencia(
         AsistenciaAlumnoDto alumno,
         EstadoAsistencia estado)
     {
-        if (_claseActual is null)
+        // SoloLectura ve la clase en curso pero no marca asistencia.
+        if (_claseActual is null || !_puedeGestionar)
             return;
 
 
@@ -359,12 +393,14 @@ public partial class Home
             await InvokeAsync(
                 StateHasChanged);
         }
-        catch
+        catch (Exception ex)
         {
             /*
-             * Después podemos mostrar snackbar acá.
-             * No dejamos romper el circuito Blazor.
+             * No dejamos romper el circuito: se avisa y queda en el log.
              */
+            Snackbar.Add(
+                Errores.Mensaje(ex),
+                Severity.Error);
         }
     }
 

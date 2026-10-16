@@ -1,0 +1,149 @@
+@using System.Globalization
+@using BebesNadadores.Application.Cuotas
+
+@*
+    =================================================================
+    INICIO A MITAD DE MES (reutilizable: alta y reinscripción)
+    =================================================================
+
+    Si la fecha elegida es del 15 en adelante (ReglasCuota), muestra
+    las dos opciones que da el natatorio y deja elegir:
+
+      - Arrancar ese día: media cuota + 1 recupero de regalo.
+      - Arrancar el 1° del mes siguiente: cuota completa.
+
+    Uso:
+
+    <BnInicioMitadMes FechaElegida="_fechaElegida"
+                      FechaActual="_form.FechaInicioInscripcion"
+                      ImporteMensual="..."
+                      OnElegir="ElegirInicioAsync" />
+*@
+
+@if (ReglasCuota.EsInicioAMitadDeMes(FechaElegida))
+{
+    var mesSiguiente =
+        ReglasCuota.PrimerDiaMesSiguiente(FechaElegida);
+
+    <div class="bn-inicio-mitad">
+
+        <div class="bn-inicio-mitad-header">
+
+            <MudIcon Icon="@Icons.Material.Filled.EventRepeat"
+                     Size="Size.Small" />
+
+            <div>
+                <strong>Arranca a mitad de mes</strong>
+                <small>
+                    Desde el día @ReglasCuota.DiaDesdeMediaCuota se elige cómo arranca.
+                </small>
+            </div>
+
+        </div>
+
+
+        <div class="bn-inicio-mitad-opciones">
+
+            <button type="button"
+                    class="bn-inicio-opcion @(FechaActual == FechaElegida ? "activa" : "")"
+                    @onclick="() => ElegirAsync(FechaElegida)">
+
+                <span class="bn-inicio-check">
+                    <MudIcon Icon="@(FechaActual == FechaElegida
+                                ? Icons.Material.Filled.RadioButtonChecked
+                                : Icons.Material.Filled.RadioButtonUnchecked)"
+                             Size="Size.Small" />
+                </span>
+
+                <span class="bn-inicio-texto">
+                    <strong>Arrancar el @FechaElegida.ToString("dd/MM")</strong>
+                    <small>
+                        Media cuota
+                        @if (ImporteMensual.HasValue)
+                        {
+                            <text>(@FormatearMoneda(ReglasCuota.CalcularImportePrimerMes(ImporteMensual.Value, FechaElegida)))</text>
+                        }
+                        + 1 clase de recupero de regalo
+                    </small>
+                </span>
+
+            </button>
+
+
+            <button type="button"
+                    class="bn-inicio-opcion @(FechaActual == mesSiguiente ? "activa" : "")"
+                    @onclick="() => ElegirAsync(mesSiguiente)">
+
+                <span class="bn-inicio-check">
+                    <MudIcon Icon="@(FechaActual == mesSiguiente
+                                ? Icons.Material.Filled.RadioButtonChecked
+                                : Icons.Material.Filled.RadioButtonUnchecked)"
+                             Size="Size.Small" />
+                </span>
+
+                <span class="bn-inicio-texto">
+                    <strong>Arrancar el 1° de @NombreMes(mesSiguiente)</strong>
+                    <small>
+                        Cuota completa
+                        @if (ImporteMensual.HasValue)
+                        {
+                            <text>(@FormatearMoneda(ImporteMensual.Value))</text>
+                        }
+                        desde ese mes
+                    </small>
+                </span>
+
+            </button>
+
+        </div>
+
+    </div>
+}
+
+@code {
+
+    /*
+     * Fecha que eligió la administrativa (la que dispara la regla).
+     */
+    [Parameter]
+    public DateOnly FechaElegida { get; set; }
+
+    /*
+     * Fecha de inicio que tiene hoy el formulario.
+     */
+    [Parameter]
+    public DateOnly FechaActual { get; set; }
+
+    /*
+     * Importe mensual con descuento (opcional, para mostrar montos).
+     */
+    [Parameter]
+    public decimal? ImporteMensual { get; set; }
+
+    [Parameter]
+    public EventCallback<DateOnly> OnElegir { get; set; }
+
+
+    private async Task ElegirAsync(
+        DateOnly fecha)
+    {
+        if (fecha == FechaActual)
+            return;
+
+        await OnElegir.InvokeAsync(fecha);
+    }
+
+
+    private static readonly CultureInfo Cultura =
+        CultureInfo.GetCultureInfo("es-AR");
+
+
+    private static string NombreMes(
+        DateOnly fecha) =>
+        fecha.ToString("MMMM", Cultura);
+
+
+    private static string FormatearMoneda(
+        decimal valor) =>
+        valor.ToString("C0", Cultura);
+}

@@ -41,6 +41,8 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
     public DbSet<Caja> Cajas => Set<Caja>();
     public DbSet<MovimientoCaja> MovimientosCaja => Set<MovimientoCaja>();
     public DbSet<ConceptoCaja> ConceptosCaja => Set<ConceptoCaja>();
+    public DbSet<CajaReapertura> CajasReaperturas => Set<CajaReapertura>();
+    public DbSet<CuotaReactivacion> CuotasReactivaciones => Set<CuotaReactivacion>();
 
     public DbSet<CicloLectivo> CiclosLectivos => Set<CicloLectivo>();
 
@@ -65,11 +67,70 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
+        ConfigurarAnulaciones(builder);
+
         builder.Entity<AppUser>(entity =>
         {
             entity.Property(x => x.NombreCompleto).HasMaxLength(200).IsRequired();
 
             entity.HasIndex(x => x.Email);
+        });
+    }
+
+
+    // =========================================================
+    // ANULACIONES
+    //
+    // Campos de auditoría comunes a todo lo que se puede anular.
+    // Se configuran juntos para que la regla sea la misma en todos.
+    // =========================================================
+
+    private static void ConfigurarAnulaciones(ModelBuilder builder)
+    {
+        builder.Entity<Pago>(e =>
+        {
+            e.Property(x => x.MotivoAnulacion).HasMaxLength(300);
+            e.Ignore(x => x.Anulado);
+        });
+
+        builder.Entity<PagoProveedor>(e =>
+        {
+            e.Property(x => x.MotivoAnulacion).HasMaxLength(300);
+            e.Ignore(x => x.Anulado);
+        });
+
+        builder.Entity<Cuota>(e =>
+        {
+            e.Property(x => x.MotivoAnulacion).HasMaxLength(300);
+        });
+
+        builder.Entity<MovimientoCaja>(e =>
+        {
+            e.Property(x => x.MotivoAnulacion).HasMaxLength(300);
+            e.Ignore(x => x.Anulado);
+            e.Ignore(x => x.EsAnulacion);
+
+            // Un movimiento se puede anular una sola vez.
+            e.HasIndex(x => x.AnulaMovimientoId).IsUnique();
+
+            e.HasOne<MovimientoCaja>()
+                .WithMany()
+                .HasForeignKey(x => x.AnulaMovimientoId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<MovimientoBancario>(e =>
+        {
+            e.Property(x => x.MotivoAnulacion).HasMaxLength(300);
+            e.Ignore(x => x.Anulado);
+            e.Ignore(x => x.EsAnulacion);
+
+            e.HasIndex(x => x.AnulaMovimientoId).IsUnique();
+
+            e.HasOne<MovimientoBancario>()
+                .WithMany()
+                .HasForeignKey(x => x.AnulaMovimientoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

@@ -113,7 +113,7 @@ public partial class MovimientosBancarios
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
 
             _datos =
                 null;
@@ -225,7 +225,7 @@ public partial class MovimientosBancarios
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 

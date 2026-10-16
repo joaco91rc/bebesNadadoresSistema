@@ -111,7 +111,7 @@ public partial class GeneracionCuotas
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {

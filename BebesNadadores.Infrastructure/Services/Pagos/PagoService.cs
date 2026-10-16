@@ -13,12 +13,16 @@ using Microsoft.EntityFrameworkCore;
 
 using CajaEntidad = BebesNadadores.Domain.Entities.Caja;
 
+using static BebesNadadores.Infrastructure.Services.Pagos.RegistradorCobros;
+
 namespace BebesNadadores.Infrastructure.Services.Pagos;
 
 
 public sealed class PagoService(
 
-    IDbContextFactory<AppDbContext> factory)
+    IDbContextFactory<AppDbContext> factory,
+
+    RegistradorCobros registradorCobros)
 
     : IPagoService
 
@@ -200,7 +204,9 @@ public sealed class PagoService(
 
                     bebeIds.Contains(
 
-                        x.BebeId))
+                        x.BebeId)
+                        &&
+                        !x.AnuladoUtc.HasValue)
 
 
                 .ToListAsync(ct);
@@ -408,6 +414,10 @@ var periodoActual =
                     x.Inscripcion)
 
 
+                .Include(x =>
+                    x.Reactivaciones)
+
+
                 .Where(x =>
 
                     x.Inscripcion.BebeId ==
@@ -488,15 +498,23 @@ var periodoActual =
                                 i.Importe);
 
 
+                    /*
+                     * Una cuota anulada no se cobra: no tiene saldo
+                     * pendiente aunque no se haya pagado nada.
+                     */
                     var saldo =
+                        x.Estado == EstadoCuota.Anulada
+                            ? 0
+                            : Math.Max(
+                                0,
+                                x.Importe -
+                                pagado);
 
-                        Math.Max(
 
-                            0,
-
-                            x.Importe -
-
-                            pagado);
+                    var ultimaReactivacion =
+                        x.Reactivaciones
+                            .OrderByDescending(r => r.FechaUtc)
+                            .FirstOrDefault();
 
 
                     return new CuotaCuentaCorrienteDto(
@@ -521,11 +539,37 @@ var periodoActual =
 
                             hoy),
 
-                        x.Descripcion);
+                        x.Descripcion,
+                        x.MotivoAnulacion,
+                        ultimaReactivacion?.FechaUtc,
+                        ultimaReactivacion?.Motivo);
 
                 })
 
                 .ToList();
+
+
+        /*
+         * Quién registró / anuló cada pago (auditoría).
+         */
+        var idsUsuarios =
+            pagos
+                .SelectMany(x => new[] { x.CreadoPorUsuarioId, x.AnuladoPorUsuarioId })
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+
+        var nombresUsuarios =
+            idsUsuarios.Count == 0
+                ? new Dictionary<Guid, string>()
+                : await db.Users
+                    .AsNoTracking()
+                    .Where(x => idsUsuarios.Contains(x.Id))
+                    .ToDictionaryAsync(
+                        x => x.Id,
+                        x => x.NombreCompleto,
+                        ct);
 
 
         var pagosDto =
@@ -566,13 +610,12 @@ var periodoActual =
 
                         imputado,
 
-                        Math.Max(
-
-                            0,
-
-                            x.Importe -
-
-                            imputado),
+                        x.Anulado
+                            ? 0
+                            : Math.Max(
+                                0,
+                                x.Importe -
+                                imputado),
 
                         x.MedioPago,
 
@@ -584,7 +627,16 @@ var periodoActual =
 
                         x.ReferenciaExterna,
 
-                        x.Observaciones);
+                        x.Observaciones,
+                        x.Anulado,
+                        x.MotivoAnulacion,
+                        x.AnuladoUtc,
+                        x.CreadoPorUsuarioId.HasValue
+                            ? nombresUsuarios.GetValueOrDefault(x.CreadoPorUsuarioId.Value)
+                            : null,
+                        x.AnuladoPorUsuarioId.HasValue
+                            ? nombresUsuarios.GetValueOrDefault(x.AnuladoPorUsuarioId.Value)
+                            : null);
 
                 })
 
@@ -614,10 +666,11 @@ var deuda =
             x.Saldo);
 
         var totalPagado =
-
-            pagosDto.Sum(x =>
-
-                x.Importe);
+            pagosDto
+                .Where(x =>
+                    !x.Anulado)
+                .Sum(x =>
+                    x.Importe);
 
 
         var saldoFavor =
@@ -836,9 +889,21 @@ var deuda =
     // =========================================================
 
 
-    public async Task<RegistrarPagoResultadoDto>
+    public Task<RegistrarPagoResultadoDto> RegistrarAsync(
+        RegistrarPagoDto dto,
+        Guid usuarioId,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => RegistrarInternoAsync(
+                dto,
+                usuarioId,
+                ct),
+            ct);
+    }
 
-        RegistrarAsync(
+
+    private async Task<RegistrarPagoResultadoDto> RegistrarInternoAsync(
 
             RegistrarPagoDto dto,
 
@@ -882,618 +947,179 @@ var deuda =
                     ct);
 
 
-        try
+        // Sin try/catch con Rollback manual: si la transacción ya está
+        // abortada, el Rollback explota y tapa el error real. El
+        // "await using" hace el rollback solo.
+        // =================================================
+
+        // BEBÉ
+
+        // =================================================
+
+
+        var bebe =
+
+            await db.Bebes
+
+                .FirstOrDefaultAsync(
+
+                    x =>
+
+                        x.Id ==
+
+                            dto.BebeId,
+
+                    ct)
+
+            ??
+
+            throw new InvalidOperationException(
+
+                "El bebé indicado no existe.");
+
+
+        // =================================================
+
+        // RESPONSABLE
+
+        // =================================================
+
+
+        Guid? responsableId =
+
+            dto.ResponsableId;
+
+
+        if (responsableId.HasValue)
 
         {
 
-            // =================================================
+            var pertenece =
 
-            // BEBÉ
+                await db.BebesResponsables
 
-            // =================================================
-
-
-            var bebe =
-
-                await db.Bebes
-
-                    .FirstOrDefaultAsync(
+                    .AnyAsync(
 
                         x =>
 
-                            x.Id ==
+                            x.BebeId ==
 
-                                dto.BebeId,
+                                bebe.Id
 
-                        ct)
+                            &&
 
-                ??
+                            x.ResponsableId ==
+
+                                responsableId.Value,
+
+                        ct);
+
+
+            if (!pertenece)
+
+            {
 
                 throw new InvalidOperationException(
 
-                    "El bebé indicado no existe.");
-
-
-            // =================================================
-
-            // RESPONSABLE
-
-            // =================================================
-
-
-            Guid? responsableId =
-
-                dto.ResponsableId;
-
-
-            if (responsableId.HasValue)
-
-            {
-
-                var pertenece =
-
-                    await db.BebesResponsables
-
-                        .AnyAsync(
-
-                            x =>
-
-                                x.BebeId ==
-
-                                    bebe.Id
-
-                                &&
-
-                                x.ResponsableId ==
-
-                                    responsableId.Value,
-
-                            ct);
-
-
-                if (!pertenece)
-
-                {
-
-                    throw new InvalidOperationException(
-
-                        "El responsable seleccionado no pertenece al bebé.");
-
-                }
+                    "El responsable seleccionado no pertenece al bebé.");
 
             }
 
-            else
+        }
 
-            {
+        else
 
-                responsableId =
-
-                    await db.BebesResponsables
-
-
-                        .Where(x =>
-
-                            x.BebeId ==
-
-                                bebe.Id)
-
-
-                        .OrderByDescending(x =>
-
-                            x.EsContactoPrincipal)
-
-
-                        .Select(x =>
-
-                            (Guid?)x.ResponsableId)
-
-
-                        .FirstOrDefaultAsync(
-
-                            ct);
-
-            }
-
-
-            // =================================================
-
-            // ORIGEN / DESTINO DEL DINERO
-
-            // =================================================
-
-
-            CajaEntidad? caja =
-
-                null;
-
-
-            CuentaBancaria? cuentaBancaria =
-
-                null;
-
-
-            if (dto.MedioPago ==
-
-                MedioPago.Efectivo)
-
-            {
-
-                var hoy =
-
-                    ObtenerFechaArgentina();
-
-
-                caja =
-
-                    await db.Cajas
-
-                        .FirstOrDefaultAsync(
-
-                            x =>
-
-                                x.FechaOperativa ==
-
-                                    hoy,
-
-                            ct);
-
-
-                if (caja is null)
-
-                {
-
-                    throw new InvalidOperationException(
-
-                        "No hay una caja abierta para el día de hoy. Debe abrirla antes de registrar un pago en efectivo.");
-
-                }
-
-
-                if (caja.Estado !=
-
-                    EstadoCaja.Abierta)
-
-                {
-
-                    throw new InvalidOperationException(
-
-                        "La caja del día ya se encuentra cerrada. No pueden registrarse pagos en efectivo.");
-
-                }
-
-            }
-
-            else if (
-
-                RequiereCuentaBancaria(
-
-                    dto.MedioPago))
-
-            {
-
-                if (!dto.CuentaBancariaId.HasValue)
-
-                {
-
-                    throw new InvalidOperationException(
-
-                        "Debe seleccionar la cuenta que recibió el pago.");
-
-                }
-
-
-                cuentaBancaria =
-
-                    await db.CuentasBancarias
-
-
-                        .Include(x =>
-
-                            x.Banco)
-
-
-                        .FirstOrDefaultAsync(
-
-                            x =>
-
-                                x.Id ==
-
-                                    dto.CuentaBancariaId.Value
-
-                                &&
-
-                                x.Activa
-
-                                &&
-
-                                x.Banco.Activo,
-
-                            ct)
-
-
-                    ??
-
-                    throw new InvalidOperationException(
-
-                        "La cuenta seleccionada no existe o se encuentra inactiva.");
-
-            }
-
-
-            // =================================================
-
-            // PAGO
-
-            // =================================================
-
-
-            var pago =
-
-                new Pago
-
-                {
-
-                    Id =
-
-                        Guid.NewGuid(),
-
-
-                    BebeId =
-
-                        bebe.Id,
-
-
-                    ResponsableId =
-
-                        responsableId,
-
-
-                    FechaUtc =
-
-                        DateTimeOffset.UtcNow,
-
-
-                    Importe =
-
-                        dto.Importe,
-
-
-                    MedioPago =
-
-                        dto.MedioPago,
-
-
-                    ReferenciaExterna =
-
-                        Normalizar(
-
-                            dto.ReferenciaExterna),
-
-
-                    Observaciones =
-
-                        Normalizar(
-
-                            dto.Observaciones),
-
-
-                    CajaId =
-
-                        caja?.Id,
-
-
-                    CuentaBancariaId =
-
-                        cuentaBancaria?.Id
-
-                };
-
-
-            db.Pagos.Add(
-
-                pago);
-
-
-            // =================================================
-
-            // IMPUTAR A CUOTAS MÁS ANTIGUAS
-
-            // =================================================
-
-
-            var cuotas =
-
-                await ObtenerCuotasImputablesAsync(
-
-                    db,
-
-                    bebe.Id,
-
-                    ct);
-
-
-            var restante =
-
-                pago.Importe;
-
-
-            foreach (var cuota in cuotas)
-
-            {
-
-                if (restante <= 0)
-
-                    break;
-
-
-                var saldoCuota =
-
-                    ObtenerSaldoCuota(
-
-                        cuota);
-
-
-                if (saldoCuota <= 0)
-
-                    continue;
-
-
-                var importeAplicar =
-
-                    Math.Min(
-
-                        restante,
-
-                        saldoCuota);
-
-
-                var imputacion =
-
-                    new ImputacionPago
-
-                    {
-
-                        PagoId =
-
-                            pago.Id,
-
-
-                        Pago =
-
-                            pago,
-
-
-                        CuotaId =
-
-                            cuota.Id,
-
-
-                        Cuota =
-
-                            cuota,
-
-
-                        Importe =
-
-                            importeAplicar
-
-                    };
-
-
-                db.ImputacionesPago.Add(
-
-                    imputacion);
-
-
-                
-
-                cuota.Imputaciones.Add(
-
-                    imputacion);
-
-
-                restante -=
-
-                    importeAplicar;
-
-
-                ActualizarEstadoCuota(
-
-                    cuota);
-
-            }
-
-
-         // =================================================
-// EFECTIVO -> MOVIMIENTO DE CAJA
-// =================================================
-
-if (caja is not null)
-{
-    var conceptoCuota =
-        await db.ConceptosCaja
-            .FirstOrDefaultAsync(
-                x =>
-                    x.Id ==
-                    ConceptosCajaSistema
-                        .CuotaNatatorioMensualId
-                    &&
-                    x.Activo,
-                ct)
-
-        ??
-        throw new InvalidOperationException(
-            "No se encuentra configurado el concepto de caja " +
-            "'Cuota natatorio mensual'.");
-
-
-    var movimientoCaja =
-        new MovimientoCaja
         {
-            Id =
-                Guid.NewGuid(),
 
-            CajaId =
-                caja.Id,
+            responsableId =
 
-            FechaUtc =
-                pago.FechaUtc,
-
-            Tipo =
-                conceptoCuota.Tipo,
-
-            ConceptoCajaId =
-                conceptoCuota.Id,
-
-            Concepto =
-                conceptoCuota.Nombre,
-
-            Detalle =
-                $"Pago de {bebe.Nombre} {bebe.Apellido}",
-
-            Importe =
-                pago.Importe,
-
-            Referencia =
-                pago.ReferenciaExterna,
-
-            PagoId =
-                pago.Id,
-
-            Pago =
-                pago
-        };
+                await db.BebesResponsables
 
 
-    db.MovimientosCaja.Add(
-        movimientoCaja);
-}
+                    .Where(x =>
 
-            // =================================================
+                        x.BebeId ==
 
-            // BANCO / BILLETERA -> MOVIMIENTO BANCARIO
-
-            // =================================================
+                            bebe.Id)
 
 
-            if (cuentaBancaria is not null)
+                    .OrderByDescending(x =>
 
-            {
-
-                var movimientoBancario =
-
-                    new MovimientoBancario
-
-                    {
-
-                        Id =
-
-                            Guid.NewGuid(),
+                        x.EsContactoPrincipal)
 
 
-                        CuentaBancariaId =
+                    .Select(x =>
 
-                            cuentaBancaria.Id,
-
-
-                        FechaUtc =
-
-                            pago.FechaUtc,
+                        (Guid?)x.ResponsableId)
 
 
-                        Tipo =
+                    .FirstOrDefaultAsync(
 
-                            TipoMovimientoBancario.Ingreso,
+                        ct);
 
-
-                        Origen =
-
-                            OrigenMovimientoBancario.PagoBebe,
+        }
 
 
-                        Importe =
+        // =================================================
+        // COBRO (caja / banco / imputación)
+        // =================================================
 
-                            pago.Importe,
-
-
-                        Concepto =
-
-                            $"Pago de cuotas - " +
-
-                            $"{bebe.Nombre} {bebe.Apellido}",
-
-
-                        PagoId =
-
-                            pago.Id,
-
-
-                        Pago =
-
-                            pago,
-
-
-                        ReferenciaExterna =
-
-                            pago.ReferenciaExterna,
-
-
-                        Observaciones =
-
-                            pago.Observaciones
-
-                    };
-
-
-                db.MovimientosBancarios.Add(
-
-                    movimientoBancario);
-
-            }
-
-
-            await db.SaveChangesAsync(
-
+        var cuotas =
+            await ObtenerCuotasImputablesAsync(
+                db,
+                bebe.Id,
                 ct);
 
+        var cobro =
+            await registradorCobros.RegistrarAsync(
+                db,
+                new NuevoCobro(
+                    Bebe: bebe,
+                    ResponsableId: responsableId,
+                    Importe: dto.Importe,
+                    MedioPago: dto.MedioPago,
+                    CuentaBancariaId: dto.CuentaBancariaId,
+                    ReferenciaExterna: dto.ReferenciaExterna,
+                    Observaciones: dto.Observaciones,
+                    CuotasAImputar: cuotas,
+                    DetalleMovimiento: $"Pago de {bebe.Nombre} {bebe.Apellido}",
+                    UsuarioId: usuarioId),
+                ct);
 
-            await transaction
+        var pago =
+            cobro.Pago;
 
-                .CommitAsync(ct);
+        var restante =
+            cobro.Restante;
+        await db.SaveChangesAsync(
 
-
-            var importeImputado =
-
-                pago.Importe -
-
-                restante;
-
-
-            return new RegistrarPagoResultadoDto(
-
-                pago.Id,
-
-                pago.Importe,
-
-                importeImputado,
-
-                restante);
-
-        }
-
-        catch
-
-        {
-
-            await transaction
-
-                .RollbackAsync(ct);
+            ct);
 
 
-            throw;
+        await transaction
 
-        }
+            .CommitAsync(ct);
+
+
+        var importeImputado =
+
+            pago.Importe -
+
+            restante;
+
+
+        return new RegistrarPagoResultadoDto(
+
+            pago.Id,
+
+            pago.Importe,
+
+            importeImputado,
+
+            restante);
+
+    
+
 
     }
 
@@ -1505,7 +1131,19 @@ if (caja is not null)
     // =========================================================
 
 
-    public async Task AplicarSaldosAFavorAsync(
+    public Task AplicarSaldosAFavorAsync(
+        Guid bebeId,
+        CancellationToken ct = default)
+    {
+        return ReintentoTransaccional.EjecutarAsync(
+            () => AplicarSaldosAFavorInternoAsync(
+                bebeId,
+                ct),
+            ct);
+    }
+
+
+    private async Task AplicarSaldosAFavorInternoAsync(
 
         Guid bebeId,
 
@@ -1529,232 +1167,230 @@ if (caja is not null)
                     ct);
 
 
-        try
+        // Sin try/catch con Rollback manual: si la transacción ya está
+        // abortada, el Rollback explota y tapa el error real. El
+        // "await using" hace el rollback solo.
+        var existeBebe =
 
-        {
+            await db.Bebes
 
-            var existeBebe =
+                .AnyAsync(
 
-                await db.Bebes
+                    x =>
 
-                    .AnyAsync(
+                        x.Id ==
 
-                        x =>
-
-                            x.Id ==
-
-                                bebeId,
-
-                        ct);
-
-
-            if (!existeBebe)
-
-            {
-
-                throw new InvalidOperationException(
-
-                    "El bebé indicado no existe.");
-
-            }
-
-
-            var pagos =
-
-                await db.Pagos
-
-
-                    .Include(x =>
-
-                        x.Imputaciones)
-
-
-                    .Where(x =>
-
-                        x.BebeId ==
-
-                            bebeId)
-
-
-                    .OrderBy(x =>
-
-                        x.FechaUtc)
-
-
-                    .ToListAsync(ct);
-
-
-            var cuotas =
-
-                await ObtenerCuotasImputablesAsync(
-
-                    db,
-
-                    bebeId,
+                            bebeId,
 
                     ct);
 
 
-            foreach (var pago in pagos)
+        if (!existeBebe)
 
-            {
+        {
 
-                var disponible =
+            throw new InvalidOperationException(
 
-                    pago.Importe -
+                "El bebé indicado no existe.");
 
-                    pago.Imputaciones.Sum(x =>
+        }
 
-                        x.Importe);
 
+        var pagos =
 
-                if (disponible <= 0)
+            await db.Pagos
 
-                    continue;
 
+                .Include(x =>
 
-                foreach (var cuota in cuotas)
+                    x.Imputaciones)
 
-                {
 
-                    if (disponible <= 0)
+                .Where(x =>
 
-                        break;
+                    x.BebeId ==
 
+                        bebeId
+                        &&
+                        !x.AnuladoUtc.HasValue)
 
-                    var saldoCuota =
 
-                        ObtenerSaldoCuota(
+                .OrderBy(x =>
 
-                            cuota);
+                    x.FechaUtc)
 
 
-                    if (saldoCuota <= 0)
+                .ToListAsync(ct);
 
-                        continue;
 
+        var cuotas =
 
-                    var aplicar =
+            await ObtenerCuotasImputablesAsync(
 
-                        Math.Min(
+                db,
 
-                            disponible,
-
-                            saldoCuota);
-
-
-                    var imputacionExistente =
-
-                        pago.Imputaciones
-
-                            .FirstOrDefault(x =>
-
-                                x.CuotaId ==
-
-                                    cuota.Id);
-
-
-                    if (imputacionExistente is not null)
-
-                    {
-
-                        imputacionExistente.Importe +=
-
-                            aplicar;
-
-                    }
-
-                    else
-
-                    {
-
-                        var nuevaImputacion =
-
-                            new ImputacionPago
-
-                            {
-
-                                PagoId =
-
-                                    pago.Id,
-
-
-                                Pago =
-
-                                    pago,
-
-
-                                CuotaId =
-
-                                    cuota.Id,
-
-
-                                Cuota =
-
-                                    cuota,
-
-
-                                Importe =
-
-                                    aplicar
-
-                            };
-
-
-                        db.ImputacionesPago.Add(
-
-                            nuevaImputacion);
-
-
-                        pago.Imputaciones.Add(
-
-                            nuevaImputacion);
-
-
-                        cuota.Imputaciones.Add(
-
-                            nuevaImputacion);
-
-                    }
-
-
-                    disponible -=
-
-                        aplicar;
-
-
-                    ActualizarEstadoCuota(
-
-                        cuota);
-
-                }
-
-            }
-
-
-            await db.SaveChangesAsync(
+                bebeId,
 
                 ct);
 
 
-            await transaction
-
-                .CommitAsync(ct);
-
-        }
-
-        catch
+        foreach (var pago in pagos)
 
         {
 
-            await transaction
+            var disponible =
 
-                .RollbackAsync(ct);
+                pago.Importe -
+
+                pago.Imputaciones.Sum(x =>
+
+                    x.Importe);
 
 
-            throw;
+            if (disponible <= 0)
+
+                continue;
+
+
+            foreach (var cuota in cuotas)
+
+            {
+
+                if (disponible <= 0)
+
+                    break;
+
+
+                var saldoCuota =
+
+                    ObtenerSaldoCuota(
+
+                        cuota);
+
+
+                if (saldoCuota <= 0)
+
+                    continue;
+
+
+                var aplicar =
+
+                    Math.Min(
+
+                        disponible,
+
+                        saldoCuota);
+
+
+                var imputacionExistente =
+
+                    pago.Imputaciones
+
+                        .FirstOrDefault(x =>
+
+                            x.CuotaId ==
+
+                                cuota.Id);
+
+
+                if (imputacionExistente is not null)
+
+                {
+
+                    imputacionExistente.Importe +=
+
+                        aplicar;
+
+                }
+
+                else
+
+                {
+
+                    var nuevaImputacion =
+
+                        new ImputacionPago
+
+                        {
+
+                            PagoId =
+
+                                pago.Id,
+
+
+                            Pago =
+
+                                pago,
+
+
+                            CuotaId =
+
+                                cuota.Id,
+
+
+                            Cuota =
+
+                                cuota,
+
+
+                            Importe =
+
+                                aplicar
+
+                        };
+
+
+                    db.ImputacionesPago.Add(
+
+                        nuevaImputacion);
+
+
+                    /*
+                     * EF ya hace el fix-up de navegaciones al
+                     * agregar; evitamos duplicarla en memoria
+                     * (contaba doble y marcaba "Pagada").
+                     */
+                    AgregarSiFalta(
+
+                        pago.Imputaciones,
+
+                        nuevaImputacion);
+
+
+                    AgregarSiFalta(
+
+                        cuota.Imputaciones,
+
+                        nuevaImputacion);
+
+                }
+
+
+                disponible -=
+
+                    aplicar;
+
+
+                ActualizarEstadoCuota(
+
+                    cuota);
+
+            }
 
         }
+
+
+        await db.SaveChangesAsync(
+
+            ct);
+
+
+        await transaction
+
+            .CommitAsync(ct);
+
+    
+
 
     }
 
@@ -1815,139 +1451,6 @@ if (caja is not null)
 }
 
 
-    // =========================================================
-
-    // ESTADO CUOTA
-
-    // =========================================================
-
-
-    private static void ActualizarEstadoCuota(
-
-        Cuota cuota)
-
-    {
-
-        if (cuota.Estado ==
-
-            EstadoCuota.Anulada)
-
-        {
-
-            return;
-
-        }
-
-
-        var pagado =
-
-            cuota.Imputaciones
-
-                .Sum(x =>
-
-                    x.Importe);
-
-
-        var hoy =
-
-            ObtenerFechaArgentina();
-
-
-        cuota.Estado =
-
-            CalcularEstadoCuota(
-
-                cuota,
-
-                pagado,
-
-                hoy);
-
-    }
-
-
-    private static EstadoCuota CalcularEstadoCuota(
-
-        Cuota cuota,
-
-        decimal importePagado,
-
-        DateOnly hoy)
-
-    {
-
-        if (cuota.Estado ==
-
-            EstadoCuota.Anulada)
-
-        {
-
-            return EstadoCuota.Anulada;
-
-        }
-
-
-        if (importePagado >=
-
-            cuota.Importe)
-
-        {
-
-            return EstadoCuota.Pagada;
-
-        }
-
-
-
-        if (cuota.FechaVencimiento <
-
-            hoy)
-
-        {
-
-            return EstadoCuota.Vencida;
-
-        }
-
-
-        if (importePagado > 0)
-
-        {
-
-            return EstadoCuota.Parcial;
-
-        }
-
-
-        return EstadoCuota.Pendiente;
-
-    }
-
-
-    private static decimal ObtenerSaldoCuota(
-
-        Cuota cuota)
-
-    {
-
-        var pagado =
-
-            cuota.Imputaciones
-
-                .Sum(x =>
-
-                    x.Importe);
-
-
-        return Math.Max(
-
-            0,
-
-            cuota.Importe -
-
-            pagado);
-
-    }
 
 
     // =========================================================
@@ -1989,9 +1492,9 @@ if (caja is not null)
 
         if (
 
-            RequiereCuentaBancaria(
+            dto.MedioPago
 
-                dto.MedioPago)
+                .RequiereCuentaBancaria()
 
             &&
 
@@ -2008,84 +1511,8 @@ if (caja is not null)
     }
 
 
-    private static bool RequiereCuentaBancaria(
-
-        MedioPago medio)
-
-    {
-
-        return medio is
-
-            MedioPago.Transferencia
-
-            or MedioPago.Tarjeta
-
-            or MedioPago.MercadoPago;
-
-    }
 
 
-    // =========================================================
-
-    // FECHA OPERATIVA ARGENTINA
-
-    // =========================================================
-
-
-    private static DateOnly ObtenerFechaArgentina()
-
-    {
-
-        var zona =
-
-            ObtenerZonaHorariaArgentina();
-
-
-        var ahoraArgentina =
-
-            TimeZoneInfo.ConvertTime(
-
-                DateTimeOffset.UtcNow,
-
-                zona);
-
-
-        return DateOnly.FromDateTime(
-
-            ahoraArgentina.DateTime);
-
-    }
-
-
-    private static TimeZoneInfo ObtenerZonaHorariaArgentina()
-
-    {
-
-        try
-
-        {
-
-            return TimeZoneInfo
-
-                .FindSystemTimeZoneById(
-
-                    "America/Argentina/Buenos_Aires");
-
-        }
-
-        catch
-
-        {
-
-            return TimeZoneInfo
-
-                .FindSystemTimeZoneById(
-
-                    "Argentina Standard Time");
-
-        }
-
-    }
 
 
     // =========================================================

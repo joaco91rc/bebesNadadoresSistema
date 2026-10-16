@@ -1,7 +1,6 @@
 @page "/bancos/{CuentaId:guid}/movimientos"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador,Administrativa")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Bancos
 @using BebesNadadores.Application.Bancos.Dtos

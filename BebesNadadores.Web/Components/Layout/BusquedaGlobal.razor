@@ -1,0 +1,338 @@
+@using BebesNadadores.Application.Busqueda
+@implements IDisposable
+
+@inject IBusquedaGlobalService BusquedaService
+@inject NavigationManager Navigation
+@inject PermisosUsuario Permisos
+
+@*
+    =================================================================
+    BUSCADOR GLOBAL (barra superior)
+    =================================================================
+
+    Busca bebés por nombre, DNI, responsable, teléfono o número de
+    comprobante (ver IBusquedaGlobalService). Teclado: ↑ ↓ para
+    moverse, Enter para abrir, Esc para cerrar.
+
+    Solo lo ven los roles que pueden consultar bebés
+    (PoliticasSistema.ConsultaGeneral). En el celular se abre con
+    el botón de la lupa.
+*@
+
+@if (_visible)
+{
+    <button type="button"
+            class="bn-search-toggle"
+            title="Buscar"
+            @onclick="AbrirMovil">
+        <MudIcon Icon="@Icons.Material.Filled.Search" />
+    </button>
+
+
+    @if (_resultadosAbiertos || _abiertoMovil)
+    {
+        <div class="bn-search-backdrop"
+             @onclick="Cerrar"></div>
+    }
+
+
+    <div class="global-search @(_abiertoMovil ? "mobile-open" : "")">
+
+        <span class="search-icon">
+            <MudIcon Icon="@Icons.Material.Filled.Search"
+                     Size="Size.Small" />
+        </span>
+
+        <input type="search"
+               id="bn-busqueda-global"
+               placeholder="Buscar bebé, responsable, DNI o comprobante..."
+               aria-label="Buscar"
+               autocomplete="off"
+               @bind="_texto"
+               @bind:event="oninput"
+               @bind:after="BuscarConDemoraAsync"
+               @onfocus="AlEnfocar"
+               @onkeydown="TeclaAsync" />
+
+        @if (_buscando)
+        {
+            <MudProgressCircular Size="Size.Small"
+                                 Indeterminate="true"
+                                 Class="bn-search-spinner" />
+        }
+
+
+        @if (_resultadosAbiertos)
+        {
+            <div class="bn-search-results"
+                 role="listbox">
+
+                @if (_textoBuscado.Length < 2)
+                {
+                    <div class="bn-search-empty">
+                        Escribí al menos 2 letras o números.
+                    </div>
+                }
+                else if (_resultados.Count == 0 && !_buscando)
+                {
+                    <div class="bn-search-empty">
+                        Sin resultados para «@_textoBuscado».
+                    </div>
+                }
+                else
+                {
+                    @for (var i = 0; i < _resultados.Count; i++)
+                    {
+                        var indice = i;
+                        var resultado = _resultados[i];
+
+                        <div class="bn-search-item @(indice == _indice ? "activo" : "")"
+                             role="option"
+                             aria-selected="@(indice == _indice)"
+                             @onclick="() => Abrir(resultado)"
+                             @onmouseenter="() => _indice = indice">
+
+                            <span class="bn-search-item-icon tipo-@resultado.Tipo.ToString().ToLowerInvariant()">
+                                <MudIcon Icon="@ObtenerIcono(resultado.Tipo)"
+                                         Size="Size.Small" />
+                            </span>
+
+                            <span class="bn-search-item-text">
+                                <strong>
+                                    @resultado.Titulo
+                                    @if (resultado.DadoDeBaja)
+                                    {
+                                        <em class="bn-search-baja">Baja</em>
+                                    }
+                                </strong>
+                                <small>@resultado.Detalle</small>
+                            </span>
+
+                            @if (_puedeCobrar && resultado.Tipo != TipoResultadoBusqueda.Comprobante)
+                            {
+                                <button type="button"
+                                        class="bn-search-pagos"
+                                        title="Ir a Pagos"
+                                        @onclick="() => AbrirPagos(resultado)"
+                                        @onclick:stopPropagation="true">
+                                    <MudIcon Icon="@Icons.Material.Filled.Payments"
+                                             Size="Size.Small" />
+                                    <span>Pagos</span>
+                                </button>
+                            }
+
+                        </div>
+                    }
+                }
+
+            </div>
+        }
+
+    </div>
+}
+
+
+@code {
+
+    private bool _visible;
+
+    private bool _puedeCobrar;
+
+    private string _texto = string.Empty;
+
+    private string _textoBuscado = string.Empty;
+
+    private List<ResultadoBusquedaDto> _resultados = [];
+
+    private int _indice;
+
+    private bool _buscando;
+
+    private bool _resultadosAbiertos;
+
+    private bool _abiertoMovil;
+
+    private CancellationTokenSource? _demora;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _visible =
+            await Permisos.TieneAsync(PoliticasSistema.ConsultaGeneral);
+
+        _puedeCobrar =
+            await Permisos.TieneAsync(PoliticasSistema.GestionCaja);
+
+        Navigation.LocationChanged += AlNavegar;
+    }
+
+
+    /*
+     * Espera a que termine de tipear (250 ms) antes de buscar.
+     */
+    private async Task BuscarConDemoraAsync()
+    {
+        _demora?.Cancel();
+        _demora = new CancellationTokenSource();
+
+        var token =
+            _demora.Token;
+
+        var texto =
+            _texto.Trim();
+
+        _resultadosAbiertos =
+            texto.Length > 0;
+
+        if (texto.Length < 2)
+        {
+            _textoBuscado = texto;
+            _resultados = [];
+            _buscando = false;
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(250, token);
+
+            _buscando = true;
+
+            var resultados =
+                await BusquedaService.BuscarAsync(texto, 8, token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            _resultados = resultados.ToList();
+            _textoBuscado = texto;
+            _indice = 0;
+        }
+        catch (OperationCanceledException)
+        {
+            // Siguió tipeando: la búsqueda nueva reemplaza a esta.
+        }
+        catch (Exception ex)
+        {
+            _resultados = [];
+            _textoBuscado = texto;
+            // El detalle queda en el log; el buscador no muestra errores técnicos.
+            _ = Errores.Mensaje(ex);
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+                _buscando = false;
+        }
+    }
+
+
+    private void AlEnfocar()
+    {
+        if (_texto.Trim().Length > 0)
+            _resultadosAbiertos = true;
+    }
+
+
+    private void TeclaAsync(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                if (_resultados.Count > 0)
+                    _indice = (_indice + 1) % _resultados.Count;
+                break;
+
+            case "ArrowUp":
+                if (_resultados.Count > 0)
+                    _indice = (_indice - 1 + _resultados.Count) % _resultados.Count;
+                break;
+
+            case "Enter":
+                if (_resultados.Count > 0)
+                    Abrir(_resultados[Math.Clamp(_indice, 0, _resultados.Count - 1)]);
+                break;
+
+            case "Escape":
+                Cerrar();
+                break;
+        }
+    }
+
+
+    private void Abrir(
+        ResultadoBusquedaDto resultado)
+    {
+        var url =
+            resultado.Tipo == TipoResultadoBusqueda.Comprobante && _puedeCobrar
+                ? $"/pagos?bebe={resultado.BebeId}"
+                : $"/clientes/{resultado.BebeId}";
+
+        Limpiar();
+
+        Navigation.NavigateTo(url);
+    }
+
+
+    private void AbrirPagos(
+        ResultadoBusquedaDto resultado)
+    {
+        Limpiar();
+
+        Navigation.NavigateTo($"/pagos?bebe={resultado.BebeId}");
+    }
+
+
+    private void AbrirMovil()
+    {
+        _abiertoMovil = true;
+    }
+
+
+    private void Cerrar()
+    {
+        _resultadosAbiertos = false;
+        _abiertoMovil = false;
+    }
+
+
+    private void Limpiar()
+    {
+        _demora?.Cancel();
+        _texto = string.Empty;
+        _textoBuscado = string.Empty;
+        _resultados = [];
+        _buscando = false;
+        Cerrar();
+    }
+
+
+    private void AlNavegar(
+        object? sender,
+        LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(() =>
+        {
+            Cerrar();
+            StateHasChanged();
+        });
+    }
+
+
+    private static string ObtenerIcono(
+        TipoResultadoBusqueda tipo) =>
+        tipo switch
+        {
+            TipoResultadoBusqueda.Responsable => Icons.Material.Filled.People,
+            TipoResultadoBusqueda.Comprobante => Icons.Material.Filled.ReceiptLong,
+            _ => Icons.Material.Filled.ChildCare
+        };
+
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= AlNavegar;
+        _demora?.Cancel();
+        _demora?.Dispose();
+    }
+}

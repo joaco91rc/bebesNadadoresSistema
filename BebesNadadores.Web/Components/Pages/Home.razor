@@ -23,6 +23,8 @@
 
 @inject IWhatsAppService WhatsAppService
 @inject IDashboardService DashboardService
+@inject PermisosUsuario Permisos
+@inject ISnackbar Snackbar
 
 <PageTitle>Dashboard | Bebés Nadadores</PageTitle>
 
@@ -53,17 +55,20 @@
         </div>
 
 
-        <div class="header-actions">
+        @if (_puedeGestionar)
+        {
+            <div class="header-actions">
 
-            <button class="quick-primary" @onclick="IrAClientes">
+                <button class="quick-primary" @onclick="IrAClientes">
 
-                <MudIcon Icon="@Icons.Material.Filled.ChildCare" Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Filled.ChildCare" Size="Size.Small" />
 
-                Inscribir bebé
+                    Inscribir bebé
 
-            </button>
+                </button>
 
-        </div>
+            </div>
+        }
 
     </section>
 
@@ -92,14 +97,17 @@
             </div>
         </article>
 
-        <article class="kpi-card">
-            <div class="kpi-icon warning"><MudIcon Icon="@Icons.Material.Filled.Payments" /></div>
-            <div class="kpi-body">
-                <span>Cuotas pendientes</span>
-                <strong>@_dashboard.CuotasPendientes</strong>
-                <small>@FormatoMoneda(_dashboard.ImportePendiente)</small>
-            </div>
-        </article>
+        @if (_puedeCaja)
+        {
+            <article class="kpi-card">
+                <div class="kpi-icon warning"><MudIcon Icon="@Icons.Material.Filled.Payments" /></div>
+                <div class="kpi-body">
+                    <span>Cuotas pendientes</span>
+                    <strong>@_dashboard.CuotasPendientes</strong>
+                    <small>@FormatoMoneda(_dashboard.ImportePendiente)</small>
+                </div>
+            </article>
+        }
 
         <article class="kpi-card">
             <div class="kpi-icon cyan"><MudIcon Icon="@Icons.Material.Filled.Autorenew" /></div>
@@ -338,7 +346,7 @@
                             <button type="button" class="attendance-button present-button
                                 @(alumno.Estado == EstadoAsistencia.Presente
                                                         ? "selected"
-                                                        : "")" title="Marcar presente" @onclick="async () => await MarcarAsistencia(
+                                                        : "")" title="Marcar presente" disabled="@(!_puedeGestionar)" @onclick="async () => await MarcarAsistencia(
                                 alumno,
                                 EstadoAsistencia.Presente)">
 
@@ -350,7 +358,7 @@
                             <button type="button" class="attendance-button notified-button
                                 @(alumno.Estado == EstadoAsistencia.AusenteConAviso
                                                         ? "selected"
-                                                        : "")" title="Ausente con aviso - genera recupero" @onclick="async () => await MarcarAsistencia(
+                                                        : "")" title="Ausente con aviso - genera recupero" disabled="@(!_puedeGestionar)" @onclick="async () => await MarcarAsistencia(
                                 alumno,
                                 EstadoAsistencia.AusenteConAviso)">
 
@@ -362,7 +370,7 @@
                             <button type="button" class="attendance-button absent-button
                                 @(alumno.Estado == EstadoAsistencia.Ausente
                                                         ? "selected"
-                                                        : "")" title="Marcar ausente" @onclick="async () => await MarcarAsistencia(
+                                                        : "")" title="Marcar ausente" disabled="@(!_puedeGestionar)" @onclick="async () => await MarcarAsistencia(
                                 alumno,
                                 EstadoAsistencia.Ausente)">
 
@@ -404,13 +412,16 @@
                 </div>
 
 
-                <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
+                @if (_puedeGestionar)
+                {
+                    <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
 
-                    Ver asistencia completa
+                        Ver asistencia completa
 
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
-                </button>
+                    </button>
+                }
 
             </div>
 
@@ -615,13 +626,16 @@
                 </div>
 
 
-                <button class="text-action" @onclick="IrATurnos">
+                @if (_puedeGestionar)
+                {
+                    <button class="text-action" @onclick="IrATurnos">
 
-                    Ver turnera
+                        Ver turnera
 
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
-                </button>
+                    </button>
+                }
 
             </div>
 
@@ -821,13 +835,16 @@
                         </div>
 
 
-                        <button class="notify-button" @onclick="IrAListaEspera">
+                        @if (_puedeGestionar)
+                        {
+                            <button class="notify-button" @onclick="IrAListaEspera">
 
-                            <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small" />
 
-                            Avisar
+                                Avisar
 
-                        </button>
+                            </button>
+                        }
 
                     </div>
                 }
@@ -841,58 +858,61 @@
            CAJA
            ===================================================== *@
 
-        <article class="dashboard-card cash-card">
+        @if (_puedeCaja)
+        {
+            <article class="dashboard-card cash-card">
 
-            <div class="card-header">
-                <div>
-                    <span class="card-eyebrow">CAJA</span>
-                    <h2>Movimiento del día</h2>
+                <div class="card-header">
+                    <div>
+                        <span class="card-eyebrow">CAJA</span>
+                        <h2>Movimiento del día</h2>
+                    </div>
+
+                    <span class="cash-status">
+                        @if (!_dashboard.Caja.Existe)
+                        {
+                            <text>Sin abrir</text>
+                        }
+                        else if (_dashboard.Caja.EstaAbierta)
+                        {
+                            <text>Abierta</text>
+                        }
+                        else
+                        {
+                            <text>Cerrada</text>
+                        }
+                    </span>
                 </div>
 
-                <span class="cash-status">
-                    @if (!_dashboard.Caja.Existe)
-                    {
-                        <text>Sin abrir</text>
-                    }
-                    else if (_dashboard.Caja.EstaAbierta)
-                    {
-                        <text>Abierta</text>
-                    }
-                    else
-                    {
-                        <text>Cerrada</text>
-                    }
-                </span>
-            </div>
-
-            <div class="cash-total">
-                <span>Saldo efectivo</span>
-                <strong>@FormatoMoneda(_dashboard.Caja.SaldoEsperado)</strong>
-            </div>
-
-            <div class="cash-details">
-                <div>
-                    <span>Ingresos</span>
-                    <strong class="positive">+ @FormatoMoneda(_dashboard.Caja.Ingresos)</strong>
+                <div class="cash-total">
+                    <span>Saldo efectivo</span>
+                    <strong>@FormatoMoneda(_dashboard.Caja.SaldoEsperado)</strong>
                 </div>
 
-                <div>
-                    <span>Egresos</span>
-                    <strong class="negative">- @FormatoMoneda(_dashboard.Caja.Egresos)</strong>
+                <div class="cash-details">
+                    <div>
+                        <span>Ingresos</span>
+                        <strong class="positive">+ @FormatoMoneda(_dashboard.Caja.Ingresos)</strong>
+                    </div>
+
+                    <div>
+                        <span>Egresos</span>
+                        <strong class="negative">- @FormatoMoneda(_dashboard.Caja.Egresos)</strong>
+                    </div>
+
+                    <div>
+                        <span>Saldo inicial</span>
+                        <strong>@FormatoMoneda(_dashboard.Caja.SaldoInicial)</strong>
+                    </div>
                 </div>
 
-                <div>
-                    <span>Saldo inicial</span>
-                    <strong>@FormatoMoneda(_dashboard.Caja.SaldoInicial)</strong>
-                </div>
-            </div>
+                <button class="card-bottom-action" @onclick="IrACaja">
+                    Ir a Caja
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                </button>
 
-            <button class="card-bottom-action" @onclick="IrACaja">
-                Ir a Caja
-                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
-            </button>
-
-        </article>
+            </article>
+        }
 
 
         @* =====================================================
@@ -973,52 +993,64 @@
 
             <div class="quick-grid">
 
-                <button @onclick="IrAClientes">
+                @if (_puedeGestionar)
+                {
+                    <button @onclick="IrAClientes">
 
-                    <span class="quick-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
-                    </span>
+                        <span class="quick-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" />
+                        </span>
 
-                    <span>
-                        Inscribir bebé
-                    </span>
+                        <span>
+                            Inscribir bebé
+                        </span>
 
-                </button>
-
-
-                <button @onclick="IrAPagos">
-
-                    <span class="quick-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Payments" />
-                    </span>
-
-                    <span>
-                        Registrar pago
-                    </span>
-
-                </button>
+                    </button>
+                }
 
 
-                <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
+                @if (_puedeCaja)
+                {
+                    <button @onclick="IrAPagos">
 
-                    Ver asistencia completa
+                        <span class="quick-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.Payments" />
+                        </span>
 
-                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <span>
+                            Registrar pago
+                        </span>
 
-                </button>
+                    </button>
+                }
 
 
-                <button @onclick="IrAAptosMedicos">
+                @if (_puedeGestionar)
+                {
+                    <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
 
-                    <span class="quick-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
-                    </span>
+                        Ver asistencia completa
 
-                    <span>
-                        Cargar apto
-                    </span>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
 
-                </button>
+                    </button>
+                }
+
+
+                @if (_puedeMedica)
+                {
+                    <button @onclick="IrAAptosMedicos">
+
+                        <span class="quick-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+                        </span>
+
+                        <span>
+                            Cargar apto
+                        </span>
+
+                    </button>
+                }
 
             </div>
 

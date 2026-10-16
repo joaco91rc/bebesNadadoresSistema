@@ -10,4 +10,7 @@ public sealed record CuotaCuentaCorrienteDto(
     decimal ImportePagado,
     decimal Saldo,
     EstadoCuota Estado,
-    string? Descripcion);
+    string? Descripcion,
+    string? MotivoAnulacion = null,
+    DateTimeOffset? ReactivadaUtc = null,
+    string? MotivoReactivacion = null);

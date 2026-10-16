@@ -306,7 +306,9 @@ public sealed class ReporteService(
                 .AsNoTracking()
                 .Where(x =>
                     x.FechaUtc >= desdeUtc &&
-                    x.FechaUtc < hastaUtcExclusivo)
+                    x.FechaUtc < hastaUtcExclusivo &&
+                    // Los pagos anulados no son recaudación.
+                    !x.AnuladoUtc.HasValue)
                 .Select(x =>
                     new
                     {
@@ -447,7 +449,11 @@ public sealed class ReporteService(
                 .AsNoTracking()
                 .Where(x =>
                     x.FechaUtc >= desdeUtc &&
-                    x.FechaUtc < hastaUtcExclusivo)
+                    x.FechaUtc < hastaUtcExclusivo &&
+                    // Un movimiento anulado y su contra-asiento se cancelan:
+                    // no se informan como ingreso ni egreso.
+                    !x.AnuladoUtc.HasValue &&
+                    !x.AnulaMovimientoId.HasValue)
                 .Select(x =>
                     new
                     {
@@ -541,7 +547,11 @@ public sealed class ReporteService(
                 .AsNoTracking()
                 .Where(x =>
                     x.FechaUtc >= desdeUtc &&
-                    x.FechaUtc < hastaUtcExclusivo)
+                    x.FechaUtc < hastaUtcExclusivo &&
+                    // Un movimiento anulado y su contra-asiento se cancelan:
+                    // no se informan como ingreso ni egreso.
+                    !x.AnuladoUtc.HasValue &&
+                    !x.AnulaMovimientoId.HasValue)
                 .Select(x =>
                     new
                     {
@@ -804,17 +814,7 @@ public sealed class ReporteService(
     private static string NombreTipoRecupero(
         TipoRecuperacion tipo)
     {
-        return tipo switch
-        {
-            TipoRecuperacion.AusenciaConAviso =>
-                "Ausencia con aviso",
-
-            TipoRecuperacion.ClaseNoDictada =>
-                "Clase no dictada",
-
-            _ =>
-                tipo.ToString()
-        };
+        return tipo.ObtenerTexto();
     }
 
     private static string NombreMedioPago(

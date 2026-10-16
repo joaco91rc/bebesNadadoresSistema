@@ -1,12 +1,13 @@
 @page "/clientes/{BebeId:guid}/inscripcion/editar"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.Bebes
 @using BebesNadadores.Application.Inscripciones
 @using BebesNadadores.Application.Inscripciones.Dtos
 @using BebesNadadores.Application.Niveles.Dtos
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Application.Cuotas
 @using BebesNadadores.Web.Components.Shared.Utils
 
 
@@ -415,15 +416,27 @@
                     </label>
 
 
-                    <BnDatePicker @bind-Value="_form.AplicarDesde"
-                                  MinDate="_hoy"
-                                  MaxDate="_hoy" />
+                    @if (EsPrimeraInscripcion &&
+                         ReglasCuota.EsInicioAMitadDeMes(_hoy))
+                    {
+                        @* Del 15 en adelante: media cuota + recupero o el 1° del mes siguiente *@
+                        <BnInicioMitadMes FechaElegida="_hoy"
+                                          FechaActual="_form.AplicarDesde"
+                                          ImporteMensual="@(PlanSeleccionado?.PrecioMensual is decimal precioMes ? CalcularTotal(precioMes) : null)"
+                                          OnElegir="ElegirInicioAsync" />
+                    }
+                    else
+                    {
+                        <BnDatePicker @bind-Value="_form.AplicarDesde"
+                                      MinDate="_hoy"
+                                      MaxDate="_hoy" />
+                    }
 
 
                     <small class="field-info">
 
                         @(EsPrimeraInscripcion
-                            ? "La inscripción comenzará desde hoy."
+                            ? TextoInicioPrimeraInscripcion
                             : "En esta primera versión el cambio se aplica hoy.")
 
                     </small>

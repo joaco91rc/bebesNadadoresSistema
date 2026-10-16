@@ -339,6 +339,47 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CajaReapertura", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CajaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("FechaCierreAnteriorUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("FechaUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<decimal>("SaldoFinalDeclaradoAnterior")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UsuarioCierreAnteriorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioCierreAnteriorId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("CajaId", "FechaUtc");
+
+                    b.ToTable("CajasReaperturas", (string)null);
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.CicloLectivo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -572,6 +613,12 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AnuladaPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnuladaUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid?>("CreadoPorUsuarioId")
                         .HasColumnType("uuid");
 
@@ -601,6 +648,10 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ModificadoUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<DateOnly>("Periodo")
                         .HasColumnType("date");
 
@@ -615,6 +666,45 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Cuotas_Importe", "\"Importe\" >= 0");
                         });
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CuotaReactivacion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AnuladaPorUsuarioIdAnterior")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnuladaUtcAnterior")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CuotaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("FechaUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("MotivoAnulacionAnterior")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("CuotaId", "FechaUtc");
+
+                    b.ToTable("CuotasReactivaciones", (string)null);
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.DiaNoLaborable", b =>
@@ -701,6 +791,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("BebeId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("BonificaRecuperoInicio")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("CreadoPorUsuarioId")
                         .HasColumnType("uuid");
@@ -902,6 +995,15 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AnulaMovimientoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AnuladoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnuladoUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Concepto")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -929,6 +1031,10 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ModificadoUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("Observaciones")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -951,6 +1057,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AnulaMovimientoId")
+                        .IsUnique();
+
                     b.HasIndex("PagoId");
 
                     b.HasIndex("PagoProveedorId");
@@ -965,6 +1074,15 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AnulaMovimientoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AnuladoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnuladoUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("CajaId")
                         .HasColumnType("uuid");
@@ -1000,6 +1118,10 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("ModificadoUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<Guid?>("PagoId")
                         .HasColumnType("uuid");
 
@@ -1014,6 +1136,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AnulaMovimientoId")
+                        .IsUnique();
 
                     b.HasIndex("ConceptoCajaId");
 
@@ -1105,6 +1230,12 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AnuladoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnuladoUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("BebeId")
                         .HasColumnType("uuid");
 
@@ -1135,6 +1266,10 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("ModificadoUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(1000)
@@ -1171,6 +1306,12 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AnuladoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnuladoUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid?>("CajaId")
                         .HasColumnType("uuid");
 
@@ -1203,6 +1344,10 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("ModificadoUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<string>("NumeroComprobante")
                         .HasMaxLength(100)
@@ -1622,6 +1767,9 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("CancelacionGeneraRecupero")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("CreadoPorUsuarioId")
                         .HasColumnType("uuid");
@@ -2163,6 +2311,29 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CajaReapertura", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Caja", "Caja")
+                        .WithMany("Reaperturas")
+                        .HasForeignKey("CajaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioCierreAnteriorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Caja");
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.CuentaBancaria", b =>
                 {
                     b.HasOne("BebesNadadores.Domain.Entities.Banco", "Banco")
@@ -2183,6 +2354,23 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Inscripcion");
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.CuotaReactivacion", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Cuota", "Cuota")
+                        .WithMany("Reactivaciones")
+                        .HasForeignKey("CuotaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Infrastructure.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cuota");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.ImputacionPago", b =>
@@ -2311,6 +2499,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoBancario", b =>
                 {
+                    b.HasOne("BebesNadadores.Domain.Entities.MovimientoBancario", null)
+                        .WithMany()
+                        .HasForeignKey("AnulaMovimientoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("BebesNadadores.Domain.Entities.CuentaBancaria", "CuentaBancaria")
                         .WithMany("Movimientos")
                         .HasForeignKey("CuentaBancariaId")
@@ -2336,6 +2529,11 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.MovimientoCaja", b =>
                 {
+                    b.HasOne("BebesNadadores.Domain.Entities.MovimientoCaja", null)
+                        .WithMany()
+                        .HasForeignKey("AnulaMovimientoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("BebesNadadores.Domain.Entities.Caja", "Caja")
                         .WithMany("Movimientos")
                         .HasForeignKey("CajaId")
@@ -2694,6 +2892,8 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("Movimientos");
 
                     b.Navigation("Pagos");
+
+                    b.Navigation("Reaperturas");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.CicloLectivo", b =>
@@ -2709,6 +2909,8 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Cuota", b =>
                 {
                     b.Navigation("Imputaciones");
+
+                    b.Navigation("Reactivaciones");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.DiaNoLaborable", b =>

@@ -197,7 +197,7 @@ protected IReadOnlyList<ConceptoCajaDto>
     catch (Exception ex)
     {
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -242,7 +242,7 @@ protected IReadOnlyList<ConceptoCajaDto>
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -344,7 +344,7 @@ protected IReadOnlyList<ConceptoCajaDto>
             false;
 
         _error =
-            ex.Message;
+            Errores.Mensaje(ex);
 
 
         /*
@@ -482,7 +482,7 @@ protected IReadOnlyList<ConceptoCajaDto>
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -597,7 +597,7 @@ protected IReadOnlyList<ConceptoCajaDto>
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -635,7 +635,7 @@ protected IReadOnlyList<ConceptoCajaDto>
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -847,7 +847,7 @@ protected async Task GuardarConceptoCajaAsync()
     catch (Exception ex)
     {
         _errorConceptoModal =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -899,7 +899,7 @@ protected async Task CambiarEstadoConceptoAsync(
     catch (Exception ex)
     {
         _errorConcepto =
-            ex.Message;
+            Errores.Mensaje(ex);
     }
     finally
     {
@@ -969,6 +969,114 @@ protected void CrearConceptoDesdeMovimiento()
     // =========================================================
     // RECARGA
     // =========================================================
+
+    // =========================================================
+    // REABRIR CAJA DE HOY
+    // =========================================================
+
+    protected bool _mostrarReapertura;
+
+
+    /*
+     * Solo la caja de HOY y solo si está cerrada.
+     * (El servicio vuelve a validar la fecha.)
+     */
+    protected bool PuedeReabrirCajaHoy =>
+        _cajaHoy is not null
+        && _cajaHoy.Estado == EstadoCaja.Cerrada
+        && _cajaHoy.FechaOperativa == _hoy;
+
+
+    protected void AbrirReapertura()
+    {
+        _mostrarReapertura = true;
+    }
+
+
+    protected void CerrarReapertura()
+    {
+        _mostrarReapertura = false;
+    }
+
+
+    protected async Task ConfirmarReaperturaAsync(
+        string motivo)
+    {
+        if (_cajaHoy is null)
+            return;
+
+        var usuarioId =
+            await ObtenerUsuarioIdAsync();
+
+        await CajaService.ReabrirAsync(
+            _cajaHoy.Id,
+            motivo,
+            usuarioId);
+
+        _mensaje = "La caja de hoy fue reabierta.";
+        _error = null;
+
+        await RecargarCajaAsync();
+    }
+
+
+    // =========================================================
+    // ANULAR MOVIMIENTO MANUAL
+    // =========================================================
+
+    protected MovimientoCajaDto? _movimientoAAnular;
+
+
+    /*
+     * Solo movimientos cargados a mano, de la caja de hoy abierta.
+     * Los cobros se anulan desde Pagos y los pagos a proveedor
+     * desde la pantalla del proveedor.
+     */
+    protected bool PuedeAnularMovimiento(
+        MovimientoCajaDto movimiento)
+    {
+        return _cajaHoy is not null
+            && _cajaHoy.Estado == EstadoCaja.Abierta
+            && !movimiento.Anulado
+            && !movimiento.EsAnulacion
+            && !movimiento.PagoId.HasValue
+            && !movimiento.PagoProveedorId.HasValue;
+    }
+
+
+    protected void AbrirAnularMovimiento(
+        MovimientoCajaDto movimiento)
+    {
+        _movimientoAAnular = movimiento;
+    }
+
+
+    protected void CerrarAnulacionMovimiento()
+    {
+        _movimientoAAnular = null;
+    }
+
+
+    protected async Task ConfirmarAnulacionMovimientoAsync(
+        string motivo)
+    {
+        if (_movimientoAAnular is null)
+            return;
+
+        var usuarioId =
+            await ObtenerUsuarioIdAsync();
+
+        await AnulacionService.AnularMovimientoCajaAsync(
+            _movimientoAAnular.Id,
+            motivo,
+            usuarioId);
+
+        _mensaje = "Movimiento anulado correctamente.";
+        _error = null;
+
+        await RecargarCajaAsync();
+    }
+
 
     private async Task RecargarCajaAsync()
     {

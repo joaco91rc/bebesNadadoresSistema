@@ -38,6 +38,17 @@ public interface ICajaService
             CancellationToken ct = default);
 
 
+    /*
+     * Reabre la caja de HOY si se cerró por error.
+     * Las cajas de días anteriores no se pueden reabrir.
+     */
+    Task ReabrirAsync(
+        Guid cajaId,
+        string motivo,
+        Guid usuarioId,
+        CancellationToken ct = default);
+
+
     Task<Guid>
         RegistrarMovimientoManualAsync(
             Guid cajaId,

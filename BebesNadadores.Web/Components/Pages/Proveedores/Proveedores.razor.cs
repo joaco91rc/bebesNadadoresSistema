@@ -131,7 +131,7 @@ public partial class Proveedores
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -232,7 +232,7 @@ public partial class Proveedores
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 
@@ -272,7 +272,7 @@ public partial class Proveedores
         catch (Exception ex)
         {
             _errorModal =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
         finally
         {
@@ -302,7 +302,7 @@ public partial class Proveedores
         catch (Exception ex)
         {
             _error =
-                ex.Message;
+                Errores.Mensaje(ex);
         }
     }
 

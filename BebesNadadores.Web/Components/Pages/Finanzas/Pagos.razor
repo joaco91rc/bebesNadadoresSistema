@@ -1,7 +1,6 @@
 @page "/pagos"
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(
-    Roles = "Administrador,Administrativa")]
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Pagos
 @using BebesNadadores.Application.Pagos.Dtos
@@ -10,8 +9,11 @@
 @using BebesNadadores.Application.Caja
 @using BebesNadadores.Application.Caja.Dtos
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Application.Anulaciones
+@using BebesNadadores.Web.Components.Shared.Utils
 
 @inject IPagoService PagoService
+@inject IAnulacionService AnulacionService
 @inject ICuentaBancariaService CuentaBancariaService
 @inject ICajaService CajaService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -86,7 +88,7 @@
                 </button>
             }
 
-            <AuthorizeView Roles="Administrador">
+            <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
 
     <Authorized>
 
@@ -563,7 +565,7 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
 
                                     @foreach (var cuota in _cuenta.Cuotas)
                                     {
-                                        <article class="fee-item">
+                                        <article class="fee-item @(cuota.Estado == EstadoCuota.Anulada ? "is-voided" : "")">
 
                                             <div class="fee-period">
 
@@ -575,6 +577,17 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                                     Vence
                                                     @(cuota.FechaVencimiento.ToString("dd/MM/yyyy"))
                                                 </small>
+
+                                                @if (cuota.ReactivadaUtc.HasValue
+                                                     && cuota.Estado != EstadoCuota.Anulada)
+                                                {
+                                                    <small class="fee-reactivated"
+                                                           title="@($"Reactivada el {FormatearFechaHora(cuota.ReactivadaUtc.Value)}: {cuota.MotivoReactivacion}")">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Restore"
+                                                                 Size="Size.Small" />
+                                                        Reactivada
+                                                    </small>
+                                                }
 
                                             </div>
 
@@ -616,15 +629,50 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
 
                                             <div class="fee-balance">
 
-                                                <small>
-                                                    Pendiente
-                                                </small>
+                                                @if (cuota.Estado == EstadoCuota.Anulada)
+                                                {
+                                                    <small>
+                                                        No se cobra
+                                                    </small>
 
-                                                <strong>
-                                                    @FormatearMoneda(cuota.Saldo)
-                                                </strong>
+                                                    <strong>
+                                                        —
+                                                    </strong>
+                                                }
+                                                else
+                                                {
+                                                    <small>
+                                                        Pendiente
+                                                    </small>
+
+                                                    <strong>
+                                                        @FormatearMoneda(cuota.Saldo)
+                                                    </strong>
+                                                }
 
                                             </div>
+
+
+                                            @if (cuota.Estado == EstadoCuota.Anulada)
+                                            {
+                                                <button type="button"
+                                                        class="void-action restore-action"
+                                                        title="@($"Cuota anulada: {cuota.MotivoAnulacion ?? "sin motivo"}. Clic para reactivarla.")"
+                                                        @onclick="() => AbrirReactivarCuota(cuota)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Restore"
+                                                             Size="Size.Small" />
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="void-action"
+                                                        title="Anular cuota (deja de cobrarse; no devuelve dinero)"
+                                                        @onclick="() => AbrirAnularCuota(cuota)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Block"
+                                                             Size="Size.Small" />
+                                                </button>
+                                            }
 
                                         </article>
                                     }
@@ -681,7 +729,7 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
 
                                     @foreach (var pago in _cuenta.Pagos)
                                     {
-                                        <article class="payment-item">
+                                        <article class="payment-item @(pago.Anulado ? "is-voided" : "")">
 
                                             <span class="payment-icon @ObtenerClaseMedioPago(pago.MedioPago)">
 
@@ -707,6 +755,10 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                                             · @pago.CuentaBancaria
                                                         </text>
                                                     }
+
+                                                    <text>
+                                                        · por @(pago.RegistradoPor ?? "Sistema")
+                                                    </text>
 
                                                 </small>
 
@@ -747,6 +799,25 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                             <strong class="payment-total">
                                                 @FormatearMoneda(pago.Importe)
                                             </strong>
+
+
+                                            @if (pago.Anulado)
+                                            {
+                                                <span class="void-badge"
+                                                      title="@($"Anulado por {pago.AnuladoPor ?? "—"}: {pago.MotivoAnulacion}")">
+                                                    Anulado
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="void-action"
+                                                        title="Anular pago (revierte el dinero en caja o banco)"
+                                                        @onclick="() => AbrirAnularPago(pago)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Block"
+                                                             Size="Size.Small" />
+                                                </button>
+                                            }
 
                                         </article>
                                     }
@@ -923,6 +994,27 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
 @* =============================================================
    MODAL REGISTRAR PAGO
    ============================================================= *@
+
+@* =========================================================
+   ANULACIÓN DE PAGO / CUOTA
+   ========================================================= *@
+
+<BnAnulacionModal Visible="_anulacion is not null"
+                  Eyebrow="@(_anulacion?.Eyebrow ?? "ANULACIÓN")"
+                  TextoConfirmar="@(_anulacion?.TextoConfirmar ?? "Anular")"
+                  TextoProcesando="@(_anulacion?.EsReactivacion == true ? "Reactivando..." : "Anulando...")"
+                  Tono="@(_anulacion?.EsReactivacion == true ? "normal" : "peligro")"
+                  Icono="@(_anulacion?.EsReactivacion == true ? Icons.Material.Filled.Restore : null)"
+                  Placeholder="@(_anulacion?.EsReactivacion == true
+                                    ? "Ej.: se anuló la cuota en lugar del pago"
+                                    : "Ej.: importe mal cargado, se registró dos veces...")"
+                  Titulo="@(_anulacion?.Titulo ?? "")"
+                  Detalle="@_anulacion?.Detalle"
+                  Importe="@_anulacion?.Importe"
+                  Aviso="@_anulacion?.Aviso"
+                  OnConfirmar="ConfirmarAnulacionAsync"
+                  OnCerrar="CerrarAnulacion" />
+
 
 @if (_modalPago &&
      _cuenta is not null)

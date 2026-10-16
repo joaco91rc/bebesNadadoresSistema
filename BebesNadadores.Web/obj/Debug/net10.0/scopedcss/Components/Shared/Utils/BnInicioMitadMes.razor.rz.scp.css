@@ -1,0 +1,104 @@
+.bn-inicio-mitad[b-4ngehcp846] {
+    margin-top: 10px;
+    padding: 12px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    border: 1px solid rgba(11, 145, 223, .28);
+    border-radius: 12px;
+
+    background: rgba(11, 145, 223, .05);
+}
+
+.bn-inicio-mitad-header[b-4ngehcp846] {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    color: #0b7fc4;
+}
+
+.bn-inicio-mitad-header div[b-4ngehcp846] {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bn-inicio-mitad-header strong[b-4ngehcp846] {
+    color: var(--mud-palette-text-primary);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.bn-inicio-mitad-header small[b-4ngehcp846] {
+    color: var(--mud-palette-text-secondary);
+    font-size: 11.5px;
+}
+
+.bn-inicio-mitad-opciones[b-4ngehcp846] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.bn-inicio-opcion[b-4ngehcp846] {
+    min-width: 0;
+    padding: 10px;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 10px;
+
+    color: var(--mud-palette-text-primary);
+    background: var(--mud-palette-surface);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: border-color .15s, background .15s;
+}
+
+.bn-inicio-opcion:hover[b-4ngehcp846] {
+    border-color: rgba(11, 145, 223, .45);
+}
+
+.bn-inicio-opcion.activa[b-4ngehcp846] {
+    border-color: #0b91df;
+    background: rgba(11, 145, 223, .10);
+}
+
+.bn-inicio-check[b-4ngehcp846] {
+    flex: 0 0 auto;
+    color: #0b91df;
+}
+
+.bn-inicio-texto[b-4ngehcp846] {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bn-inicio-texto strong[b-4ngehcp846] {
+    font-size: 12.5px;
+    font-weight: 800;
+}
+
+.bn-inicio-texto small[b-4ngehcp846] {
+    color: var(--mud-palette-text-secondary);
+    font-size: 11.5px;
+    line-height: 1.35;
+}
+
+@media (max-width: 600px) {
+    .bn-inicio-mitad-opciones[b-4ngehcp846] {
+        grid-template-columns: 1fr;
+    }
+}
