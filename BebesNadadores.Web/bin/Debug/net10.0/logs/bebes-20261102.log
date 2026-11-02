@@ -1,0 +1,90 @@
+2026-11-02 00:49:59.187 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' iniciada.
+2026-11-02 00:49:59.187 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' iniciada.
+2026-11-02 00:49:59.238 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Iniciando generación automática de cuotas para 11/2026.
+2026-11-02 00:49:59.360 [INF] Microsoft.Hosting.Lifetime
+    Now listening on: http://localhost:5147
+2026-11-02 00:49:59.363 [INF] Microsoft.Hosting.Lifetime
+    Application started. Press Ctrl+C to shut down.
+2026-11-02 00:49:59.364 [INF] Microsoft.Hosting.Lifetime
+    Hosting environment: Development
+2026-11-02 00:49:59.365 [INF] Microsoft.Hosting.Lifetime
+    Content root path: C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web
+2026-11-02 00:49:59.605 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Recuperos automáticos: 0 por clases no dictadas, 0 por inicio a mitad de mes.
+2026-11-02 00:49:59.610 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Próxima ejecución de 'Recuperos automáticos': 03/11/2026 00:20 (hora Argentina).
+2026-11-02 00:49:59.896 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Generación de cuotas finalizada. Período: 11/2026. Evaluadas: 5. Generadas: 0. Existentes: 5. Sin tarifa: 0.
+2026-11-02 00:49:59.899 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Próxima ejecución de 'Generación de cuotas': 03/11/2026 03:05 (hora Argentina).
+2026-11-02 00:50:16.659 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware
+    Failed to determine the https port for redirect.
+2026-11-02 00:58:14.371 [INF] Microsoft.Hosting.Lifetime
+    Application is shutting down...
+2026-11-02 00:58:14.381 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' detenida.
+2026-11-02 00:58:14.384 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' detenida.
+2026-11-02 00:58:33.206 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' iniciada.
+2026-11-02 00:58:33.206 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' iniciada.
+2026-11-02 00:58:33.258 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Iniciando generación automática de cuotas para 11/2026.
+2026-11-02 00:58:33.389 [INF] Microsoft.Hosting.Lifetime
+    Now listening on: http://localhost:5147
+2026-11-02 00:58:33.392 [INF] Microsoft.Hosting.Lifetime
+    Application started. Press Ctrl+C to shut down.
+2026-11-02 00:58:33.393 [INF] Microsoft.Hosting.Lifetime
+    Hosting environment: Development
+2026-11-02 00:58:33.394 [INF] Microsoft.Hosting.Lifetime
+    Content root path: C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web
+2026-11-02 00:58:33.618 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Recuperos automáticos: 0 por clases no dictadas, 0 por inicio a mitad de mes.
+2026-11-02 00:58:33.622 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Próxima ejecución de 'Recuperos automáticos': 03/11/2026 00:20 (hora Argentina).
+2026-11-02 00:58:33.926 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Generación de cuotas finalizada. Período: 11/2026. Evaluadas: 5. Generadas: 0. Existentes: 5. Sin tarifa: 0.
+2026-11-02 00:58:33.945 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Próxima ejecución de 'Generación de cuotas': 03/11/2026 03:05 (hora Argentina).
+2026-11-02 00:58:45.075 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware
+    Failed to determine the https port for redirect.
+2026-11-02 01:04:27.551 [INF] Microsoft.Hosting.Lifetime
+    Application is shutting down...
+2026-11-02 01:04:27.558 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' detenida.
+2026-11-02 01:04:27.561 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' detenida.
+2026-11-02 01:04:41.845 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' iniciada.
+2026-11-02 01:04:41.845 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' iniciada.
+2026-11-02 01:04:41.924 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Iniciando generación automática de cuotas para 11/2026.
+2026-11-02 01:04:42.018 [INF] Microsoft.Hosting.Lifetime
+    Now listening on: http://localhost:5147
+2026-11-02 01:04:42.021 [INF] Microsoft.Hosting.Lifetime
+    Application started. Press Ctrl+C to shut down.
+2026-11-02 01:04:42.022 [INF] Microsoft.Hosting.Lifetime
+    Hosting environment: Development
+2026-11-02 01:04:42.023 [INF] Microsoft.Hosting.Lifetime
+    Content root path: C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web
+2026-11-02 01:04:42.250 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Recuperos automáticos: 0 por clases no dictadas, 0 por inicio a mitad de mes.
+2026-11-02 01:04:42.254 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Próxima ejecución de 'Recuperos automáticos': 03/11/2026 00:20 (hora Argentina).
+2026-11-02 01:04:42.620 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Generación de cuotas finalizada. Período: 11/2026. Evaluadas: 5. Generadas: 0. Existentes: 5. Sin tarifa: 0.
+2026-11-02 01:04:42.622 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Próxima ejecución de 'Generación de cuotas': 03/11/2026 03:05 (hora Argentina).
+2026-11-02 01:04:57.560 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware
+    Failed to determine the https port for redirect.
+2026-11-02 01:38:19.688 [INF] Microsoft.Hosting.Lifetime
+    Application is shutting down...
+2026-11-02 01:38:19.702 [INF] BebesNadadores.Web.BackgroundServices.RecuperosClasesNoDictadasBackgroundService
+    Tarea automática 'Recuperos automáticos' detenida.
+2026-11-02 01:38:19.705 [INF] BebesNadadores.Web.BackgroundServices.GeneracionCuotasBackgroundService
+    Tarea automática 'Generación de cuotas' detenida.

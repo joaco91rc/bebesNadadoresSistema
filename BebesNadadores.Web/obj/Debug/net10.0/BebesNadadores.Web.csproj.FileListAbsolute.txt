@@ -165,7 +165,6 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\n
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\tzxjg6is5z-{0}-kx6s8i3hr8-kx6s8i3hr8.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\0wz98yz2xy-{0}-a2z4lu1s4i-a2z4lu1s4i.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\o7k4cxtn0u-{0}-kxvrcjcdqq-kxvrcjcdqq.gz
-C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\sco29rehp7-{0}-iemenxk14k-iemenxk14k.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\u45azvo0uj-{0}-bqjiyaj88i-bqjiyaj88i.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\ob3k0hp36q-{0}-c2jlpeoesf-c2jlpeoesf.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\rikg5kzgdh-{0}-erw9l3u2r3-erw9l3u2r3.gz
@@ -283,3 +282,4 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\n
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Layout\BusquedaGlobal.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\xt5s1wgigs-{0}-f2tplsoz0n-f2tplsoz0n.gz
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\93cok610il-{0}-f2tplsoz0n-f2tplsoz0n.gz
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\sco29rehp7-{0}-cccjhslwmo-cccjhslwmo.gz

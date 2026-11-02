@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BebesNadadores.Web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e3080130a17d68da7db3ddc237e509948010779e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1cf52fb7a7afcbd3a709d69c05abd1d3a945093c")]
 [assembly: System.Reflection.AssemblyProductAttribute("BebesNadadores.Web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BebesNadadores.Web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
