@@ -7,6 +7,8 @@ using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
+
+
 namespace BebesNadadores.Infrastructure.Services.Reportes;
 
 public sealed class ReporteService(

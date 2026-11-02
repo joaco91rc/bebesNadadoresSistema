@@ -12,6 +12,10 @@ using BebesNadadores.Application.Abstractions;
 using BebesNadadores.Web.Diagnostico;
 using Serilog;
 
+using BebesNadadores.Infrastructure.Persistence;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
+
 /*
  * Logs (ver ConfiguracionLogs): carpeta "logs" junto a la app.
  * El logger inicial registra los errores de arranque.
@@ -83,6 +87,14 @@ builder.Services.AddHostedService<RecuperosClasesNoDictadasBackgroundService>();
 
 var app =
     builder.Build();
+
+    app.UseForwardedHeaders(
+    new ForwardedHeadersOptions
+    {
+        ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor |
+            ForwardedHeaders.XForwardedProto
+    });
 
 
 if (!app.Environment.IsDevelopment())
@@ -161,6 +173,15 @@ app.MapRazorComponents<App>()
 
 using (var scope = app.Services.CreateScope())
 {
+    var factory =
+        scope.ServiceProvider
+            .GetRequiredService<IDbContextFactory<AppDbContext>>();
+
+    await using var db =
+        await factory.CreateDbContextAsync();
+
+    await db.Database.MigrateAsync();
+
     await IdentitySeeder.SeedAsync(
         scope.ServiceProvider,
         app.Configuration);
