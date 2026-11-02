@@ -1,6 +1,0 @@
-2026-11-02 00:50:16.659 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware
-    Failed to determine the https port for redirect.
-2026-11-02 00:58:45.075 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware
-    Failed to determine the https port for redirect.
-2026-11-02 01:04:57.560 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware
-    Failed to determine the https port for redirect.

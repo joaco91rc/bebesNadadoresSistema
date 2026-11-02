@@ -1,0 +1,77 @@
+# ===============================
+# .NET
+# ===============================
+**/bin/
+**/obj/
+
+# Build
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+publish/
+**/publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# JetBrains
+.idea/
+*.sln.iml
+
+# ===============================
+# Logs
+# ===============================
+logs/
+**/logs/
+*.log
+
+# ===============================
+# Test / coverage
+# ===============================
+TestResults/
+**/TestResults/
+coverage/
+coverage.*
+*.trx
+
+# ===============================
+# NuGet
+# ===============================
+*.nupkg
+*.snupkg
+packages/
+
+# ===============================
+# OS
+# ===============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===============================
+# Environment / secrets
+# ===============================
+.env
+.env.*
+!.env.example
+
+appsettings.Production.json
+appsettings.Local.json
+
+# ===============================
+# Temporary files
+# ===============================
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
