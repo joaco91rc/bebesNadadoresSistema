@@ -82,6 +82,7 @@ public static class DependencyInjection
          * sin Web (jobs, pruebas) queda SinUsuarioActual.
          */
         services.TryAddScoped<IUsuarioActual, SinUsuarioActual>();
+        services.TryAddScoped<INotificadorCambios, NotificadorCambios>();
         services.AddScoped<AuditoriaInterceptor>();
 
         services.AddDbContextFactory<AppDbContext>(

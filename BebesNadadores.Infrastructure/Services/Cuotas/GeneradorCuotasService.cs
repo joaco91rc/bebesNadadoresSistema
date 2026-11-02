@@ -277,6 +277,27 @@ public sealed class GeneradorCuotasService(
         await db.SaveChangesAsync(ct);
 
         await transaction.CommitAsync(ct);
+
+
+        /*
+         * También se revisan todos los bebés con saldo a favor (pagos
+         * con dinero sin imputar), no solo los que recibieron una
+         * cuota nueva: si tienen alguna cuota pendiente (por ejemplo,
+         * una del mes siguiente ya generada), se les aplica. Así el
+         * saldo a favor nunca queda "olvidado".
+         */
+        var conSaldoAFavor =
+            await db.Pagos
+                .AsNoTracking()
+                .Where(x =>
+                    x.AnuladoUtc == null
+                    && x.Importe >
+                        (x.Imputaciones.Sum(i => (decimal?)i.Importe) ?? 0m))
+                .Select(x => x.BebeId)
+                .Distinct()
+                .ToListAsync(ct);
+
+        bebeIdsParaAplicarSaldo.UnionWith(conSaldoAFavor);
     
 
 

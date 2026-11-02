@@ -281,5 +281,5 @@ C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\n
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Shared\Utils\BnInicioMitadMes.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Layout\AvisosCampana.razor.rz.scp.css
 C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\scopedcss\Components\Layout\BusquedaGlobal.razor.rz.scp.css
-C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\xt5s1wgigs-{0}-24hrcwv37j-24hrcwv37j.gz
-C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\93cok610il-{0}-24hrcwv37j-24hrcwv37j.gz
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\xt5s1wgigs-{0}-f2tplsoz0n-f2tplsoz0n.gz
+C:\Users\jaalvarez\Documents\Joaco\BebesNadadores\BebesNadadores.Web\obj\Debug\net10.0\compressed\93cok610il-{0}-f2tplsoz0n-f2tplsoz0n.gz

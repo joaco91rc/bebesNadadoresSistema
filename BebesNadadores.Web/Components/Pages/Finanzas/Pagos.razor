@@ -1091,22 +1091,36 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                             <input type="number"
                                    min="0.01"
                                    step="0.01"
-                                   value="@_pagoForm.Importe"
+                                   value="@_pagoForm.Importe.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                    @onchange="ImporteCambioAsync" />
 
                         </div>
 
 
-                        @if (_cuenta.Deuda > 0)
+                        @{
+                            var sugerido = ImporteSugerido;
+                        }
+
+                        @if (sugerido.Importe > 0)
                         {
-                            <button type="button"
-                                    class="pay-total-action"
-                                    @onclick="UsarDeudaTotalAsync">
+                            @if (_pagoForm.Importe == sugerido.Importe)
+                            {
+                                <small class="pay-total-hint">
+                                    Completado con la @sugerido.Texto
+                                    (con descuentos aplicados). Podés cambiarlo.
+                                </small>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="pay-total-action"
+                                        @onclick="UsarImporteSugeridoAsync">
 
-                                Usar deuda total:
-                                @FormatearMoneda(_cuenta.Deuda)
+                                    Usar @sugerido.Texto:
+                                    @FormatearMoneda(sugerido.Importe)
 
-                            </button>
+                                </button>
+                            }
                         }
 
                     </div>

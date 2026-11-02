@@ -673,8 +673,13 @@ protected sealed class MovimientoCuentaViewModel
                 MedioPago =
                     MedioPago.Efectivo,
 
+                /*
+                 * Se completa con lo que debe (las cuotas ya tienen
+                 * el descuento aplicado). La administrativa lo puede
+                 * cambiar si paga otro importe.
+                 */
                 Importe =
-                    0,
+                    ImporteSugerido.Importe,
 
                 CuentaBancariaId =
                     null
@@ -683,6 +688,40 @@ protected sealed class MovimientoCuentaViewModel
 
         _modalPago =
             true;
+
+
+        // Muestra enseguida cómo se va a imputar.
+        await ActualizarPreviewAsync();
+    }
+
+
+    /*
+     * Importe que se propone al abrir "Registrar pago":
+     * - la deuda (cuotas vencidas o del mes, con descuento), o
+     * - si está al día, la próxima cuota pendiente (pago adelantado).
+     */
+    protected (decimal Importe, string? Texto) ImporteSugerido
+    {
+        get
+        {
+            if (_cuenta is null)
+                return (0, null);
+
+            if (_cuenta.Deuda > 0)
+                return (_cuenta.Deuda, "deuda total");
+
+            var proxima =
+                _cuenta.Cuotas
+                    .Where(x =>
+                        x.Estado != EstadoCuota.Anulada
+                        && x.Saldo > 0)
+                    .OrderBy(x => x.Periodo)
+                    .FirstOrDefault();
+
+            return proxima is null
+                ? (0, null)
+                : (proxima.Saldo, $"cuota {FormatearPeriodo(proxima.Periodo)} (adelantada)");
+        }
     }
 
 
@@ -741,14 +780,14 @@ protected sealed class MovimientoCuentaViewModel
     }
 
 
-    protected async Task UsarDeudaTotalAsync()
+    protected async Task UsarImporteSugeridoAsync()
     {
         if (_cuenta is null)
             return;
 
 
         _pagoForm.Importe =
-            _cuenta.Deuda;
+            ImporteSugerido.Importe;
 
 
         await ActualizarPreviewAsync();

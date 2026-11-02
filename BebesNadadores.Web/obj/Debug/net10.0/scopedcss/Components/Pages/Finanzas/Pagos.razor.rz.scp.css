@@ -2741,6 +2741,18 @@
 
 
 
+/* Aviso de que el importe se completó solo */
+.pay-total-hint[b-2zs4hivhh8] {
+    margin-top: 5px;
+
+    display: block;
+
+    color: var(--mud-palette-text-secondary);
+
+    font-size: 11px;
+}
+
+
 .pay-total-action[b-2zs4hivhh8] {
 
     margin-top: 5px;

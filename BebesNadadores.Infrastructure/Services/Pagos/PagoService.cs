@@ -1402,24 +1402,20 @@ var deuda =
     // =========================================================
 
 
+    /*
+     * Orden de imputación: de la más vieja a la más nueva.
+     * Primero lo vencido y el mes actual; si sobra, las cuotas de
+     * meses siguientes que YA estén generadas (pago adelantado).
+     * Recién después de eso queda saldo a favor.
+     *
+     * La deuda que se muestra sigue siendo solo hasta el mes actual.
+     */
     private static async Task<List<Cuota>>
     ObtenerCuotasImputablesAsync(
         AppDbContext db,
         Guid bebeId,
         CancellationToken ct)
 {
-    var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
-
-
-    var periodoActual =
-        new DateOnly(
-            hoy.Year,
-            hoy.Month,
-            1);
-
-
     return await db.Cuotas
 
         .Include(x =>
@@ -1436,10 +1432,7 @@ var deuda =
                 EstadoCuota.Pagada
             &&
             x.Estado !=
-                EstadoCuota.Anulada
-            &&
-            x.Periodo <=
-                periodoActual)
+                EstadoCuota.Anulada)
 
         .OrderBy(x =>
             x.Periodo)

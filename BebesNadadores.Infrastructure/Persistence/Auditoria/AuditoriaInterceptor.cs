@@ -27,9 +27,42 @@ namespace BebesNadadores.Infrastructure.Persistence.Auditoria;
  * "Sistema".
  */
 public sealed class AuditoriaInterceptor(
-    IUsuarioActual usuarioActual)
+    IUsuarioActual usuarioActual,
+    INotificadorCambios notificador)
     : SaveChangesInterceptor
 {
+    /*
+     * Después de guardar, avisa a la sesión del usuario (por
+     * ejemplo, para que la campana de avisos se actualice sola).
+     */
+    public override async ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData,
+        int result,
+        CancellationToken cancellationToken = default)
+    {
+        if (result > 0)
+            notificador.Notificar();
+
+        return await base.SavedChangesAsync(
+            eventData,
+            result,
+            cancellationToken);
+    }
+
+
+    public override int SavedChanges(
+        SaveChangesCompletedEventData eventData,
+        int result)
+    {
+        if (result > 0)
+            notificador.Notificar();
+
+        return base.SavedChanges(
+            eventData,
+            result);
+    }
+
+
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,

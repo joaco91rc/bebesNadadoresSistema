@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BebesNadadores.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0e0bae56af36488938199ffd6be2284f959ec165")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e3080130a17d68da7db3ddc237e509948010779e")]
 [assembly: System.Reflection.AssemblyProductAttribute("BebesNadadores.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BebesNadadores.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

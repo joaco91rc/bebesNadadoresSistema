@@ -4,6 +4,7 @@
 @inject IAvisosService AvisosService
 @inject NavigationManager Navigation
 @inject PermisosUsuario Permisos
+@inject BebesNadadores.Application.Abstractions.INotificadorCambios Notificador
 
 @*
     =================================================================
@@ -16,8 +17,11 @@
     Cada rol ve solo lo suyo. Al resolver el problema, el aviso
     desaparece solo.
 
-    Se actualiza al abrir el panel y al cambiar de pantalla (como
-    máximo una vez por minuto).
+    Se actualiza sola:
+      - cuando el usuario guarda algo (un pago, una anulación, un apto…):
+        lo avisa la auditoría por INotificadorCambios;
+      - cada 2 minutos, para tomar lo que cargan otros usuarios;
+      - al abrir el panel y al cambiar de pantalla.
 *@
 
 @if (TieneAvisos)
@@ -115,6 +119,20 @@
     private static readonly TimeSpan IntervaloMinimo =
         TimeSpan.FromMinutes(1);
 
+    private static readonly TimeSpan IntervaloPeriodico =
+        TimeSpan.FromMinutes(2);
+
+    /*
+     * Un cobro guarda varias veces seguidas (pago, imputaciones,
+     * saldos a favor): se espera un momento y se recalcula una vez.
+     */
+    private static readonly TimeSpan DemoraTrasGuardar =
+        TimeSpan.FromMilliseconds(800);
+
+    private readonly CancellationTokenSource _vida = new();
+
+    private CancellationTokenSource? _demora;
+
     private List<AvisoDto> _avisos = [];
 
     private AlcanceAvisos? _alcance;
@@ -124,6 +142,8 @@
     private bool _abierto;
 
     private bool _cargando;
+
+    private bool _recargarAlTerminar;
 
 
     /*
@@ -146,17 +166,95 @@
                 Medicos: await Permisos.TieneAsync(PoliticasSistema.GestionMedica),
                 Administracion: await Permisos.TieneAsync(PoliticasSistema.SoloAdministrador));
 
+        if (!TieneAvisos)
+            return;
+
         Navigation.LocationChanged += AlNavegar;
 
+        Notificador.DatosGuardados += AlGuardarDatos;
+
+        _ = ActualizarPeriodicamenteAsync(_vida.Token);
+
         await CargarAsync(forzar: true);
+    }
+
+
+    /*
+     * Se guardó algo en esta sesión: recalcular los avisos.
+     * Puede llegar desde cualquier hilo, por eso InvokeAsync.
+     */
+    private void AlGuardarDatos()
+    {
+        _demora?.Cancel();
+        _demora = new CancellationTokenSource();
+
+        var token =
+            _demora.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(DemoraTrasGuardar, token);
+
+                await InvokeAsync(async () =>
+                {
+                    await CargarAsync(forzar: true);
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // Llegó otro guardado: lo recalcula el siguiente.
+            }
+            catch (ObjectDisposedException)
+            {
+                // El usuario cerró la pestaña.
+            }
+        });
+    }
+
+
+    private async Task ActualizarPeriodicamenteAsync(
+        CancellationToken ct)
+    {
+        try
+        {
+            using var timer =
+                new PeriodicTimer(IntervaloPeriodico);
+
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await CargarAsync(forzar: true);
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Se cerró la sesión.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Se cerró la sesión.
+        }
     }
 
 
     private async Task CargarAsync(
         bool forzar)
     {
-        if (_alcance is null || _cargando)
+        if (_alcance is null)
             return;
+
+        if (_cargando)
+        {
+            // Ya está calculando: cuando termine, vuelve a calcular.
+            _recargarAlTerminar = forzar || _recargarAlTerminar;
+            return;
+        }
 
         if (!forzar && DateTime.UtcNow - _ultimaCarga < IntervaloMinimo)
             return;
@@ -179,6 +277,13 @@
         finally
         {
             _cargando = false;
+        }
+
+        if (_recargarAlTerminar)
+        {
+            _recargarAlTerminar = false;
+
+            await CargarAsync(forzar: true);
         }
     }
 
@@ -235,5 +340,12 @@
     public void Dispose()
     {
         Navigation.LocationChanged -= AlNavegar;
+        Notificador.DatosGuardados -= AlGuardarDatos;
+
+        _vida.Cancel();
+        _vida.Dispose();
+
+        _demora?.Cancel();
+        _demora?.Dispose();
     }
 }
