@@ -22,6 +22,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+	<RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
     <UserSecretsId>2c7ee6e8-0ead-4eab-ad00-cb939c0a3139</UserSecretsId>
   </PropertyGroup>
 
