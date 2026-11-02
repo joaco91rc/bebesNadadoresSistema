@@ -1,9 +1,4 @@
 .settings-page {
-    /*
-     * Colores que siguen el tema (claro / oscuro) de MudBlazor.
-     * Antes estaban fijos para modo oscuro y en modo claro el
-     * título y varios textos quedaban blancos sobre fondo blanco.
-     */
     --surface: color-mix(in srgb, var(--mud-palette-surface) 94%, var(--mud-palette-primary) 6%);
     --surface-strong: color-mix(in srgb, var(--mud-palette-surface) 88%, var(--mud-palette-primary) 12%);
     --surface-soft: color-mix(in srgb, var(--mud-palette-primary) 8%, transparent);
@@ -14,8 +9,6 @@
     --text: var(--mud-palette-text-primary);
     --text-soft: color-mix(in srgb, var(--mud-palette-text-primary) 75%, var(--mud-palette-text-secondary));
     --muted: var(--mud-palette-text-secondary);
-
-    /* Acentos: se mezclan con el color de texto para que se lean en los dos modos */
     --cyan: color-mix(in srgb, var(--mud-palette-primary) 85%, var(--mud-palette-text-primary));
     --cyan-soft: color-mix(in srgb, var(--mud-palette-primary) 12%, transparent);
     --green: color-mix(in srgb, var(--mud-palette-success) 78%, var(--mud-palette-text-primary));
@@ -93,8 +86,8 @@
     font-weight: 700;
     cursor: pointer;
     transition: border-color .18s ease,
-                background .18s ease,
-                transform .18s ease;
+        background .18s ease,
+        transform .18s ease;
 }
 
 .settings-refresh:hover,
@@ -106,10 +99,9 @@
 
 .primary-action {
     border-color: rgba(41, 197, 246, .55);
-    background: linear-gradient(
-        135deg,
-        #16aedd,
-        #2cc8f3);
+    background: linear-gradient(135deg,
+            #16aedd,
+            #2cc8f3);
     color: #03273a;
     box-shadow: 0 8px 26px rgba(30, 190, 236, .14);
 }
@@ -204,12 +196,10 @@
 }
 
 @keyframes settings-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
-
-/* ============================================================
-   HUB
-   ============================================================ */
 
 .settings-hub {
     display: grid;
@@ -234,8 +224,8 @@
     gap: 10px 12px;
     cursor: pointer;
     transition: border-color .18s ease,
-                background .18s ease,
-                transform .18s ease;
+        background .18s ease,
+        transform .18s ease;
 }
 
 .settings-card:hover,
@@ -290,7 +280,7 @@
     letter-spacing: .08em;
 }
 
-.settings-card-body > small {
+.settings-card-body>small {
     color: var(--cyan);
 }
 
@@ -299,7 +289,7 @@
     font-size: 15px;
 }
 
-.settings-card-body > span {
+.settings-card-body>span {
     color: var(--muted);
     font-size: 11px;
     line-height: 1.45;
@@ -338,10 +328,6 @@
     margin: 0 0 14px;
     background: transparent;
 }
-
-/* ============================================================
-   PANEL
-   ============================================================ */
 
 .settings-panel,
 .settings-overview,
@@ -391,10 +377,6 @@
     justify-content: flex-end;
 }
 
-/* ============================================================
-   USERS
-   ============================================================ */
-
 .role-guide {
     padding: 14px 18px;
     border-bottom: 1px solid var(--line);
@@ -403,7 +385,7 @@
     gap: 8px;
 }
 
-.role-guide > div {
+.role-guide>div {
     padding: 10px;
     border-radius: 9px;
     background: var(--panel);
@@ -479,7 +461,7 @@
     font-weight: 800;
 }
 
-.user-cell > span:nth-child(2) {
+.user-cell>span:nth-child(2) {
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -549,7 +531,7 @@
     color: var(--muted);
 }
 
-.status-badge > span {
+.status-badge>span {
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -576,7 +558,7 @@
 
 .row-actions button,
 .tariff-row button,
-.modal-header > button {
+.modal-header>button {
     width: 32px;
     height: 32px;
     border: 1px solid var(--line);
@@ -591,14 +573,10 @@
 
 .row-actions button:hover,
 .tariff-row button:hover,
-.modal-header > button:hover {
+.modal-header>button:hover {
     color: var(--cyan);
     border-color: var(--line-strong);
 }
-
-/* ============================================================
-   PLANS
-   ============================================================ */
 
 .plans-grid {
     padding: 16px 18px 18px;
@@ -619,7 +597,7 @@
     opacity: .66;
 }
 
-.plan-card > header {
+.plan-card>header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -674,7 +652,7 @@
     gap: 2px;
 }
 
-.plan-current-price > span {
+.plan-current-price>span {
     color: var(--muted);
     font-size: 9px;
 }
@@ -767,7 +745,7 @@
     gap: 8px;
 }
 
-.tariff-row > span:first-child {
+.tariff-row>span:first-child {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -802,10 +780,6 @@
     background: var(--panel);
     font-size: 9px;
 }
-
-/* ============================================================
-   RULES
-   ============================================================ */
 
 .rules-grid {
     padding: 18px;
@@ -904,10 +878,6 @@
     font-size: 9px;
 }
 
-/* ============================================================
-   INSTITUTION / FORM FIELDS
-   ============================================================ */
-
 .institution-form-grid,
 .form-grid {
     display: grid;
@@ -935,7 +905,7 @@
     grid-column: 1 / -1;
 }
 
-.form-field > span,
+.form-field>span,
 .toggle-field strong {
     color: var(--text-soft);
     font-size: 10px;
@@ -954,7 +924,7 @@
     font: inherit;
     font-size: 11px;
     transition: border-color .16s ease,
-                box-shadow .16s ease;
+        box-shadow .16s ease;
 }
 
 .form-field input,
@@ -996,7 +966,7 @@
     gap: 12px;
 }
 
-.toggle-field > span {
+.toggle-field>span {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1034,7 +1004,7 @@
     color: var(--cyan);
 }
 
-.institution-preview > span:last-child {
+.institution-preview>span:last-child {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -1056,10 +1026,6 @@
     color: var(--muted);
     font-size: 9px;
 }
-
-/* ============================================================
-   OVERVIEW / OPERATIONAL
-   ============================================================ */
 
 .settings-overview {
     padding: 18px;
@@ -1090,7 +1056,7 @@
     gap: 8px;
 }
 
-.overview-stats > div {
+.overview-stats>div {
     padding: 11px;
     border: 1px solid var(--line);
     border-radius: 9px;
@@ -1126,7 +1092,7 @@
     gap: 8px;
 }
 
-.operational-grid > button {
+.operational-grid>button {
     min-width: 0;
     min-height: 94px;
     padding: 11px;
@@ -1142,12 +1108,12 @@
     cursor: pointer;
 }
 
-.operational-grid > button:hover {
+.operational-grid>button:hover {
     border-color: var(--line-strong);
     background: rgba(41, 197, 246, .045);
 }
 
-.operational-grid > button > span:nth-child(2) {
+.operational-grid>button>span:nth-child(2) {
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -1165,7 +1131,7 @@
     line-height: 1.35;
 }
 
-.operational-grid > button > .mud-icon-root:last-child {
+.operational-grid>button>.mud-icon-root:last-child {
     color: var(--muted);
 }
 
@@ -1194,10 +1160,6 @@
     background: var(--amber-soft);
     color: var(--amber);
 }
-
-/* ============================================================
-   MODALS
-   ============================================================ */
 
 .settings-modal-backdrop {
     position: fixed;
@@ -1287,7 +1249,7 @@
     overflow: hidden;
 }
 
-.money-input > span {
+.money-input>span {
     height: 100%;
     min-width: 40px;
     display: grid;
@@ -1303,8 +1265,116 @@
 }
 
 /* ============================================================
-   RESPONSIVE
+   MODAL USUARIO - MAYOR LEGIBILIDAD Y TEMA DEL SISTEMA
    ============================================================ */
+.settings-modal.user-modal {
+    width: min(900px, calc(100vw - 48px));
+    max-height: calc(100vh - 40px);
+    border-radius: 18px;
+}
+
+.user-modal .modal-header {
+    padding: 22px 26px;
+}
+
+.user-modal .modal-header h2 {
+    font-size: 24px;
+}
+
+.user-modal .modal-header .panel-eyebrow {
+    font-size: 10px;
+}
+
+.user-modal .modal-body {
+    padding: 26px;
+}
+
+.user-modal .form-grid {
+    gap: 18px 20px;
+}
+
+.user-modal .form-field {
+    gap: 8px;
+}
+
+.user-modal .form-field>span,
+.user-modal .toggle-field strong {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.user-modal .form-field input,
+.user-modal .form-field textarea {
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.user-modal .form-field textarea {
+    padding-top: 11px;
+    padding-bottom: 11px;
+}
+
+.user-modal .form-field input::placeholder,
+.user-modal .form-field textarea::placeholder {
+    color: var(--muted);
+    opacity: .72;
+}
+
+.user-modal .toggle-field {
+    min-height: 70px;
+    padding: 12px 15px;
+    border-radius: 10px;
+}
+
+.user-modal .toggle-field small,
+.user-modal .form-field small,
+.user-modal .password-help {
+    font-size: 10px;
+}
+
+.user-modal .modal-footer {
+    padding: 17px 26px 20px;
+    gap: 10px;
+}
+
+.user-modal .modal-footer .primary-action,
+.user-modal .modal-footer .secondary-action {
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 12px;
+}
+
+.user-modal .settings-select-shell {
+    min-height: 46px;
+}
+
+.user-modal .settings-select-shell ::deep .mud-input-control {
+    margin-top: 0;
+}
+
+.user-modal .settings-select-shell ::deep .mud-input {
+    min-height: 46px;
+    border-radius: 10px;
+    background: var(--input-bg);
+    color: var(--text);
+}
+
+.user-modal .settings-select-shell ::deep .mud-input-slot,
+.user-modal .settings-select-shell ::deep input {
+    font-size: 13px;
+    color: var(--text);
+}
+
+.user-modal .settings-select-shell ::deep .mud-input-outlined-border {
+    border-color: var(--line);
+}
+
+.user-modal .settings-select-shell ::deep .mud-input:hover .mud-input-outlined-border,
+.user-modal .settings-select-shell ::deep .mud-input:focus-within .mud-input-outlined-border {
+    border-color: rgba(41, 197, 246, .62);
+}
 
 @media (max-width: 1180px) {
     .settings-hub {
@@ -1462,5 +1532,30 @@
 
     .modal-footer button {
         width: 100%;
+    }
+}
+
+@media (max-width: 620px) {
+    .settings-modal.user-modal {
+        width: 100%;
+        max-height: calc(100vh - 16px);
+    }
+
+    .user-modal .modal-header {
+        padding: 17px 16px;
+    }
+
+    .user-modal .modal-body {
+        padding: 16px;
+    }
+
+    .user-modal .form-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .user-modal .form-field.full,
+    .user-modal .password-help.full {
+        grid-column: auto;
     }
 }

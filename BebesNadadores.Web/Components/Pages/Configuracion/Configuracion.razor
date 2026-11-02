@@ -1,115 +1,75 @@
 @page "/configuracion"
-
 @attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
-
 @using BebesNadadores.Application.Configuracion.Dtos
 @using BebesNadadores.Infrastructure.Identity
 @using BebesNadadores.Web.Components.Shared.Utils
-
 <PageTitle>Configuración | Bebés Nadadores</PageTitle>
-
 <div class="settings-page">
-
     <section class="settings-header">
-
         <div class="settings-header-copy">
-
             <span class="settings-eyebrow">
                 ADMINISTRACIÓN DEL SISTEMA
             </span>
-
             <h1>Configuración</h1>
-
             <p>
                 Administrá usuarios, planes, tarifas y parámetros generales
                 de Bebés Nadadores desde un único lugar.
             </p>
-
         </div>
-
         <button type="button"
                 class="settings-refresh"
                 disabled="@_cargando"
                 @onclick="ActualizarAsync">
-
             <MudIcon Icon="@Icons.Material.Filled.Refresh"
                      Size="Size.Small" />
-
             Actualizar
-
         </button>
-
     </section>
-
-
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="settings-message error">
-
             <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
                      Size="Size.Small" />
-
             <span>@_error</span>
-
             <button type="button"
                     @onclick="() => _error = null">
                 <MudIcon Icon="@Icons.Material.Filled.Close"
                          Size="Size.Small" />
             </button>
-
         </div>
     }
-
-
     @if (!string.IsNullOrWhiteSpace(_mensaje))
     {
         <div class="settings-message success">
-
             <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
                      Size="Size.Small" />
-
             <span>@_mensaje</span>
-
             <button type="button"
                     @onclick="() => _mensaje = null">
                 <MudIcon Icon="@Icons.Material.Filled.Close"
                          Size="Size.Small" />
             </button>
-
         </div>
     }
-
-
     @if (_cargando)
     {
         <section class="settings-loading">
-
             <div class="settings-spinner"></div>
-
             <strong>Cargando configuración...</strong>
-
             <span>
                 Estamos obteniendo usuarios, planes y parámetros del sistema.
             </span>
-
         </section>
     }
     else
     {
-        @* =====================================================
-           CENTRO DE CONFIGURACIÓN
-           ===================================================== *@
-
         <section class="settings-hub">
-
             <button type="button"
                     class="settings-card users @(_seccion == SeccionConfiguracion.Usuarios ? "active" : null)"
                     @onclick="() => SeleccionarSeccion(SeccionConfiguracion.Usuarios)">
-
                 <span class="settings-card-icon">
                     <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
                 </span>
-
                 <span class="settings-card-body">
                     <small>SEGURIDAD</small>
                     <strong>Usuarios y permisos</strong>
@@ -117,27 +77,20 @@
                         Altas, roles, estado y contraseñas de acceso.
                     </span>
                 </span>
-
                 <span class="settings-card-value">
                     <strong>@UsuariosActivos</strong>
                     <small>activos</small>
                 </span>
-
                 <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                          Size="Size.Small"
                          Class="settings-card-arrow" />
-
             </button>
-
-
             <button type="button"
                     class="settings-card plans @(_seccion == SeccionConfiguracion.Planes ? "active" : null)"
                     @onclick="() => SeleccionarSeccion(SeccionConfiguracion.Planes)">
-
                 <span class="settings-card-icon">
                     <MudIcon Icon="@Icons.Material.Filled.Payments" />
                 </span>
-
                 <span class="settings-card-body">
                     <small>COMERCIAL</small>
                     <strong>Planes y tarifas</strong>
@@ -145,27 +98,20 @@
                         Frecuencia semanal, precios e historial de vigencias.
                     </span>
                 </span>
-
                 <span class="settings-card-value">
                     <strong>@PlanesActivos</strong>
                     <small>planes</small>
                 </span>
-
                 <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                          Size="Size.Small"
                          Class="settings-card-arrow" />
-
             </button>
-
-
             <button type="button"
                     class="settings-card rules @(_seccion == SeccionConfiguracion.Reglas ? "active" : null)"
                     @onclick="() => SeleccionarSeccion(SeccionConfiguracion.Reglas)">
-
                 <span class="settings-card-icon">
                     <MudIcon Icon="@Icons.Material.Filled.Tune" />
                 </span>
-
                 <span class="settings-card-body">
                     <small>PARÁMETROS</small>
                     <strong>Reglas del sistema</strong>
@@ -173,27 +119,20 @@
                         Recuperos, aptos médicos, cuotas y edad máxima.
                     </span>
                 </span>
-
                 <span class="settings-card-value compact">
                     <strong>@(_configuracion?.DiasVigenciaRecupero ?? 45)</strong>
                     <small>días rec.</small>
                 </span>
-
                 <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                          Size="Size.Small"
                          Class="settings-card-arrow" />
-
             </button>
-
-
             <button type="button"
                     class="settings-card institution @(_seccion == SeccionConfiguracion.Institucion ? "active" : null)"
                     @onclick="() => SeleccionarSeccion(SeccionConfiguracion.Institucion)">
-
                 <span class="settings-card-icon">
                     <MudIcon Icon="@Icons.Material.Filled.Business" />
                 </span>
-
                 <span class="settings-card-body">
                     <small>INSTITUCIÓN</small>
                     <strong>Datos generales</strong>
@@ -201,46 +140,29 @@
                         Identidad, WhatsApp, dirección y logo del natatorio.
                     </span>
                 </span>
-
                 <span class="settings-card-value institution-value">
                     <MudIcon Icon="@Icons.Material.Filled.Pool"
                              Size="Size.Small" />
                 </span>
-
                 <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                          Size="Size.Small"
                          Class="settings-card-arrow" />
-
             </button>
-
         </section>
-
-
         @if (_seccion != SeccionConfiguracion.Resumen)
         {
             <button type="button"
                     class="back-to-settings"
                     @onclick="() => SeleccionarSeccion(SeccionConfiguracion.Resumen)">
-
                 <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
                          Size="Size.Small" />
-
                 Volver al centro de configuración
-
             </button>
         }
-
-
-        @* =====================================================
-           USUARIOS
-           ===================================================== *@
-
         @if (_seccion == SeccionConfiguracion.Usuarios)
         {
             <section class="settings-panel">
-
                 <header class="panel-header">
-
                     <div>
                         <span class="panel-eyebrow">SEGURIDAD Y ACCESOS</span>
                         <h2>Usuarios y permisos</h2>
@@ -249,55 +171,38 @@
                             determinan qué módulos puede utilizar.
                         </p>
                     </div>
-
                     <button type="button"
                             class="primary-action"
                             @onclick="NuevoUsuario">
-
                         <MudIcon Icon="@Icons.Material.Filled.PersonAdd"
                                  Size="Size.Small" />
-
                         Nuevo usuario
-
                     </button>
-
                 </header>
-
-
                 <div class="role-guide">
-
                     <div>
                         <strong>Administrador</strong>
                         <span>Acceso total y configuración.</span>
                     </div>
-
                     <div>
                         <strong>Administrativa</strong>
                         <span>Operatoria diaria y gestión.</span>
                     </div>
-
                     <div>
                         <strong>Médica</strong>
                         <span>Únicamente aptos médicos.</span>
                     </div>
-
                     <div>
                         <strong>Profesor</strong>
                         <span>Funciones docentes vinculadas a su ficha.</span>
                     </div>
-
                     <div>
                         <strong>Solo lectura</strong>
                         <span>Consulta sin gestión sensible.</span>
                     </div>
-
                 </div>
-
-
                 <div class="settings-table-wrap">
-
                     <table class="settings-table users-table">
-
                         <thead>
                             <tr>
                                 <th>Usuario</th>
@@ -307,39 +212,30 @@
                                 <th></th>
                             </tr>
                         </thead>
-
                         <tbody>
-
                             @foreach (var usuario in _usuarios)
                             {
                                 <tr>
-
                                     <td>
                                         <div class="user-cell">
-
                                             <span class="user-avatar">
                                                 @ObtenerIniciales(usuario.NombreCompleto)
                                             </span>
-
                                             <span>
                                                 <strong>@usuario.NombreCompleto</strong>
                                                 <small>@usuario.Email</small>
                                             </span>
-
                                             @if (usuario.Id == _usuarioActualId)
                                             {
                                                 <span class="self-badge">VOS</span>
                                             }
-
                                         </div>
                                     </td>
-
                                     <td>
                                         <span class="role-badge @usuario.Rol.ToLowerInvariant()">
                                             @ObtenerNombreRol(usuario.Rol)
                                         </span>
                                     </td>
-
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(usuario.ProfesorVinculado))
                                         {
@@ -354,57 +250,39 @@
                                             <span class="muted-value">—</span>
                                         }
                                     </td>
-
                                     <td>
                                         <span class="status-badge @(usuario.Activo ? "on" : "off")">
                                             <span></span>
                                             @(usuario.Activo ? "Activo" : "Inactivo")
                                         </span>
                                     </td>
-
                                     <td>
                                         <div class="row-actions">
-
                                             <button type="button"
                                                     title="Editar usuario"
                                                     @onclick="() => EditarUsuario(usuario)">
                                                 <MudIcon Icon="@Icons.Material.Filled.Edit"
                                                          Size="Size.Small" />
                                             </button>
-
                                             <button type="button"
                                                     title="Cambiar contraseña"
                                                     @onclick="() => AbrirPassword(usuario)">
                                                 <MudIcon Icon="@Icons.Material.Filled.LockReset"
                                                          Size="Size.Small" />
                                             </button>
-
                                         </div>
                                     </td>
-
                                 </tr>
                             }
-
                         </tbody>
-
                     </table>
-
                 </div>
-
             </section>
         }
-
-
-        @* =====================================================
-           PLANES Y TARIFAS
-           ===================================================== *@
-
         @if (_seccion == SeccionConfiguracion.Planes)
         {
             <section class="settings-panel">
-
                 <header class="panel-header">
-
                     <div>
                         <span class="panel-eyebrow">PLANES Y VALORES</span>
                         <h2>Planes y tarifas mensuales</h2>
@@ -413,21 +291,14 @@
                             mantienen el historial utilizado por las cuotas anteriores.
                         </p>
                     </div>
-
                     <button type="button"
                             class="primary-action"
                             @onclick="NuevoPlan">
-
                         <MudIcon Icon="@Icons.Material.Filled.Add"
                                  Size="Size.Small" />
-
                         Nuevo plan
-
                     </button>
-
                 </header>
-
-
                 @if (PlanesSinTarifa > 0)
                 {
                     <div class="panel-warning">
@@ -438,22 +309,15 @@
                         </span>
                     </div>
                 }
-
-
                 <div class="plans-grid">
-
                     @foreach (var plan in _planes)
                     {
                         <article class="plan-card @(!plan.Activo ? "disabled" : null)">
-
                             <header>
-
                                 <div class="plan-title-wrap">
-
                                     <span class="plan-icon">
                                         <MudIcon Icon="@Icons.Material.Filled.Pool" />
                                     </span>
-
                                     <div>
                                         <small>
                                             @plan.VecesPorSemana
@@ -463,35 +327,25 @@
                                         </small>
                                         <h3>@plan.Nombre</h3>
                                     </div>
-
                                 </div>
-
                                 <span class="status-badge @(plan.Activo ? "on" : "off")">
                                     <span></span>
                                     @(plan.Activo ? "Activo" : "Inactivo")
                                 </span>
-
                             </header>
-
-
                             @if (!string.IsNullOrWhiteSpace(plan.Descripcion))
                             {
                                 <p class="plan-description">
                                     @plan.Descripcion
                                 </p>
                             }
-
-
                             <div class="plan-current-price">
-
                                 <span>Tarifa vigente</span>
-
                                 @if (plan.PrecioActual.HasValue)
                                 {
                                     <strong>
                                         @FormatearPrecio(plan.PrecioActual.Value)
                                     </strong>
-
                                     <small>
                                         Desde @FormatearFecha(plan.TarifaVigenteDesde)
                                         @if (plan.TarifaVigenteHasta.HasValue)
@@ -506,10 +360,7 @@
                                         Sin tarifa vigente
                                     </strong>
                                 }
-
                             </div>
-
-
                             <div class="plan-meta">
                                 <span>
                                     <MudIcon Icon="@Icons.Material.Filled.Groups"
@@ -517,10 +368,7 @@
                                     @plan.InscripcionesActivas inscripciones activas
                                 </span>
                             </div>
-
-
                             <div class="plan-actions">
-
                                 <button type="button"
                                         class="secondary-action compact"
                                         @onclick="() => EditarPlan(plan)">
@@ -528,7 +376,6 @@
                                              Size="Size.Small" />
                                     Editar
                                 </button>
-
                                 <button type="button"
                                         class="secondary-action compact"
                                         @onclick="() => NuevaTarifa(plan)">
@@ -536,7 +383,6 @@
                                              Size="Size.Small" />
                                     Nueva tarifa
                                 </button>
-
                                 <button type="button"
                                         class="secondary-action compact @(plan.Activo ? "danger-soft" : "success-soft")"
                                         @onclick="() => CambiarEstadoPlanAsync(plan)">
@@ -546,12 +392,8 @@
                                              Size="Size.Small" />
                                     @(plan.Activo ? "Desactivar" : "Activar")
                                 </button>
-
                             </div>
-
-
                             <details class="tariff-history">
-
                                 <summary>
                                     <span>
                                         <MudIcon Icon="@Icons.Material.Filled.History"
@@ -560,9 +402,7 @@
                                     </span>
                                     <strong>@plan.Tarifas.Count</strong>
                                 </summary>
-
                                 <div class="tariff-history-list">
-
                                     @if (plan.Tarifas.Count == 0)
                                     {
                                         <div class="empty-small">
@@ -574,7 +414,6 @@
                                         @foreach (var tarifa in plan.Tarifas)
                                         {
                                             <div class="tariff-row">
-
                                                 <span>
                                                     <strong>@FormatearPrecio(tarifa.PrecioMensual)</strong>
                                                     <small>
@@ -583,48 +422,32 @@
                                                         @FormatearFecha(tarifa.VigenciaHasta)
                                                     </small>
                                                 </span>
-
                                                 @if (tarifa.EsVigente)
                                                 {
                                                     <span class="current-badge">
                                                         VIGENTE
                                                     </span>
                                                 }
-
                                                 <button type="button"
                                                         title="Corregir esta tarifa"
                                                         @onclick="() => CorregirTarifa(plan, tarifa)">
                                                     <MudIcon Icon="@Icons.Material.Filled.Edit"
                                                              Size="Size.Small" />
                                                 </button>
-
                                             </div>
                                         }
                                     }
-
                                 </div>
-
                             </details>
-
                         </article>
                     }
-
                 </div>
-
             </section>
         }
-
-
-        @* =====================================================
-           REGLAS
-           ===================================================== *@
-
         @if (_seccion == SeccionConfiguracion.Reglas)
         {
             <section class="settings-panel rules-panel">
-
                 <header class="panel-header">
-
                     <div>
                         <span class="panel-eyebrow">REGLAS GENERALES</span>
                         <h2>Parámetros del sistema</h2>
@@ -633,12 +456,8 @@
                             el código de la aplicación.
                         </p>
                     </div>
-
                 </header>
-
-
                 <div class="rules-grid">
-
                     <label class="rule-field">
                         <span class="rule-icon recoveries">
                             <MudIcon Icon="@Icons.Material.Filled.Sync"
@@ -656,8 +475,6 @@
                             <span>días</span>
                         </span>
                     </label>
-
-
                     <label class="rule-field">
                         <span class="rule-icon health">
                             <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
@@ -675,8 +492,6 @@
                             <span>meses</span>
                         </span>
                     </label>
-
-
                     <label class="rule-field">
                         <span class="rule-icon warning">
                             <MudIcon Icon="@Icons.Material.Filled.NotificationImportant"
@@ -694,8 +509,6 @@
                             <span>días</span>
                         </span>
                     </label>
-
-
                     <label class="rule-field">
                         <span class="rule-icon money">
                             <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
@@ -713,8 +526,6 @@
                             <span>día</span>
                         </span>
                     </label>
-
-
                     <label class="rule-field wide">
                         <span class="rule-icon age">
                             <MudIcon Icon="@Icons.Material.Filled.ChildCare"
@@ -735,38 +546,23 @@
                             <span>meses</span>
                         </span>
                     </label>
-
                 </div>
-
-
                 <div class="panel-footer-actions">
                     <button type="button"
                             class="primary-action"
                             disabled="@_guardando"
                             @onclick="GuardarReglasAsync">
-
                         <MudIcon Icon="@Icons.Material.Filled.Save"
                                  Size="Size.Small" />
-
                         Guardar reglas
-
                     </button>
                 </div>
-
             </section>
         }
-
-
-        @* =====================================================
-           INSTITUCIÓN
-           ===================================================== *@
-
         @if (_seccion == SeccionConfiguracion.Institucion)
         {
             <section class="settings-panel institution-panel">
-
                 <header class="panel-header">
-
                     <div>
                         <span class="panel-eyebrow">DATOS GENERALES</span>
                         <h2>Institución</h2>
@@ -775,12 +571,8 @@
                             en comprobantes, reportes y comunicaciones.
                         </p>
                     </div>
-
                 </header>
-
-
                 <div class="institution-form-grid">
-
                     <label class="form-field">
                         <span>Nombre de la institución *</span>
                         <input type="text"
@@ -788,8 +580,6 @@
                                placeholder="Bebés Nadadores"
                                @bind="_institucionForm.NombreInstitucion" />
                     </label>
-
-
                     <label class="form-field">
                         <span>WhatsApp</span>
                         <input type="text"
@@ -797,8 +587,6 @@
                                placeholder="Ej. +54 9 221 ..."
                                @bind="_institucionForm.WhatsApp" />
                     </label>
-
-
                     <label class="form-field full">
                         <span>Dirección</span>
                         <input type="text"
@@ -806,8 +594,6 @@
                                placeholder="Dirección del natatorio"
                                @bind="_institucionForm.Direccion" />
                     </label>
-
-
                     <label class="form-field full">
                         <span>Logo · ruta o URL</span>
                         <input type="text"
@@ -819,16 +605,11 @@
                             no se reemplaza automáticamente desde esta pantalla.
                         </small>
                     </label>
-
                 </div>
-
-
                 <div class="institution-preview">
-
                     <span class="institution-preview-icon">
                         <MudIcon Icon="@Icons.Material.Filled.Pool" />
                     </span>
-
                     <span>
                         <small>VISTA PREVIA</small>
                         <strong>
@@ -842,42 +623,26 @@
                                 : "Dirección no configurada")
                         </span>
                     </span>
-
                 </div>
-
-
                 <div class="panel-footer-actions">
                     <button type="button"
                             class="primary-action"
                             disabled="@_guardando"
                             @onclick="GuardarInstitucionAsync">
-
                         <MudIcon Icon="@Icons.Material.Filled.Save"
                                  Size="Size.Small" />
-
                         Guardar institución
-
                     </button>
                 </div>
-
             </section>
         }
-
-
-        @* =====================================================
-           RESUMEN / ACCESOS OPERATIVOS
-           ===================================================== *@
-
         @if (_seccion == SeccionConfiguracion.Resumen)
         {
             <section class="settings-overview">
-
                 <div class="overview-callout">
-
                     <span class="overview-icon">
                         <MudIcon Icon="@Icons.Material.Filled.SettingsSuggest" />
                     </span>
-
                     <div>
                         <span class="panel-eyebrow">CENTRO DEL SISTEMA</span>
                         <h2>
@@ -888,49 +653,36 @@
                             Desde acá tenés accesos directos sin duplicar funcionalidades.
                         </p>
                     </div>
-
                 </div>
-
-
                 <div class="overview-stats">
-
                     <div>
                         <span>Usuarios</span>
                         <strong>@UsuariosActivos</strong>
                         <small>activos</small>
                     </div>
-
                     <div>
                         <span>Planes</span>
                         <strong>@PlanesActivos</strong>
                         <small>activos</small>
                     </div>
-
                     <div>
                         <span>Recuperos</span>
                         <strong>@(_configuracion?.DiasVigenciaRecupero ?? 45)</strong>
                         <small>días de vigencia</small>
                     </div>
-
                     <div>
                         <span>Apto médico</span>
                         <strong>@(_configuracion?.MesesVigenciaApto ?? 1)</strong>
                         <small>mes de vigencia</small>
                     </div>
-
                     <div>
                         <span>Cuotas</span>
                         <strong>@(_configuracion?.DiaVencimientoCuota ?? 10)</strong>
                         <small>día de vencimiento</small>
                     </div>
-
                 </div>
-
             </section>
-
-
             <section class="operational-section">
-
                 <header>
                     <span class="panel-eyebrow">CONFIGURACIÓN OPERATIVA</span>
                     <h2>Accesos directos</h2>
@@ -938,10 +690,7 @@
                         Estas opciones ya tienen su propia pantalla y no se duplican dentro de Configuración.
                     </p>
                 </header>
-
-
                 <div class="operational-grid">
-
                     <button type="button"
                             @onclick="IrATurnera">
                         <span class="operational-icon turnera">
@@ -954,8 +703,6 @@
                         <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                                  Size="Size.Small" />
                     </button>
-
-
                     <button type="button"
                             @onclick="IrANiveles">
                         <span class="operational-icon levels">
@@ -968,8 +715,6 @@
                         <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                                  Size="Size.Small" />
                     </button>
-
-
                     <button type="button"
                             @onclick="IrAProfesores">
                         <span class="operational-icon teachers">
@@ -982,8 +727,6 @@
                         <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                                  Size="Size.Small" />
                     </button>
-
-
                     <button type="button"
                             @onclick="IrABancos">
                         <span class="operational-icon banks">
@@ -996,8 +739,6 @@
                         <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                                  Size="Size.Small" />
                     </button>
-
-
                     <button type="button"
                             @onclick="IrACaja">
                         <span class="operational-icon cash">
@@ -1010,45 +751,29 @@
                         <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
                                  Size="Size.Small" />
                     </button>
-
                 </div>
-
             </section>
         }
     }
-
 </div>
-
-
-@* =============================================================
-   MODAL USUARIO
-   ============================================================= *@
-
 @if (_mostrarUsuarioModal)
 {
     <div class="settings-modal-backdrop"
          @onclick="() => _mostrarUsuarioModal = false">
-
         <section class="settings-modal user-modal"
                  @onclick:stopPropagation="true">
-
             <header class="modal-header">
                 <div>
                     <span class="panel-eyebrow">ACCESO AL SISTEMA</span>
                     <h2>@(UsuarioEsNuevo ? "Nuevo usuario" : "Editar usuario")</h2>
                 </div>
-
                 <button type="button"
                         @onclick="() => _mostrarUsuarioModal = false">
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
                 </button>
             </header>
-
-
             <div class="modal-body">
-
                 <div class="form-grid">
-
                     <label class="form-field full">
                         <span>Nombre completo *</span>
                         <input type="text"
@@ -1056,7 +781,6 @@
                                placeholder="Nombre y apellido"
                                @bind="_usuarioForm.NombreCompleto" />
                     </label>
-
                     <label class="form-field full">
                         <span>Email / usuario *</span>
                         <input type="email"
@@ -1064,20 +788,26 @@
                                placeholder="usuario@bebesnadadores.com"
                                @bind="_usuarioForm.Email" />
                     </label>
-
-                    <label class="form-field">
-                        <span>Rol *</span>
-                        <select @bind="_usuarioForm.Rol"
-                                @bind:after="RolUsuarioCambio">
-                            @foreach (var rol in _roles)
-                            {
-                                <option value="@rol">
-                                    @ObtenerNombreRol(rol)
-                                </option>
-                            }
-                        </select>
-                    </label>
-
+                    <div class="form-field">
+    <span>Rol *</span>
+    <div class="settings-select-shell">
+        <MudSelect T="string"
+                   Value="@_usuarioForm.Rol"
+                   ValueChanged="CambiarRolUsuario"
+                   Variant="Variant.Outlined"
+                   FullWidth="true"
+                   AnchorOrigin="Origin.BottomCenter"
+                   TransformOrigin="Origin.TopCenter"
+                   Class="settings-mud-select">
+            @foreach (var rol in _roles)
+            {
+                <MudSelectItem T="string" Value="@rol">
+                    @ObtenerNombreRol(rol)
+                </MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+</div>
                     <label class="toggle-field">
                         <span>
                             <strong>Usuario activo</strong>
@@ -1086,28 +816,34 @@
                         <input type="checkbox"
                                @bind="_usuarioForm.Activo" />
                     </label>
-
-
                     @if (EsRolProfesor)
                     {
-                        <label class="form-field full">
-                            <span>Profesor vinculado *</span>
-                            <select @bind="_usuarioForm.ProfesorId">
-                                <option value="">Seleccionar profesor...</option>
-                                @foreach (var profesor in ProfesoresSeleccionables)
-                                {
-                                    <option value="@profesor.Id">
-                                        @profesor.NombreCompleto
-                                    </option>
-                                }
-                            </select>
-                            <small>
-                                La cuenta quedará vinculada a la ficha docente seleccionada.
-                            </small>
-                        </label>
+                        <div class="form-field full">
+    <span>Profesor vinculado *</span>
+    <div class="settings-select-shell">
+        <MudSelect T="Guid?"
+                   @bind-Value="_usuarioForm.ProfesorId"
+                   Variant="Variant.Outlined"
+                   FullWidth="true"
+                   AnchorOrigin="Origin.BottomCenter"
+                   TransformOrigin="Origin.TopCenter"
+                   Class="settings-mud-select">
+            <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                Seleccionar profesor...
+            </MudSelectItem>
+            @foreach (var profesor in ProfesoresSeleccionables)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)profesor.Id)">
+                    @profesor.NombreCompleto
+                </MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+    <small>
+        La cuenta quedará vinculada a la ficha docente seleccionada.
+    </small>
+</div>
                     }
-
-
                     @if (UsuarioEsNuevo)
                     {
                         <label class="form-field">
@@ -1116,31 +852,24 @@
                                    autocomplete="new-password"
                                    @bind="_usuarioForm.Password" />
                         </label>
-
                         <label class="form-field">
                             <span>Confirmar contraseña *</span>
                             <input type="password"
                                    autocomplete="new-password"
                                    @bind="_confirmacionPassword" />
                         </label>
-
                         <div class="password-help full">
                             Mínimo 8 caracteres, una mayúscula, una minúscula y un número.
                         </div>
                     }
-
                 </div>
-
             </div>
-
-
             <footer class="modal-footer">
                 <button type="button"
                         class="secondary-action"
                         @onclick="() => _mostrarUsuarioModal = false">
                     Cancelar
                 </button>
-
                 <button type="button"
                         class="primary-action"
                         disabled="@_guardando"
@@ -1150,70 +879,52 @@
                     Guardar usuario
                 </button>
             </footer>
-
         </section>
-
     </div>
 }
-
-
-@* =============================================================
-   MODAL PASSWORD
-   ============================================================= *@
-
 @if (_mostrarPasswordModal &&
      _usuarioPassword is not null)
 {
     <div class="settings-modal-backdrop"
          @onclick="() => _mostrarPasswordModal = false">
-
         <section class="settings-modal small-modal"
                  @onclick:stopPropagation="true">
-
             <header class="modal-header">
                 <div>
                     <span class="panel-eyebrow">SEGURIDAD</span>
                     <h2>Cambiar contraseña</h2>
                     <p>@_usuarioPassword.NombreCompleto</p>
                 </div>
-
                 <button type="button"
                         @onclick="() => _mostrarPasswordModal = false">
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
                 </button>
             </header>
-
             <div class="modal-body">
                 <div class="form-grid one-column">
-
                     <label class="form-field">
                         <span>Nueva contraseña *</span>
                         <input type="password"
                                autocomplete="new-password"
                                @bind="_nuevaPassword" />
                     </label>
-
                     <label class="form-field">
                         <span>Confirmar nueva contraseña *</span>
                         <input type="password"
                                autocomplete="new-password"
                                @bind="_confirmacionNuevaPassword" />
                     </label>
-
                     <div class="password-help">
                         Mínimo 8 caracteres, una mayúscula, una minúscula y un número.
                     </div>
-
                 </div>
             </div>
-
             <footer class="modal-footer">
                 <button type="button"
                         class="secondary-action"
                         @onclick="() => _mostrarPasswordModal = false">
                     Cancelar
                 </button>
-
                 <button type="button"
                         class="primary-action"
                         disabled="@_guardando"
@@ -1223,40 +934,27 @@
                     Cambiar contraseña
                 </button>
             </footer>
-
         </section>
-
     </div>
 }
-
-
-@* =============================================================
-   MODAL PLAN
-   ============================================================= *@
-
 @if (_mostrarPlanModal)
 {
     <div class="settings-modal-backdrop"
          @onclick="() => _mostrarPlanModal = false">
-
         <section class="settings-modal small-modal"
                  @onclick:stopPropagation="true">
-
             <header class="modal-header">
                 <div>
                     <span class="panel-eyebrow">PLAN DE ASISTENCIA</span>
                     <h2>@(_planForm.Id.HasValue ? "Editar plan" : "Nuevo plan")</h2>
                 </div>
-
                 <button type="button"
                         @onclick="() => _mostrarPlanModal = false">
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
                 </button>
             </header>
-
             <div class="modal-body">
                 <div class="form-grid one-column">
-
                     <label class="form-field">
                         <span>Nombre *</span>
                         <input type="text"
@@ -1264,7 +962,6 @@
                                placeholder="Ej. 2 veces por semana"
                                @bind="_planForm.Nombre" />
                     </label>
-
                     <label class="form-field">
                         <span>Clases por semana *</span>
                         <input type="number"
@@ -1275,7 +972,6 @@
                             No puede modificarse si el plan tiene inscripciones activas.
                         </small>
                     </label>
-
                     <label class="form-field">
                         <span>Descripción</span>
                         <textarea rows="3"
@@ -1283,7 +979,6 @@
                                   placeholder="Descripción opcional del plan..."
                                   @bind="_planForm.Descripcion"></textarea>
                     </label>
-
                     <label class="toggle-field wide-toggle">
                         <span>
                             <strong>Plan activo</strong>
@@ -1292,17 +987,14 @@
                         <input type="checkbox"
                                @bind="_planForm.Activo" />
                     </label>
-
                 </div>
             </div>
-
             <footer class="modal-footer">
                 <button type="button"
                         class="secondary-action"
                         @onclick="() => _mostrarPlanModal = false">
                     Cancelar
                 </button>
-
                 <button type="button"
                         class="primary-action"
                         disabled="@_guardando"
@@ -1312,26 +1004,16 @@
                     Guardar plan
                 </button>
             </footer>
-
         </section>
-
     </div>
 }
-
-
-@* =============================================================
-   MODAL TARIFA
-   ============================================================= *@
-
 @if (_mostrarTarifaModal &&
      _planTarifaSeleccionado is not null)
 {
     <div class="settings-modal-backdrop"
          @onclick="() => _mostrarTarifaModal = false">
-
         <section class="settings-modal small-modal"
                  @onclick:stopPropagation="true">
-
             <header class="modal-header">
                 <div>
                     <span class="panel-eyebrow">
@@ -1345,16 +1027,13 @@
                             : " clases por semana")
                     </p>
                 </div>
-
                 <button type="button"
                         @onclick="() => _mostrarTarifaModal = false">
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
                 </button>
             </header>
-
             <div class="modal-body">
                 <div class="form-grid one-column">
-
                     <label class="form-field">
                         <span>Precio mensual *</span>
                         <div class="money-input">
@@ -1365,19 +1044,15 @@
                                    @bind="_tarifaForm.PrecioMensual" />
                         </div>
                     </label>
-
                     <div class="form-field">
                         <span>Vigente desde *</span>
-
                         <BnDatePicker Value="@_tarifaForm.VigenciaDesde"
                                       ValueChanged="CambiarVigenciaTarifaAsync"
                                       Placeholder="Seleccionar mes de vigencia" />
-
                         <small>
                             La tarifa se aplica desde el primer día del mes seleccionado.
                         </small>
                     </div>
-
                     <div class="tariff-info">
                         <MudIcon Icon="@Icons.Material.Filled.Info"
                                  Size="Size.Small" />
@@ -1396,17 +1071,14 @@
                             }
                         </span>
                     </div>
-
                 </div>
             </div>
-
             <footer class="modal-footer">
                 <button type="button"
                         class="secondary-action"
                         @onclick="() => _mostrarTarifaModal = false">
                     Cancelar
                 </button>
-
                 <button type="button"
                         class="primary-action"
                         disabled="@_guardando"
@@ -1416,8 +1088,6 @@
                     @(_corrigiendoTarifa ? "Guardar corrección" : "Registrar tarifa")
                 </button>
             </footer>
-
         </section>
-
     </div>
 }
