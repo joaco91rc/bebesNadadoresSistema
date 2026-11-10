@@ -84,9 +84,7 @@
 
                 <p>
 
-                    Administrá clases pendientes y lugares
-
-                    liberados para recuperar.
+                    Visualizá todos los alumnos con recuperos disponibles y asignales una clase directamente, sin lista de espera.
 
                 </p>
 
@@ -674,9 +672,457 @@
 
 
 
+        <div class="recovery-workflow-guide" aria-label="Asignar recupero en dos pasos">
+            <MudIcon Icon="@Icons.Material.Filled.AssignmentTurnedIn" Size="Size.Medium" />
+            <strong>Asignar recupero en 2 pasos</strong>
+            <span class="workflow-step"><b>1</b> Seleccioná un recupero pendiente</span>
+            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+            <span class="workflow-step"><b>2</b> Elegí una clase compatible</span>
+        </div>
+
         <div class="recovery-layout">
 
 
+
+            @* RECUPEROS ACTIVOS *@
+
+
+
+            <aside class="recoveries-panel">
+
+
+
+                <div class="panel-heading recovery-panel-heading">
+
+
+
+                    <div>
+
+
+
+                        <span class="section-eyebrow">
+
+                            PENDIENTES
+
+                        </span>
+
+
+
+                        <h2>
+
+                            Recuperos activos pendientes
+
+                        </h2>
+
+                        <p>Seleccioná un recupero disponible para ver las clases compatibles.</p>
+
+
+
+                    </div>
+
+
+
+
+
+                    <strong class="panel-counter">
+
+                        @RecuperosFiltrados.Count
+
+                    </strong>
+
+
+
+                </div>
+
+
+
+
+
+                <div class="recovery-search">
+
+
+
+                    <MudIcon Icon="@Icons.Material.Filled.Search"
+
+                             Size="Size.Small" />
+
+
+
+                    <input type="text"
+
+                           placeholder="Buscar bebé o nivel..."
+
+                           @bind="_busqueda"
+
+                           @bind:event="oninput" />
+
+
+
+                </div>
+
+
+
+
+
+                @if (RecuperosFiltrados.Count == 0)
+
+                {
+
+                    <div class="empty-state compact">
+
+
+
+                        <div class="empty-icon">
+
+
+
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+
+
+
+                        </div>
+
+
+
+
+
+                        <strong>
+
+                            Sin recuperos pendientes
+
+                        </strong>
+
+
+
+
+
+                        <span>
+
+                            No hay recuperos que coincidan
+
+                            con la búsqueda.
+
+                        </span>
+
+
+
+                    </div>
+
+                }
+
+                else
+
+                {
+
+                    <div class="recoveries-list">
+
+
+
+                        @foreach (var recupero in RecuperosFiltrados)
+
+                        {
+
+                            var reservado =
+
+                                recupero.Estado ==
+
+                                    EstadoRecuperacion.Reservada;
+
+
+
+
+
+                            <article class="recovery-card @(reservado ? "reserved" : "") @(_recuperacionSeleccionadaId == recupero.RecuperacionId ? "selected" : "")">
+
+
+
+                                <div class="recovery-card-top">
+
+
+
+                                    <div class="recovery-avatar">
+
+                                        @ObtenerIniciales(
+
+                                            recupero.Bebe)
+
+                                    </div>
+
+
+
+
+
+                                    <div class="recovery-person">
+
+
+
+                                        <strong>
+
+                                            @recupero.Bebe
+
+                                        </strong>
+
+
+
+                                        <span>
+
+                                            @recupero.NivelOrigen
+
+                                        </span>
+
+
+
+                                    </div>
+
+
+
+
+
+                                    <span class="recovery-status @(reservado ? "reserved" : "available")">
+
+
+
+                                        @(reservado
+
+                                            ? "RESERVADO"
+
+                                            : "DISPONIBLE")
+
+
+
+                                    </span>
+
+
+
+                                </div>
+
+
+
+
+
+                                @if (!reservado)
+                                {
+                                    <button type="button"
+                                            class="select-recovery-button"
+                                            aria-pressed="@(_recuperacionSeleccionadaId == recupero.RecuperacionId)"
+                                            disabled="@_cargandoCompatibles"
+                                            @onclick="() => SeleccionarRecuperoTarjetaAsync(recupero)">
+                                        <MudIcon Icon="@(_recuperacionSeleccionadaId == recupero.RecuperacionId
+                                            ? Icons.Material.Filled.CheckCircle
+                                            : Icons.Material.Filled.TouchApp)" Size="Size.Small" />
+                                        @(_recuperacionSeleccionadaId == recupero.RecuperacionId
+                                            ? "Recupero seleccionado"
+                                            : "Seleccionar recupero")
+                                    </button>
+                                }
+
+                                <div class="recovery-origin">
+
+
+
+                                    <span>
+
+                                        ORIGEN
+
+                                    </span>
+
+
+
+                                    <strong>
+
+
+
+                                        @recupero.FechaOrigen.ToString("dd/MM/yyyy")
+
+
+
+                                        ·
+
+
+
+                                        @recupero.HoraOrigen.ToString("HH:mm")
+
+
+
+                                    </strong>
+
+
+
+                                </div>
+
+
+
+
+
+                                <div class="recovery-meta">
+
+
+
+                                    <span>
+
+
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Replay"
+
+                                                 Size="Size.Small" />
+
+
+
+                                        @ObtenerTipoRecuperoTexto(
+
+                                            recupero.Tipo)
+
+
+
+                                    </span>
+
+
+
+
+
+                                    <span class="@ObtenerClaseVencimiento(recupero)">
+
+
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule"
+
+                                                 Size="Size.Small" />
+
+
+
+                                        @ObtenerTextoVencimiento(
+
+                                            recupero)
+
+
+
+                                    </span>
+
+
+
+                                </div>
+
+
+
+
+
+                                @if (reservado &&
+
+                                     recupero.FechaUso.HasValue &&
+
+                                     recupero.HoraUso.HasValue)
+
+                                {
+
+                                    <div class="reservation-detail">
+
+
+
+                                        <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
+
+                                                 Size="Size.Small" />
+
+
+
+                                        <div>
+
+
+
+                                            <span>
+
+                                                Nueva clase
+
+                                            </span>
+
+
+
+                                            <strong>
+
+
+
+                                                @recupero.FechaUso.Value.ToString("dd/MM/yyyy")
+
+
+
+                                                ·
+
+
+
+                                                @recupero.HoraUso.Value.ToString("HH:mm")
+
+
+
+                                            </strong>
+
+
+
+                                        </div>
+
+
+
+                                    </div>
+
+
+
+
+
+                                    <button type="button"
+
+                                            class="release-button"
+
+                                            disabled="@(_liberandoId == recupero.RecuperacionId)"
+
+                                            @onclick="() => LiberarReservaAsync(recupero)">
+
+
+
+                                        @if (_liberandoId ==
+
+                                             recupero.RecuperacionId)
+
+                                        {
+
+                                            <MudProgressCircular Indeterminate="true"
+
+                                                                 Size="Size.Small" />
+
+                                        }
+
+                                        else
+
+                                        {
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Undo"
+
+                                                     Size="Size.Small" />
+
+                                        }
+
+
+
+                                        Liberar reserva
+
+
+
+                                    </button>
+
+                                }
+
+
+
+                            </article>
+
+                        }
+
+
+
+                    </div>
+
+                }
+
+
+
+            </aside>
 
             @* LUGARES LIBERADOS *@
 
@@ -712,9 +1158,9 @@
 
                         <p>
 
-                            Clases con cupos disponibles para asignar recuperos,
-
-                            incluyendo vacantes libres y lugares liberados por aviso.
+                            @(_recuperacionSeleccionadaId.HasValue
+                                ? "Clases compatibles con el recupero seleccionado."
+                                : "Seleccioná un recupero pendiente para filtrar las clases disponibles.")
 
                         </p>
 
@@ -767,35 +1213,15 @@
                     </div>
 
 
-                    <div class="recovery-filter recovery-filter-baby">
-
-                        <label>
-                            BUSCAR CLASES PARA
-                        </label>
-
-                        <select value="@(_recuperacionSeleccionadaId?.ToString() ?? "")"
-                                @onchange="SeleccionarRecuperoAsync">
-
-                            <option value="">
-                                Cualquier recupero
-                            </option>
-
-                            @foreach (var recupero in
-                                _panel.Recuperos
-                                    .Where(x =>
-                                        x.Estado ==
-                                            EstadoRecuperacion.Disponible)
-                                    .OrderBy(x =>
-                                        x.Bebe))
-                            {
-                                <option value="@recupero.RecuperacionId">
-                                    @recupero.Bebe · @recupero.NivelOrigen
-                                </option>
-                            }
-
-                        </select>
-
+                    <div class="recovery-filter recovery-filter-reset">
+                        <button type="button" class="clear-selection-button" 
+                                disabled="@(!_recuperacionSeleccionadaId.HasValue)"
+                                @onclick="LimpiarRecuperoSeleccionado">
+                            <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                            Ver todos
+                        </button>
                     </div>
+
 
                 </div>
 
@@ -1438,427 +1864,7 @@
 
 
 
-            @* RECUPEROS ACTIVOS *@
 
-
-
-            <aside class="recoveries-panel">
-
-
-
-                <div class="panel-heading recovery-panel-heading">
-
-
-
-                    <div>
-
-
-
-                        <span class="section-eyebrow">
-
-                            PENDIENTES
-
-                        </span>
-
-
-
-                        <h2>
-
-                            Recuperos activos
-
-                        </h2>
-
-
-
-                    </div>
-
-
-
-
-
-                    <strong class="panel-counter">
-
-                        @RecuperosFiltrados.Count
-
-                    </strong>
-
-
-
-                </div>
-
-
-
-
-
-                <div class="recovery-search">
-
-
-
-                    <MudIcon Icon="@Icons.Material.Filled.Search"
-
-                             Size="Size.Small" />
-
-
-
-                    <input type="text"
-
-                           placeholder="Buscar bebé o nivel..."
-
-                           @bind="_busqueda"
-
-                           @bind:event="oninput" />
-
-
-
-                </div>
-
-
-
-
-
-                @if (RecuperosFiltrados.Count == 0)
-
-                {
-
-                    <div class="empty-state compact">
-
-
-
-                        <div class="empty-icon">
-
-
-
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
-
-
-
-                        </div>
-
-
-
-
-
-                        <strong>
-
-                            Sin recuperos pendientes
-
-                        </strong>
-
-
-
-
-
-                        <span>
-
-                            No hay recuperos que coincidan
-
-                            con la búsqueda.
-
-                        </span>
-
-
-
-                    </div>
-
-                }
-
-                else
-
-                {
-
-                    <div class="recoveries-list">
-
-
-
-                        @foreach (var recupero in RecuperosFiltrados)
-
-                        {
-
-                            var reservado =
-
-                                recupero.Estado ==
-
-                                    EstadoRecuperacion.Reservada;
-
-
-
-
-
-                            <article class="recovery-card @(reservado ? "reserved" : "")">
-
-
-
-                                <div class="recovery-card-top">
-
-
-
-                                    <div class="recovery-avatar">
-
-                                        @ObtenerIniciales(
-
-                                            recupero.Bebe)
-
-                                    </div>
-
-
-
-
-
-                                    <div class="recovery-person">
-
-
-
-                                        <strong>
-
-                                            @recupero.Bebe
-
-                                        </strong>
-
-
-
-                                        <span>
-
-                                            @recupero.NivelOrigen
-
-                                        </span>
-
-
-
-                                    </div>
-
-
-
-
-
-                                    <span class="recovery-status @(reservado ? "reserved" : "available")">
-
-
-
-                                        @(reservado
-
-                                            ? "RESERVADO"
-
-                                            : "DISPONIBLE")
-
-
-
-                                    </span>
-
-
-
-                                </div>
-
-
-
-
-
-                                <div class="recovery-origin">
-
-
-
-                                    <span>
-
-                                        ORIGEN
-
-                                    </span>
-
-
-
-                                    <strong>
-
-
-
-                                        @recupero.FechaOrigen.ToString("dd/MM/yyyy")
-
-
-
-                                        ·
-
-
-
-                                        @recupero.HoraOrigen.ToString("HH:mm")
-
-
-
-                                    </strong>
-
-
-
-                                </div>
-
-
-
-
-
-                                <div class="recovery-meta">
-
-
-
-                                    <span>
-
-
-
-                                        <MudIcon Icon="@Icons.Material.Filled.Replay"
-
-                                                 Size="Size.Small" />
-
-
-
-                                        @ObtenerTipoRecuperoTexto(
-
-                                            recupero.Tipo)
-
-
-
-                                    </span>
-
-
-
-
-
-                                    <span class="@ObtenerClaseVencimiento(recupero)">
-
-
-
-                                        <MudIcon Icon="@Icons.Material.Filled.Schedule"
-
-                                                 Size="Size.Small" />
-
-
-
-                                        @ObtenerTextoVencimiento(
-
-                                            recupero)
-
-
-
-                                    </span>
-
-
-
-                                </div>
-
-
-
-
-
-                                @if (reservado &&
-
-                                     recupero.FechaUso.HasValue &&
-
-                                     recupero.HoraUso.HasValue)
-
-                                {
-
-                                    <div class="reservation-detail">
-
-
-
-                                        <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
-
-                                                 Size="Size.Small" />
-
-
-
-                                        <div>
-
-
-
-                                            <span>
-
-                                                Nueva clase
-
-                                            </span>
-
-
-
-                                            <strong>
-
-
-
-                                                @recupero.FechaUso.Value.ToString("dd/MM/yyyy")
-
-
-
-                                                ·
-
-
-
-                                                @recupero.HoraUso.Value.ToString("HH:mm")
-
-
-
-                                            </strong>
-
-
-
-                                        </div>
-
-
-
-                                    </div>
-
-
-
-
-
-                                    <button type="button"
-
-                                            class="release-button"
-
-                                            disabled="@(_liberandoId == recupero.RecuperacionId)"
-
-                                            @onclick="() => LiberarReservaAsync(recupero)">
-
-
-
-                                        @if (_liberandoId ==
-
-                                             recupero.RecuperacionId)
-
-                                        {
-
-                                            <MudProgressCircular Indeterminate="true"
-
-                                                                 Size="Size.Small" />
-
-                                        }
-
-                                        else
-
-                                        {
-
-                                            <MudIcon Icon="@Icons.Material.Filled.Undo"
-
-                                                     Size="Size.Small" />
-
-                                        }
-
-
-
-                                        Liberar reserva
-
-
-
-                                    </button>
-
-                                }
-
-
-
-                            </article>
-
-                        }
-
-
-
-                    </div>
-
-                }
-
-
-
-            </aside>
 
 
 

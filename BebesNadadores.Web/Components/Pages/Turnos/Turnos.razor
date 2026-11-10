@@ -986,6 +986,30 @@
             </div>
 
 
+            @if (_sesionDetalle.Bebes.Count > 0)
+            {
+                <div class="students-payment-summary" aria-label="Resumen de cuotas vencidas de los alumnos">
+                    @if (_sesionDetalle.Bebes.Any(b => b.CuotasVencidas == 0))
+                    {
+                        <span class="payment-status-badge payment-status-badge--current">
+                            @_sesionDetalle.Bebes.Count(b => b.CuotasVencidas == 0) al día
+                        </span>
+                    }
+                    @if (_sesionDetalle.Bebes.Any(b => b.CuotasVencidas == 1))
+                    {
+                        <span class="payment-status-badge payment-status-badge--one">
+                            @_sesionDetalle.Bebes.Count(b => b.CuotasVencidas == 1) con 1 cuota vencida
+                        </span>
+                    }
+                    @if (_sesionDetalle.Bebes.Any(b => b.CuotasVencidas > 1))
+                    {
+                        <span class="payment-status-badge payment-status-badge--multiple">
+                            @_sesionDetalle.Bebes.Count(b => b.CuotasVencidas > 1) con 2 o más
+                        </span>
+                    }
+                </div>
+            }
+
             <div class="session-students">
 
                 @if (_sesionDetalle.Bebes.Count == 0)
@@ -1022,6 +1046,31 @@
 
                             </div>
 
+
+                            @if (bebe.CuotasVencidas == 0)
+                            {
+                                <span class="payment-status-badge payment-status-badge--current"
+                                      title="Sin cuotas vencidas con saldo pendiente">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline" Size="Size.Small" />
+                                    Al día
+                                </span>
+                            }
+                            else if (bebe.CuotasVencidas == 1)
+                            {
+                                <span class="payment-status-badge payment-status-badge--one"
+                                      title="Tiene una cuota vencida con saldo pendiente">
+                                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                    Debe 1 cuota
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="payment-status-badge payment-status-badge--multiple"
+                                      title="Tiene @bebe.CuotasVencidas cuotas vencidas con saldo pendiente">
+                                    <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                    Debe @bebe.CuotasVencidas cuotas
+                                </span>
+                            }
 
                             @if (bebe.EsRecupero)
                             {
@@ -1562,6 +1611,17 @@
 
                         </div>
 
+
+                        @if (!_editandoDiaId.HasValue)
+                        {
+                            <div class="form-field">
+                                <label>Hasta (opcional, inclusive)</label>
+                                <input type="date" value="@(_diaForm.FechaHasta?.ToString("yyyy-MM-dd") ?? "")"
+                                       min="@_diaForm.Fecha.ToString("yyyy-MM-dd")"
+                                       @onchange="CambiarFechaHastaCierre" />
+                                <small>Para vacaciones o cierres consecutivos. Se crea un cierre por día.</small>
+                            </div>
+                        }
 
                         <div class="form-field full">
 
@@ -3048,6 +3108,14 @@ private async Task GuardarDiaNoLaborable()
         }
 
 
+        if (_diaForm.FechaHasta.HasValue && !_editandoDiaId.HasValue)
+        {
+            if (_diaForm.FechaHasta.Value < _diaForm.Fecha)
+                throw new InvalidOperationException("La fecha Hasta no puede ser anterior a Desde.");
+            if (_diaForm.FechaHasta.Value.DayNumber - _diaForm.Fecha.DayNumber > 60)
+                throw new InvalidOperationException("El rango no puede superar 61 días.");
+        }
+
         var dto =
             new GuardarDiaNoLaborableDto
             {
@@ -3090,11 +3158,24 @@ private async Task GuardarDiaNoLaborable()
         }
         else
         {
-            await DiaNoLaborableService
-                .CrearAsync(dto);
+            var fechaFinal = _diaForm.FechaHasta ?? _diaForm.Fecha;
+            var creados = 0;
+            try
+            {
+                for (var fecha = _diaForm.Fecha; fecha <= fechaFinal; fecha = fecha.AddDays(1))
+                {
+                    dto.Fecha = fecha;
+                    await DiaNoLaborableService.CrearAsync(dto);
+                    creados++;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Se guardaron {creados} días antes del error. Revisá los cierres creados para evitar duplicados. Detalle: {ex.Message}", ex);
+            }
 
-            _mensaje =
-                "Feriado o cierre agregado.";
+            _mensaje = $"Se agregaron {creados} día(s) de cierre/feriado.";
         }
 
 
@@ -3180,6 +3261,13 @@ private void CambiarFechaDiaNoLaborable(
     }
 }
 
+
+private void CambiarFechaHastaCierre(ChangeEventArgs e)
+{
+    _diaForm.FechaHasta = DateOnly.TryParse(e.Value?.ToString(), out var fecha)
+        ? fecha
+        : null;
+}
 
 private void CambiarHoraDesdeCierre(
     ChangeEventArgs e)
@@ -4545,6 +4633,8 @@ private static string ObtenerClaseEstadoCiclo(
 
     public TipoDiaNoLaborable Tipo { get; set; }
         = TipoDiaNoLaborable.Feriado;
+
+    public DateOnly? FechaHasta { get; set; }
 
     public string Descripcion { get; set; }
         = string.Empty;

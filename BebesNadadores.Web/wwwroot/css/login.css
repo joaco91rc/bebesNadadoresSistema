@@ -1,6 +1,6 @@
 /* ============================================================
    BEBÉS NADADORES - LOGIN
-   Card único a la derecha + efecto glass
+   Foto a pantalla completa + card compacta a la derecha (glass)
    ============================================================ */
 
 * {
@@ -21,32 +21,40 @@ body {
 
 /* ============================================================
    FONDO GENERAL
+   ------------------------------------------------------------
+   La foto cubre toda la pantalla. La card es angosta y se
+   pega a la derecha, sobre el agua, para no tapar al bebé.
+
+   Perillas:
+   --foto-posicion → qué parte de la foto se prioriza al recortar
+                     (left = se ven siempre los chicos; 10% = recorta
+                     poco arriba para no cortar cabezas)
+   --card-ancho    → ancho de la card
+   --card-margen   → separación de la card con el borde derecho
    ============================================================ */
 
 .login-page {
+    --foto-posicion: left 10%;
+    --card-ancho: clamp(290px, 20vw, 370px);
+    --card-margen: clamp(14px, 2vw, 36px);
+
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
 
     display: flex;
     align-items: center;
     justify-content: flex-end;
 
-    padding: 40px clamp(42px, 6vw, 115px) 40px 32px;
+    padding: 24px var(--card-margen);
     overflow: hidden;
 
     background:
-        linear-gradient(90deg,
-            rgba(0, 17, 30, .02) 0%,
-            rgba(0, 24, 42, .01) 42%,
-            rgba(0, 23, 40, .06) 70%,
-            rgba(0, 18, 32, .14) 100%),
-        url("/images/fondoBebesLogin.png");
-
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
+        url("/images/fondoBebesLogin.png") var(--foto-posicion) / cover no-repeat,
+        #03192b;
 }
 
+/* Velo suave solo del lado de la card, para que el form se lea mejor */
 .login-page::before {
     content: "";
     position: absolute;
@@ -54,12 +62,14 @@ body {
     z-index: 0;
 
     background:
-        radial-gradient(circle at 85% 45%,
+        linear-gradient(90deg,
+            transparent 0%,
+            transparent 72%,
+            rgba(0, 18, 32, .18) 86%,
+            rgba(0, 18, 32, .30) 100%),
+        radial-gradient(circle at 88% 45%,
             rgba(0, 174, 255, .08),
-            transparent 36%),
-        linear-gradient(to bottom,
-            rgba(0, 13, 24, 0),
-            rgba(0, 13, 24, .05));
+            transparent 30%);
 
     pointer-events: none;
 }
@@ -131,16 +141,16 @@ body {
     position: relative;
     z-index: 10;
 
-    width: min(510px, 100%);
+    width: min(var(--card-ancho), 100%);
     margin: 0;
     padding: 1px;
     overflow: hidden;
 
-    border-radius: 30px;
+    border-radius: 24px;
 
     box-shadow:
-        0 30px 80px rgba(0, 0, 0, .30),
-        0 12px 32px rgba(0, 78, 130, .12);
+        0 24px 64px rgba(0, 0, 0, .30),
+        0 10px 26px rgba(0, 78, 130, .12);
 
     animation: loginCardIn .7s cubic-bezier(.2, .75, .2, 1) both;
 }
@@ -210,9 +220,9 @@ body {
 
     width: 100%;
     overflow: hidden;
-    border-radius: 29px;
+    border-radius: 23px;
 
-    background: rgba(2, 21, 37, .50);
+    background: rgba(2, 21, 37, .55);
     border: 1px solid rgba(255, 255, 255, .09);
 
     backdrop-filter: blur(12px) saturate(120%);
@@ -226,18 +236,16 @@ body {
 .form-panel {
     position: relative;
 
-    min-height: 610px;
-
     display: flex;
     align-items: center;
     justify-content: center;
 
-    padding: 54px 56px 46px;
+    padding: 32px 28px 26px;
 
     background:
         linear-gradient(145deg,
-            rgba(2, 31, 52, .52),
-            rgba(1, 18, 31, .45));
+            rgba(2, 31, 52, .55),
+            rgba(1, 18, 31, .48));
 
     backdrop-filter: blur(11px) saturate(120%);
     -webkit-backdrop-filter: blur(11px) saturate(120%);
@@ -247,29 +255,29 @@ body {
     content: "";
     position: absolute;
 
-    width: 360px;
-    height: 360px;
-    top: -180px;
-    right: -170px;
+    width: 260px;
+    height: 260px;
+    top: -130px;
+    right: -120px;
 
     border-radius: 50%;
     background: rgba(7, 148, 220, .09);
-    filter: blur(70px);
+    filter: blur(60px);
     pointer-events: none;
 }
 
 .form-panel::after {
     content: "";
     position: absolute;
-    left: -80px;
-    bottom: -120px;
+    left: -60px;
+    bottom: -90px;
 
-    width: 300px;
-    height: 220px;
+    width: 220px;
+    height: 160px;
     border-radius: 50%;
 
     background: rgba(0, 166, 235, .045);
-    filter: blur(55px);
+    filter: blur(45px);
     pointer-events: none;
 }
 
@@ -278,16 +286,15 @@ body {
     z-index: 2;
 
     width: 100%;
-    max-width: 390px;
 }
 
 .form-wrapper::before {
     content: "";
     position: absolute;
-    inset: -34px;
+    inset: -24px;
     z-index: -1;
 
-    border-radius: 30px;
+    border-radius: 24px;
 
     background:
         radial-gradient(circle at 50% 28%,
@@ -307,21 +314,21 @@ body {
     justify-content: flex-start;
     align-items: center;
 
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 .login-logo {
-    width: 76px;
-    height: 76px;
+    width: 54px;
+    height: 54px;
 
     object-fit: contain;
     display: block;
 
-    border-radius: 16px;
+    border-radius: 13px;
 
     box-shadow:
-        0 10px 28px rgba(0, 0, 0, .28),
-        0 0 24px rgba(31, 181, 245, .11);
+        0 8px 22px rgba(0, 0, 0, .28),
+        0 0 20px rgba(31, 181, 245, .11);
 
     transition:
         transform .3s ease,
@@ -339,31 +346,31 @@ body {
 
 .welcome {
     display: inline-flex;
-    margin-bottom: 11px;
+    margin-bottom: 7px;
 
     color: #34bff9;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
-    letter-spacing: 2.3px;
+    letter-spacing: 2px;
 }
 
 .form-header h2 {
     margin: 0;
 
-    font-size: 37px;
-    line-height: 1.08;
+    font-size: 27px;
+    line-height: 1.1;
     font-weight: 750;
-    letter-spacing: -.7px;
+    letter-spacing: -.5px;
 
     text-shadow: 0 3px 18px rgba(0, 0, 0, .18);
 }
 
 .form-header p {
-    margin: 12px 0 34px;
+    margin: 8px 0 22px;
 
     color: #a6bac8;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 /* ============================================================
@@ -371,29 +378,29 @@ body {
    ============================================================ */
 
 .field-group {
-    margin-bottom: 21px;
+    margin-bottom: 14px;
 }
 
 .field-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 
     color: #e0edf5;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
 }
 
 .input-wrapper {
     position: relative;
 
-    height: 55px;
+    height: 46px;
 
     display: flex;
     align-items: center;
     overflow: hidden;
 
     border: 1px solid rgba(145, 205, 230, .18);
-    border-radius: 13px;
+    border-radius: 11px;
 
     background: rgba(0, 17, 30, .42);
 
@@ -436,7 +443,7 @@ body {
 }
 
 .input-icon {
-    width: 50px;
+    width: 40px;
     flex-shrink: 0;
 
     display: flex;
@@ -444,19 +451,20 @@ body {
     justify-content: center;
 
     color: #34bbf6;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
 }
 
 .password-dot {
-    font-size: 10px;
+    font-size: 9px;
 }
 
 .input-wrapper input {
     width: 100%;
+    min-width: 0;
     height: 100%;
 
-    padding-right: 15px;
+    padding-right: 12px;
 
     border: none;
     outline: none;
@@ -478,6 +486,35 @@ body {
     transition: background-color 9999s ease-in-out 0s;
 }
 
+/* Botón accesible para ver/ocultar la contraseña */
+.password-visibility {
+    flex: 0 0 38px;
+    display: grid;
+    place-items: center;
+    height: 38px;
+    margin-right: 4px;
+    border: 0;
+    background: transparent;
+    color: #83d9ff;
+    cursor: pointer;
+    border-radius: 9px;
+}
+
+.password-visibility svg {
+    width: 19px;
+    height: 19px;
+}
+
+.password-visibility:hover,
+.password-visibility:focus-visible {
+    background: rgba(45, 179, 233, .14);
+    outline-color: #6ed3ff;
+}
+
+.password-visibility[aria-pressed="true"] {
+    color: #fff;
+}
+
 /* ============================================================
    OPCIONES
    ============================================================ */
@@ -487,24 +524,24 @@ body {
     align-items: center;
     justify-content: space-between;
 
-    margin: 3px 0 27px;
+    margin: 2px 0 18px;
 }
 
 .remember {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
 
     color: #9eb1bf;
-    font-size: 13px;
+    font-size: 12px;
 
     cursor: pointer;
     user-select: none;
 }
 
 .remember input {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     accent-color: #119ee6;
 }
 
@@ -516,17 +553,17 @@ body {
     position: relative;
 
     width: 100%;
-    height: 56px;
+    height: 48px;
 
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
 
     overflow: hidden;
 
     border: none;
-    border-radius: 13px;
+    border-radius: 11px;
 
     background:
         linear-gradient(100deg,
@@ -535,12 +572,12 @@ body {
             #16bff8);
 
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
 
     cursor: pointer;
 
-    box-shadow: 0 12px 35px rgba(0, 140, 215, .22);
+    box-shadow: 0 10px 30px rgba(0, 140, 215, .22);
 
     transition:
         transform .25s ease,
@@ -570,7 +607,7 @@ body {
 
 .login-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 16px 40px rgba(2, 158, 232, .32);
+    box-shadow: 0 14px 36px rgba(2, 158, 232, .32);
 }
 
 .login-button:hover::before {
@@ -578,7 +615,7 @@ body {
 }
 
 .login-arrow {
-    font-size: 19px;
+    font-size: 17px;
     transition: transform .25s ease;
 }
 
@@ -591,8 +628,8 @@ body {
    ============================================================ */
 
 .validation-summary {
-    margin-bottom: 20px;
-    padding: 12px 15px;
+    margin-bottom: 16px;
+    padding: 10px 12px;
 
     border: 1px solid rgba(255, 91, 91, .27);
     border-radius: 10px;
@@ -600,7 +637,7 @@ body {
     background: rgba(255, 52, 52, .07);
 
     color: #ffb4b4;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .validation-summary ul {
@@ -610,7 +647,7 @@ body {
 
 .field-error {
     display: block;
-    margin-top: 6px;
+    margin-top: 5px;
 
     color: #ff9999;
     font-size: 11px;
@@ -621,7 +658,7 @@ body {
    ============================================================ */
 
 .login-footer {
-    margin-top: 33px;
+    margin-top: 22px;
 
     text-align: center;
 
@@ -665,79 +702,59 @@ body {
    RESPONSIVE
    ============================================================ */
 
-@media (max-width: 1100px) {
+/* Tablet y celular: la foto recorta los costados,
+   así que se centra en el bebé y la card va centrada */
+@media (max-width: 900px) {
     .login-page {
-        padding: 30px 35px;
-    }
+        --foto-posicion: 66% center;
+        --card-ancho: 380px;
 
-    .login-shell {
-        width: min(500px, 100%);
-    }
-}
-
-@media (max-width: 760px) {
-    .login-page {
         justify-content: center;
-        padding: 24px 18px;
-        background-position: center;
+        padding: 24px 16px;
     }
 
-    .login-shell {
-        width: min(500px, 100%);
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .form-panel {
-        min-height: auto;
-        padding: 44px 38px 36px;
+    .login-page::before {
+        background: rgba(0, 18, 32, .18);
     }
 }
 
+/* Celular: foto arriba (se ve la cara del bebé) y form abajo,
+   fundidos con un degradé */
 @media (max-width: 550px) {
     .login-page {
-        align-items: flex-start;
-        padding: 12px 10px;
-        background-position: 52% center;
+        --card-ancho: 100%;
+
+        align-items: flex-end;
+        padding: 12px 10px 14px;
+
+        background:
+            url("/images/fondoBebesLogin.png") 66% top / auto 60dvh no-repeat,
+            #03192b;
+    }
+
+    .login-page::before {
+        background:
+            linear-gradient(to bottom,
+                transparent 0%,
+                transparent 38dvh,
+                #03192b 60dvh);
     }
 
     .login-shell {
-        margin-top: 8px;
-        border-radius: 23px;
-    }
-
-    .login-container {
         border-radius: 22px;
     }
 
+    .login-container {
+        border-radius: 21px;
+    }
+
     .form-panel {
-        padding: 34px 22px 30px;
+        padding: 28px 20px 22px;
     }
 
-    .login-brand {
-        margin-bottom: 20px;
-    }
-
-    .login-logo {
-        width: 64px;
-        height: 64px;
-        border-radius: 14px;
-    }
-
-    .form-header h2 {
-        font-size: 30px;
-    }
-
-    .form-header p {
-        margin-bottom: 28px;
-    }
-
-    .input-wrapper {
-        height: 53px;
-    }
-
-    .login-button {
-        height: 54px;
+    /* 16px en inputs para evitar el zoom automático de iOS */
+    .input-wrapper input {
+        font-size: 16px;
     }
 }
 

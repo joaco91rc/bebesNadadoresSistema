@@ -1,3 +1,5 @@
+using BebesNadadores.Application.ListaEspera;
+using BebesNadadores.Application.ListaEspera.Dtos;
 using BebesNadadores.Application.Bancos;
 using BebesNadadores.Application.Bancos.Dtos;
 using BebesNadadores.Application.Bebes;
@@ -36,12 +38,19 @@ public partial class BebeFormulario : ComponentBase
     [Inject]
     protected NavigationManager Navigation { get; set; } = null!;
 
+    [Inject]
+    protected IListaEsperaService ListaEsperaService { get; set; } = null!;
+
     // =========================================================
     // PARÁMETROS
     // =========================================================
 
     [Parameter]
     public Guid? BebeId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "esperaId")]
+    public Guid? EsperaId { get; set; }
 
     // =========================================================
     // ESTADO
@@ -64,6 +73,10 @@ public partial class BebeFormulario : ComponentBase
     protected bool _cargandoTurnos;
 
     protected string? _error;
+
+    protected string? _avisoListaEspera;
+
+    private Guid? _bebeCreadoDesdeEspera;
 
     // =========================================================
     // PROPIEDADES CALCULADAS
@@ -161,6 +174,11 @@ public partial class BebeFormulario : ComponentBase
             _form = CrearFormularioNuevo();
 
             await CargarPlanesAsync(_form.FechaInicioInscripcion);
+
+            if (EsperaId.HasValue)
+            {
+                await PrecargarDesdeListaEsperaAsync(EsperaId.Value);
+            }
         }
         catch (Exception ex)
         {
@@ -170,6 +188,47 @@ public partial class BebeFormulario : ComponentBase
         {
             _cargando = false;
         }
+    }
+
+    private async Task PrecargarDesdeListaEsperaAsync(Guid id)
+    {
+        // Nunca aceptamos nombres, teléfonos ni nivel desde la URL: consultamos la solicitud real.
+        var solicitud = (await ListaEsperaService.ListarAsync())
+            .FirstOrDefault(x => x.Id == id);
+        if (solicitud is null || solicitud.Estado is not (EstadoListaEspera.Activa or EstadoListaEspera.Notificada))
+            throw new InvalidOperationException("La solicitud ya no está activa o no existe. Volvé a Lista de Espera.");
+
+        var disponibles = (await InscripcionConsultaService.ListarTurnosDisponiblesAsync(
+            solicitud.NivelId, _form.FechaInicioInscripcion)).Where(x => x.Disponibles > 0).ToList();
+        if (disponibles.Count == 0)
+            throw new InvalidOperationException("No quedan vacantes para el nivel solicitado. Actualizá Lista de Espera.");
+
+        // La lista registra un nombre libre, por eso se separa en nombre/apellido
+        // de forma orientativa y la administrativa puede corregirlo.
+        var nombreCompleto = solicitud.NombreBebe.Trim();
+        var partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        _form.Nombre = partes.Length > 1 ? string.Join(" ", partes[..^1]) : nombreCompleto;
+        _form.Apellido = partes.Length > 1 ? partes[^1] : string.Empty;
+        _form.NivelActualId = solicitud.NivelId;
+
+        var responsable = _form.Responsables[0];
+        var nombreResponsable = solicitud.NombreResponsable.Trim();
+        var partesResponsable = nombreResponsable.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        responsable.Nombre = partesResponsable.Length > 1 ? string.Join(" ", partesResponsable[..^1]) : nombreResponsable;
+        responsable.Apellido = partesResponsable.Length > 1 ? partesResponsable[^1] : string.Empty;
+        responsable.Telefono = solicitud.Telefono;
+        responsable.WhatsApp = solicitud.Telefono;
+        responsable.Email = solicitud.Email ?? string.Empty;
+
+        await CargarTurnosDisponiblesAsync();
+        // No asignar automáticamente horarios alternativos: deben ser aceptados por la familia.
+        if (solicitud.TurnoId.HasValue && _planes.Count == 1 &&
+            _planes[0].VecesPorSemana == 1 &&
+            disponibles.Any(x => x.TurnoId == solicitud.TurnoId.Value))
+            _form.TurnosIds.Add(solicitud.TurnoId.Value);
+
+        _avisoListaEspera = "Datos cargados desde Lista de Espera. Revisá nombre, apellido, fecha de nacimiento, " +
+            "datos médicos, plan, horario y pago. La solicitud se cierra recién al guardar el alta.";
     }
 
     private void CambiarHospitalizacion(bool valor)
@@ -920,6 +979,16 @@ public partial class BebeFormulario : ComponentBase
             }
             else
             {
+                if (EsperaId.HasValue)
+                {
+                    // Se conserva el ID tras un guardado exitoso para evitar duplicados
+                    // si falla la vinculación con Lista de Espera.
+                    _bebeCreadoDesdeEspera ??= await BebeService.CrearAsync(_form);
+                    await ListaEsperaService.CambiarEstadoAsync(
+                        EsperaId.Value, EstadoListaEspera.Asignada, _bebeCreadoDesdeEspera.Value);
+                    Navigation.NavigateTo($"/clientes/{_bebeCreadoDesdeEspera.Value}");
+                    return;
+                }
                 await BebeService.CrearAsync(_form);
             }
 

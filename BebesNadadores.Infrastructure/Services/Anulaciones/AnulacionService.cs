@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using BebesNadadores.Application.Anulaciones;
 using BebesNadadores.Application.Pagos;
 using BebesNadadores.Domain.Entities;
@@ -21,13 +22,21 @@ namespace BebesNadadores.Infrastructure.Services.Anulaciones;
  *    motivo (obligatorio).
  *
  * 2. El dinero se revierte con un CONTRA-ASIENTO:
- *    - Efectivo: movimiento inverso en la caja ABIERTA DEL DÍA
- *      (si el original era de una caja ya cerrada, la devolución
- *      ocurre hoy; la caja vieja no cambia sus números).
- *    - Banco: movimiento inverso en la misma cuenta.
+ *    - Efectivo: movimiento inverso en la caja ABIERTA DE HOY
+ *      (el día en que se anula). Si el original era de una caja
+ *      ya cerrada, esa caja no cambia sus números. Si quedó
+ *      abierta la caja de un día anterior, hay que cerrarla
+ *      primero: la reversa nunca se registra en otro día.
+ *    - Banco: movimiento inverso en la misma cuenta, con fecha
+ *      de hoy.
  *    El contra-asiento apunta al original (AnulaMovimientoId).
  *
- * 3. Transacción Serializable con reintento (ReintentoTransaccional).
+ * 3. Una cuota con pagos imputados NO se puede anular: primero
+ *    se anula el pago (la cuota vuelve a Pendiente/Vencida) y
+ *    recién ahí se anula la cuota. Así nunca aparece un saldo a
+ *    favor que no existe.
+ *
+ * 4. Transacción Serializable con reintento (ReintentoTransaccional).
  */
 public sealed class AnulacionService(
     IDbContextFactory<AppDbContext> factory,
@@ -35,6 +44,9 @@ public sealed class AnulacionService(
     : IAnulacionService
 {
     private const int LargoMaximoMotivo = 300;
+
+    private static readonly CultureInfo CulturaArgentina =
+        CultureInfo.GetCultureInfo("es-AR");
 
 
     // =========================================================
@@ -101,6 +113,7 @@ public sealed class AnulacionService(
 
         // -----------------------------------------------------
         // 1. Liberar las cuotas que cancelaba
+        //    (vuelven a Pendiente / Parcial / Vencida)
         // -----------------------------------------------------
 
         var cuotas =
@@ -203,21 +216,16 @@ public sealed class AnulacionService(
 
         ValidarUsuario(usuarioId);
 
-        var bebeId =
-            await ReintentoTransaccional.EjecutarAsync(
-                () => AnularCuotaInternoAsync(
-                    cuotaId,
-                    motivoNormalizado,
-                    usuarioId,
-                    ct),
-                ct);
-
         /*
-         * Lo que estaba imputado a la cuota quedó como saldo a
-         * favor: se aplica a otras cuotas pendientes.
+         * Ya no hace falta AplicarSaldosAFavorAsync: una cuota con
+         * pagos no se puede anular, así que no se libera dinero.
          */
-        await pagoService.AplicarSaldosAFavorAsync(
-            bebeId,
+        await ReintentoTransaccional.EjecutarAsync(
+            () => AnularCuotaInternoAsync(
+                cuotaId,
+                motivoNormalizado,
+                usuarioId,
+                ct),
             ct);
     }
 
@@ -252,11 +260,18 @@ public sealed class AnulacionService(
                 "La cuota ya se encuentra anulada.");
         }
 
-        foreach (var imputacion in cuota.Imputaciones.ToList())
-        {
-            db.ImputacionesPago.Remove(imputacion);
+        /*
+         * Al anular un pago se borran sus imputaciones, así que
+         * cualquier imputación que quede acá es de un pago vigente.
+         */
+        var importePagado =
+            cuota.Imputaciones.Sum(x => x.Importe);
 
-            cuota.Imputaciones.Remove(imputacion);
+        if (importePagado > 0)
+        {
+            throw new InvalidOperationException(
+                $"La cuota tiene {importePagado.ToString("C2", CulturaArgentina)} cobrados. " +
+                "Para anularla, primero anulá el pago desde el Historial de pagos.");
         }
 
         cuota.Estado = EstadoCuota.Anulada;
@@ -301,8 +316,9 @@ public sealed class AnulacionService(
                 ct);
 
         /*
-         * Lo que se había pagado de esta cuota quedó como saldo a
-         * favor al anularla: si sigue disponible, vuelve a aplicarse.
+         * Si el bebé tiene saldo a favor (por ejemplo, cuotas que se
+         * anularon con pagos antes de existir el bloqueo), se aplica
+         * a la cuota reactivada.
          */
         await pagoService.AplicarSaldosAFavorAsync(
             bebeId,
@@ -695,8 +711,11 @@ public sealed class AnulacionService(
 
     /*
      * La devolución / reversa de efectivo siempre se registra en la
-     * caja abierta de HOY. Si el original era de un día ya cerrado,
-     * esa caja queda intacta.
+     * caja abierta de HOY (el día en que se anula):
+     * - Si el original era de un día ya cerrado, esa caja queda intacta.
+     * - Si quedó abierta la caja de un día anterior (se olvidaron de
+     *   cerrarla), no se usa: hay que cerrarla y abrir la de hoy.
+     *   Así cada arqueo tiene solo movimientos de su día.
      */
     private static async Task<CajaEntidad> ObtenerCajaAbiertaHoyAsync(
         AppDbContext db,
@@ -711,14 +730,36 @@ public sealed class AnulacionService(
                     x => x.FechaOperativa == hoy,
                     ct);
 
-        if (caja is null || caja.Estado != EstadoCaja.Abierta)
+        if (caja is not null && caja.Estado == EstadoCaja.Abierta)
         {
-            throw new InvalidOperationException(
-                "Para anular un movimiento en efectivo tiene que estar abierta " +
-                "la caja de hoy: ahí se registra la reversa.");
+            return caja;
         }
 
-        return caja;
+        var cajaVieja =
+            await db.Cajas
+                .Where(x =>
+                    x.Estado == EstadoCaja.Abierta
+                    && x.FechaOperativa < hoy)
+                .OrderByDescending(x => x.FechaOperativa)
+                .FirstOrDefaultAsync(ct);
+
+        if (cajaVieja is not null)
+        {
+            throw new InvalidOperationException(
+                $"Quedó abierta la caja del {cajaVieja.FechaOperativa:dd/MM/yyyy}. " +
+                "Cerrala y abrí la caja de hoy: la reversa del efectivo se registra " +
+                "en la caja del día en que se anula.");
+        }
+
+        if (caja is not null)
+        {
+            throw new InvalidOperationException(
+                "La caja de hoy está cerrada. Reabrila para registrar la reversa del efectivo.");
+        }
+
+        throw new InvalidOperationException(
+            "Para anular un movimiento en efectivo tiene que estar abierta " +
+            "la caja de hoy: ahí se registra la reversa.");
     }
 
 

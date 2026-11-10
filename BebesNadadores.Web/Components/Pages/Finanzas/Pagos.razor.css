@@ -4578,6 +4578,15 @@
     text-decoration: line-through;
 }
 
+.void-action.locked {
+    opacity: .35;
+    cursor: not-allowed;
+}
+
+.account-sections.single {
+    grid-template-columns: 1fr;
+}
+
 @media (max-width: 800px) {
     .fee-item .void-action,
     .fee-item .void-info {

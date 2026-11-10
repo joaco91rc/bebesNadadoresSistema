@@ -2650,3 +2650,33 @@
     }
 
 }
+/* UX 2026-11-04: primero seleccionar recupero a la izquierda, agenda a la derecha */
+.recovery-layout {
+    grid-template-columns: minmax(315px, .82fr) minmax(0, 1.65fr);
+    gap: 14px;
+}
+.recovery-workflow-guide {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 13px 18px;
+    margin: 0 0 15px;
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 14px;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+}
+.recovery-workflow-guide > .mud-icon-root { color: var(--mud-palette-primary); }
+.workflow-step { display: inline-flex; gap: 9px; align-items: center; font-size: .9rem; }
+.workflow-step b { display: inline-grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: var(--mud-palette-primary); color: var(--mud-palette-primary-text); }
+.recoveries-panel { position: sticky; top: 12px; }
+.recovery-panel-heading p { margin: 8px 0 0; font-size: .84rem; opacity: .72; }
+.recovery-card.selected { border-color: var(--mud-palette-primary) !important; box-shadow: 0 0 0 1px var(--mud-palette-primary); background: color-mix(in srgb, var(--mud-palette-primary) 9%, var(--mud-palette-surface)); }
+.select-recovery-button { display: flex; justify-content: center; align-items: center; gap: 7px; width: 100%; margin: 9px 0 11px; padding: 9px; border-radius: 9px; cursor: pointer; font: inherit; font-size: .82rem; font-weight: 700; background: color-mix(in srgb, var(--mud-palette-primary) 13%, transparent); border: 1px solid var(--mud-palette-primary); color: var(--mud-palette-primary); }
+.select-recovery-button:hover { background: color-mix(in srgb, var(--mud-palette-primary) 22%, transparent); }
+.select-recovery-button:disabled { opacity: .55; cursor: wait; }
+.recovery-filter-reset { justify-content: flex-end; display: flex; align-items: flex-end; }
+.recovery-filter-reset .clear-selection-button { min-height: 41px; }
+@media (max-width: 1150px) { .recovery-layout { grid-template-columns: 1fr; } .recoveries-panel { position: static; max-height: none; } }
+@media (max-width: 680px) { .recovery-workflow-guide { gap: 9px; } .workflow-step { width: 100%; } .recovery-workflow-guide > .mud-icon-root { display: none; } .recoveries-list { grid-template-columns: 1fr; } }

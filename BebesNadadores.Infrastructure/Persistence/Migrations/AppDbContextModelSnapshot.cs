@@ -928,6 +928,86 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.ToTable("InvitacionesVacante", (string)null);
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.EsperaInscripcion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BebeInscriptoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DiaPreferido")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("FechaAltaUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("FechaNotificacionUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FranjaHoraria")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ModificadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ModificadoUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("NivelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NombreBebe")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .IsRequired();
+
+                    b.Property<string>("NombreResponsable")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .IsRequired();
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .IsRequired();
+
+                    b.Property<Guid?>("TurnoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BebeInscriptoId");
+
+                    b.HasIndex("NivelId");
+
+                    b.HasIndex("TurnoId");
+
+                    b.HasIndex("Telefono");
+
+                    b.HasIndex("Estado", "NivelId", "DiaPreferido");
+
+                    b.ToTable("EsperaInscripciones", (string)null);
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.ListaEspera", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2462,6 +2542,29 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.Navigation("Responsable");
 
                     b.Navigation("SesionClase");
+                });
+
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.EsperaInscripcion", b =>
+                {
+                    b.HasOne("BebesNadadores.Domain.Entities.Bebe", "BebeInscripto")
+                        .WithMany()
+                        .HasForeignKey("BebeInscriptoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BebesNadadores.Domain.Entities.Nivel", "Nivel")
+                        .WithMany()
+                        .HasForeignKey("NivelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BebesNadadores.Domain.Entities.Turno", "Turno")
+                        .WithMany()
+                        .HasForeignKey("TurnoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BebeInscripto");
+                    b.Navigation("Nivel");
+                    b.Navigation("Turno");
                 });
 
             modelBuilder.Entity("BebesNadadores.Domain.Entities.ListaEspera", b =>

@@ -83,11 +83,9 @@ public sealed class RecuperosService(
                 x.SesionUso)
 
             .Where(x =>
-                x.Estado ==
-                    EstadoRecuperacion.Disponible
-                ||
-                x.Estado ==
-                    EstadoRecuperacion.Reservada)
+                (x.Estado == EstadoRecuperacion.Disponible || x.Estado == EstadoRecuperacion.Reservada)
+                && x.Bebe.Estado == EstadoBebe.Activo
+                && x.Inscripcion.Estado == EstadoInscripcion.Activa)
 
             .OrderBy(x =>
                 x.FechaVencimiento == null)
@@ -432,40 +430,14 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
     }
 
 
-    // =====================================================
-    // PREFERENCIA EN LISTA DE ESPERA
-    // =====================================================
-
-    var solicitud =
-        await db.ListaEspera
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x =>
-                    x.RecuperacionId ==
-                        recuperacionId
-
-                    &&
-
-                    (
-                        x.Estado ==
-                            EstadoListaEspera.Activa
-
-                        ||
-
-                        x.Estado ==
-                            EstadoListaEspera.Notificada
-                    ),
-                ct);
-
-
-    var diaPreferido =
-        solicitud?.DiaPreferido;
-
-
-    var franja =
-        solicitud?.FranjaHoraria
-        ?? FranjaHoraria.Indistinta;
-
+    // Los recuperos se asignan de forma directa: ninguna lista de espera es requisito.
+    // La opción de respetar día preferido sólo aplica cuando existe una preferencia
+    // de recuperacion registrada en el legajo del bebé.
+    var preferencias = await db.PreferenciasRecuperacion.AsNoTracking()
+        .Where(x => x.BebeId == recuperacion.BebeId && x.Activa).ToListAsync(ct);
+    var preferencia = preferencias.FirstOrDefault();
+    var diaPreferido = respetarDiaPreferido ? preferencia?.DiaSemana : null;
+    var franja = preferencia?.FranjaHoraria ?? FranjaHoraria.Indistinta;
 
     // =====================================================
     // RANGO REAL
@@ -823,190 +795,31 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
     // DÍA DE LA SESIÓN
     // =========================================================
 
-    var diaSesion =
-        ObtenerDiaSemana(
-            sesion.Fecha);
+    // Todos los recuperos disponibles compatibles, sin pasar por lista de espera.
+    var recuperaciones = await db.Recuperaciones.AsNoTracking()
+        .Include(x => x.Bebe)
+        .Include(x => x.SesionOrigen)
+        .Where(x => x.Estado == EstadoRecuperacion.Disponible
+            && !x.SesionUsoId.HasValue
+            && x.Bebe.Estado == EstadoBebe.Activo
+            && x.Inscripcion.Estado == EstadoInscripcion.Activa
+            && x.SesionOrigen.NivelId == sesion.NivelId
+            && x.SesionOrigenId != sesion.Id
+            && x.FechaGeneracion <= sesion.Fecha
+            && (!x.FechaVencimiento.HasValue || x.FechaVencimiento.Value >= sesion.Fecha))
+        .OrderBy(x => x.FechaVencimiento == null)
+        .ThenBy(x => x.FechaVencimiento)
+        .ThenBy(x => x.Bebe.Apellido)
+        .ToListAsync(ct);
 
-
-    // =========================================================
-    // LISTA DE ESPERA
-    //
-    // MUY IMPORTANTE:
-    //
-    // Tener recupero disponible NO significa querer usarlo.
-    //
-    // Sólo tomamos bebés que la administrativa haya agregado
-    // explícitamente a Lista de espera.
-    // =========================================================
-
-    var solicitudes =
-        await db.ListaEspera
-            .AsNoTracking()
-
-            .Include(x =>
-                x.Bebe)
-
-            .Include(x =>
-                x.Recuperacion)
-                    .ThenInclude(x =>
-                        x!.SesionOrigen)
-
-            .Where(x =>
-                (
-                    x.Estado ==
-                        EstadoListaEspera.Activa
-
-                    ||
-
-                    x.Estado ==
-                        EstadoListaEspera.Notificada
-                )
-
-                &&
-                x.NivelId ==
-                    sesion.NivelId
-
-                &&
-                x.RecuperacionId.HasValue
-
-                &&
-                x.Recuperacion != null
-
-                &&
-                x.Recuperacion.Estado ==
-                    EstadoRecuperacion.Disponible
-
-                &&
-                !x.Recuperacion.SesionUsoId.HasValue
-
-                &&
-                x.Recuperacion.FechaGeneracion <=
-                    sesion.Fecha
-
-                &&
-                (
-                    !x.Recuperacion.FechaVencimiento.HasValue
-                    ||
-                    x.Recuperacion.FechaVencimiento.Value >=
-                        sesion.Fecha
-                )
-
-                &&
-                (
-                    !x.DiaPreferido.HasValue
-                    ||
-                    x.DiaPreferido.Value ==
-                        diaSesion
-                ))
-
-            .ToListAsync(ct);
-
-
-    // =========================================================
-    // FILTRAR FRANJA Y OTRAS REGLAS
-    // =========================================================
-
-    var candidatos =
-        solicitudes
-
-            /*
-             * Si ya es alumno habitual de este mismo turno,
-             * no tiene sentido utilizar el recupero acá.
-             */
-            .Where(x =>
-                !bebesRegulares.Contains(
-                    x.BebeId))
-
-            /*
-             * No usamos como recuperación la misma sesión
-             * que originó el recupero.
-             */
-            .Where(x =>
-                x.Recuperacion!.SesionOrigenId !=
-                    sesion.Id)
-
-            /*
-             * Respetamos la franja solicitada por la familia.
-             */
-            .Where(x =>
-                CoincideFranjaListaEspera(
-                    x.FranjaHoraria,
-                    sesion.HoraInicio))
-
-            .Select(x =>
-            {
-                var recuperacion =
-                    x.Recuperacion!;
-
-
-                var diasRestantes =
-                    recuperacion
-                        .FechaVencimiento
-                        .HasValue
-
-                        ? recuperacion
-                              .FechaVencimiento
-                              .Value
-                              .DayNumber
-                          -
-                          hoy.DayNumber
-
-                        : (int?)null;
-
-
-                var tienePreferencias =
-                    x.DiaPreferido.HasValue
-                    ||
-                    x.FranjaHoraria !=
-                        FranjaHoraria.Indistinta;
-
-
-                return new CandidatoRecuperoDto(
-                    recuperacion.Id,
-
-                    x.BebeId,
-
-                    $"{x.Bebe.Nombre} {x.Bebe.Apellido}"
-                        .Trim(),
-
-                    recuperacion.Tipo,
-
-                    recuperacion.SesionOrigen.Fecha,
-
-                    recuperacion.FechaVencimiento,
-
-                    diasRestantes,
-
-                    tienePreferencias,
-
-                    tienePreferencias,
-
-                    ObtenerPreferenciaListaEsperaTexto(
-                        x.DiaPreferido,
-                        x.FranjaHoraria));
-            })
-
-            /*
-             * Primero los que vencen antes.
-             */
-            .OrderBy(x =>
-                x.FechaVencimiento
-                ??
-                DateOnly.MaxValue)
-
-            /*
-             * Luego los que tenían una preferencia concreta
-             * y esta clase coincide con ella.
-             */
-            .ThenByDescending(x =>
-                x.CoincidePreferencia)
-
-            .ThenBy(x =>
-                x.Bebe)
-
-            .ToList();
-
-
+    var candidatos = recuperaciones
+        .Where(x => !bebesRegulares.Contains(x.BebeId))
+        .Select(x => new CandidatoRecuperoDto(
+            x.Id, x.BebeId, $"{x.Bebe.Nombre} {x.Bebe.Apellido}".Trim(),
+            x.Tipo, x.SesionOrigen.Fecha, x.FechaVencimiento,
+            x.FechaVencimiento.HasValue ? x.FechaVencimiento.Value.DayNumber - hoy.DayNumber : null,
+            false, true, null))
+        .ToList();
     return candidatos;
 }
 private static bool CoincideFranjaListaEspera(
@@ -1268,37 +1081,6 @@ private static string ObtenerPreferenciaListaEsperaTexto(
         recuperacion.UtilizadaUtc =
             null;
 
-            // =========================================================
-// MARCAR SOLICITUD DE LISTA DE ESPERA COMO ASIGNADA
-// =========================================================
-
-var solicitudesEspera =
-    await db.ListaEspera
-        .Where(x =>
-            x.RecuperacionId ==
-                recuperacion.Id
-
-            &&
-            (
-                x.Estado ==
-                    EstadoListaEspera.Activa
-
-                ||
-
-                x.Estado ==
-                    EstadoListaEspera.Notificada
-            ))
-
-        .ToListAsync(ct);
-
-
-foreach (var solicitud in solicitudesEspera)
-{
-    solicitud.Estado =
-        EstadoListaEspera.Asignada;
-}
-
-
         await db.SaveChangesAsync(ct);
 
         await transaction.CommitAsync(ct);
@@ -1367,26 +1149,6 @@ foreach (var solicitud in solicitudesEspera)
 
         recuperacion.UtilizadaUtc =
             null;
-
-            var solicitudes =
-    await db.ListaEspera
-        .Where(x =>
-            x.RecuperacionId ==
-                recuperacion.Id
-
-            &&
-            x.Estado ==
-                EstadoListaEspera.Asignada)
-
-        .ToListAsync(ct);
-
-
-foreach (var solicitud in solicitudes)
-{
-    solicitud.Estado =
-        EstadoListaEspera.Activa;
-}
-
 
         await db.SaveChangesAsync(ct);
     }

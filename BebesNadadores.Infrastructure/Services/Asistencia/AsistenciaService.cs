@@ -5,6 +5,7 @@ using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using BebesNadadores.Application.Configuracion;
+using BebesNadadores.Infrastructure.Services.Pagos;
 
 namespace BebesNadadores.Infrastructure.Services.Asistencias;
 
@@ -223,6 +224,40 @@ foreach (var reserva in
 
 
         // =====================================================
+        // CUOTAS VENCIDAS POR ALUMNO (MISMA REGLA QUE TURNERA)
+        // =====================================================
+        // Consultamos todas las cuotas de los alumnos de la sesión de una vez.
+        // No cuenta una cuota futura, anulada ni totalmente cancelada.
+        // Una cuota parcialmente abonada sigue contando como 1 deuda.
+        // El estado se calcula al día de hoy en Argentina, no a la fecha
+        // de la sesión, que puede ser anterior o posterior.
+        var bebeIds = esperados.Keys.ToList();
+        var cuotasVencidasPorBebe = new Dictionary<Guid, int>();
+
+        if (bebeIds.Count > 0)
+        {
+            var hoy = RegistradorCobros.ObtenerFechaArgentina();
+            var cuotas = await db.Cuotas
+                .AsNoTracking()
+                .Where(c =>
+                    bebeIds.Contains(c.Inscripcion.BebeId)
+                    && c.Estado != EstadoCuota.Anulada
+                    && c.FechaVencimiento < hoy)
+                .Select(c => new
+                {
+                    BebeId = c.Inscripcion.BebeId,
+                    c.Importe,
+                    ImportePagado = c.Imputaciones.Sum(i => (decimal?)i.Importe) ?? 0m
+                })
+                .ToListAsync(ct);
+
+            cuotasVencidasPorBebe = cuotas
+                .Where(c => c.Importe > c.ImportePagado)
+                .GroupBy(c => c.BebeId)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        // =====================================================
         // ARMAR RESULTADO
         // =====================================================
 
@@ -266,7 +301,8 @@ foreach (var reserva in
                     recuperoVigente,
                     recuperoVigente
                         ? recuperacion!.FechaVencimiento
-                        : null));
+                        : null,
+                    cuotasVencidasPorBebe.GetValueOrDefault(esperado.BebeId)));
         }
 
 

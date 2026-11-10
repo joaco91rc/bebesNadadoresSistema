@@ -245,8 +245,8 @@ public sealed class GeneradorRecuperosClasesNoDictadas(
     /*
      * Cuando se cancela una clase, los recuperos que estaban
      * RESERVADOS para usarse en ella vuelven a quedar disponibles
-     * (o vencidos, si ya pasó su vencimiento), y la solicitud de
-     * lista de espera asociada vuelve a quedar activa.
+     * (o vencidos, si ya pasó su vencimiento), sin vincularse
+     * a la lista de espera de nuevas inscripciones.
      *
      * No guarda: queda dentro del SaveChanges del llamador.
      */
@@ -280,22 +280,6 @@ public sealed class GeneradorRecuperosClasesNoDictadas(
                 recupero.FechaVencimiento.HasValue && recupero.FechaVencimiento.Value < hoy
                     ? EstadoRecuperacion.Vencida
                     : EstadoRecuperacion.Disponible;
-        }
-
-        var recuperoIds =
-            reservados.Select(x => x.Id).ToList();
-
-        var solicitudes =
-            await db.ListaEspera
-                .Where(x =>
-                    x.RecuperacionId != null
-                    && recuperoIds.Contains(x.RecuperacionId.Value)
-                    && x.Estado == EstadoListaEspera.Asignada)
-                .ToListAsync(ct);
-
-        foreach (var solicitud in solicitudes)
-        {
-            solicitud.Estado = EstadoListaEspera.Activa;
         }
 
         return reservados.Count;

@@ -20,13 +20,11 @@ public partial class Pagos : ComponentBase
     // DATOS
     // =========================================================
 
-    protected List<BebePagoResumenDto> _bebes =
-        [];
+    protected List<BebePagoResumenDto> _bebes = [];
 
     protected CuentaCorrienteBebeDto? _cuenta;
 
-    protected List<CuentaBancariaDto> _cuentasBancarias =
-        [];
+    protected List<CuentaBancariaDto> _cuentasBancarias = [];
 
     protected CajaDetalleDto? _cajaHoy;
 
@@ -35,8 +33,7 @@ public partial class Pagos : ComponentBase
     // FORMULARIO PAGO
     // =========================================================
 
-    protected RegistrarPagoDto _pagoForm =
-        new();
+    protected RegistrarPagoDto _pagoForm = new();
 
     protected PreviewPagoDto? _preview;
 
@@ -45,14 +42,11 @@ public partial class Pagos : ComponentBase
     // ESTADO
     // =========================================================
 
-    protected string _buscar =
-        string.Empty;
+    protected string _buscar = string.Empty;
 
     protected Guid? _bebeSeleccionadoId;
 
-
-    protected bool _cargando =
-        true;
+    protected bool _cargando = true;
 
     protected bool _cargandoCuenta;
 
@@ -62,6 +56,7 @@ public partial class Pagos : ComponentBase
 
     protected bool _cargandoPreview;
 
+    protected bool _buscando;
 
     protected string? _error;
 
@@ -69,347 +64,14 @@ public partial class Pagos : ComponentBase
 
     protected string? _errorPago;
 
-    protected string _vistaCuenta =
-    "resumen";
-
-
-private CancellationTokenSource? _busquedaCts;
-
-
-
-protected bool _buscando;
-
-// =========================================================
-// CUENTA CORRIENTE UNIFICADA
-// =========================================================
-
-protected IReadOnlyList<MovimientoCuentaViewModel>
-    MovimientosCuenta =>
-        ConstruirMovimientosCuenta();
-
-
-private IReadOnlyList<MovimientoCuentaViewModel>
-    ConstruirMovimientosCuenta()
-{
-    if (_cuenta is null)
-    {
-        return [];
-    }
-
-
-    var movimientos =
-        new List<MovimientoCuentaViewModel>();
-
-
-    // =====================================================
-    // CUOTAS = DÉBITOS
-    // =====================================================
-
-    foreach (
-        var cuota in
-        _cuenta.Cuotas
-            .Where(x =>
-                x.Estado !=
-                    EstadoCuota.Anulada))
-    {
-        movimientos.Add(
-            new MovimientoCuentaViewModel
-            {
-                Fecha =
-                    cuota.Periodo
-                        .ToDateTime(
-                            TimeOnly.MinValue),
-
-                Orden =
-                    0,
-
-                FechaTexto =
-                    cuota.Periodo
-                        .ToString(
-                            "dd/MM/yyyy"),
-
-                Tipo =
-                    "Cuota",
-
-                Concepto =
-                    $"Cuota {FormatearPeriodo(cuota.Periodo)}",
-
-                Detalle =
-                    !string.IsNullOrWhiteSpace(
-                        cuota.Descripcion)
-
-                        ? cuota.Descripcion
-
-                        : $"Vencimiento " +
-                          $"{cuota.FechaVencimiento:dd/MM/yyyy}",
-
-                Debito =
-                    cuota.Importe,
-
-                Credito =
-                    0
-            });
-    }
-
-
-    // =====================================================
-    // PAGOS = CRÉDITOS
-    // =====================================================
-
-    foreach (var pago in _cuenta.Pagos)
-    {
-        var fechaArgentina =
-            ConvertirFechaArgentina(
-                pago.FechaUtc);
-
-
-        var detalle =
-            ObtenerDetallePagoCuenta(
-                pago);
-
-
-        movimientos.Add(
-            new MovimientoCuentaViewModel
-            {
-                Fecha =
-                    fechaArgentina,
-
-                Orden =
-                    1,
-
-                FechaTexto =
-                    fechaArgentina
-                        .ToString(
-                            "dd/MM/yyyy HH:mm"),
-
-                Tipo =
-                    "Pago",
-
-                Concepto =
-                    $"Pago - " +
-                    $"{ObtenerMedioPagoTexto(pago.MedioPago)}" +
-                    (pago.Anulado ? " (anulado)" : ""),
-
-                Detalle =
-                    detalle,
-
-                Debito =
-                    0,
-
-                Credito =
-                    pago.Importe,
-
-                MedioPago =
-                    pago.MedioPago
-            });
-
-
-        /*
-         * Pago anulado: se muestra el pago original y, en la fecha
-         * de la anulación, el contra-movimiento (débito) que lo
-         * revierte. Así el saldo queda bien y se ve el historial.
-         */
-        if (pago.Anulado)
-        {
-            var fechaAnulacion =
-                ConvertirFechaArgentina(
-                    pago.AnuladoUtc ?? pago.FechaUtc);
-
-            movimientos.Add(
-                new MovimientoCuentaViewModel
-                {
-                    Fecha =
-                        fechaAnulacion,
-
-                    Orden =
-                        2,
-
-                    FechaTexto =
-                        fechaAnulacion
-                            .ToString(
-                                "dd/MM/yyyy HH:mm"),
-
-                    Tipo =
-                        "Anulación",
-
-                    Concepto =
-                        $"Anulación de pago - " +
-                        $"{ObtenerMedioPagoTexto(pago.MedioPago)}",
-
-                    Detalle =
-                        pago.MotivoAnulacion,
-
-                    Debito =
-                        pago.Importe,
-
-                    Credito =
-                        0,
-
-                    MedioPago =
-                        pago.MedioPago
-                });
-        }
-    }
-
-
-    // =====================================================
-    // SALDO ACUMULADO
-    // =====================================================
-
-    var ordenados =
-        movimientos
-            .OrderBy(x =>
-                x.Fecha)
-
-            .ThenBy(x =>
-                x.Orden)
-
-            .ToList();
-
-
-    decimal saldo =
-        0;
-
-
-    foreach (var movimiento in ordenados)
-    {
-        saldo +=
-            movimiento.Debito;
-
-        saldo -=
-            movimiento.Credito;
-
-
-        movimiento.Saldo =
-            saldo;
-    }
-
-
     /*
-     * Calculamos el saldo cronológicamente
-     * y después mostramos lo más reciente arriba.
+     * "resumen" (cuotas + historial), "cuenta" (movimientos con
+     * saldo acumulado) o "pagos" (solo historial de pagos).
      */
-    return ordenados
-        .OrderByDescending(x =>
-            x.Fecha)
+    protected string _vistaCuenta = "resumen";
 
-        .ThenByDescending(x =>
-            x.Orden)
+    private CancellationTokenSource? _busquedaCts;
 
-        .ToList();
-}
-
-
-private static string? ObtenerDetallePagoCuenta(
-    PagoCuentaCorrienteDto pago)
-{
-    var partes =
-        new List<string>();
-
-
-    if (!string.IsNullOrWhiteSpace(
-        pago.CuentaBancaria))
-    {
-        partes.Add(
-            pago.CuentaBancaria);
-    }
-
-
-    if (!string.IsNullOrWhiteSpace(
-        pago.ReferenciaExterna))
-    {
-        partes.Add(
-            $"Ref. {pago.ReferenciaExterna}");
-    }
-
-
-    if (!string.IsNullOrWhiteSpace(
-        pago.Observaciones))
-    {
-        partes.Add(
-            pago.Observaciones);
-    }
-
-
-    return partes.Count == 0
-        ? null
-        : string.Join(
-            " · ",
-            partes);
-}
-
-
-private static DateTime ConvertirFechaArgentina(
-    DateTimeOffset fechaUtc)
-{
-    return TimeZoneInfo
-        .ConvertTime(
-            fechaUtc,
-            ObtenerZonaHorariaArgentina())
-        .DateTime;
-}
-
-
-protected static string ObtenerClaseSaldoCuenta(
-    decimal saldo)
-{
-    if (saldo > 0)
-        return "debt";
-
-    if (saldo < 0)
-        return "credit";
-
-    return "zero";
-}
-
-
-protected static string ObtenerTextoSaldoCuenta(
-    decimal saldo)
-{
-    if (saldo > 0)
-    {
-        return FormatearMoneda(
-            saldo);
-    }
-
-
-    if (saldo < 0)
-    {
-        return
-            $"{FormatearMoneda(Math.Abs(saldo))} a favor";
-    }
-
-
-    return FormatearMoneda(
-        0);
-}
-
-
-protected sealed class MovimientoCuentaViewModel
-{
-    public DateTime Fecha { get; set; }
-
-    public int Orden { get; set; }
-
-    public string FechaTexto { get; set; } =
-        string.Empty;
-
-    public string Tipo { get; set; } =
-        string.Empty;
-
-    public string Concepto { get; set; } =
-        string.Empty;
-
-    public string? Detalle { get; set; }
-
-    public decimal Debito { get; set; }
-
-    public decimal Credito { get; set; }
-
-    public decimal Saldo { get; set; }
-
-    public MedioPago? MedioPago { get; set; }
-}
 
     // =========================================================
     // ENUMS
@@ -423,15 +85,16 @@ protected sealed class MovimientoCuentaViewModel
     // CALCULADOS
     // =========================================================
 
-   protected List<BebePagoResumenDto> BebesFiltrados =>
-    _bebes
-        .OrderByDescending(x =>
-            x.Deuda > 0)
+    protected List<BebePagoResumenDto> BebesFiltrados =>
+        _bebes
+            .OrderByDescending(x => x.Deuda > 0)
+            .ThenBy(x => x.NombreCompleto)
+            .ToList();
 
-        .ThenBy(x =>
-            x.NombreCompleto)
 
-        .ToList();
+    protected bool CajaHoyAbierta =>
+        _cajaHoy is not null
+        && _cajaHoy.Estado == EstadoCaja.Abierta;
 
 
     protected bool PuedeRegistrarPago
@@ -441,35 +104,219 @@ protected sealed class MovimientoCuentaViewModel
             if (_procesandoPago)
                 return false;
 
-
             if (_pagoForm.Importe <= 0)
                 return false;
 
-
-            if (_pagoForm.MedioPago ==
-                    MedioPago.Efectivo
-                &&
-                (_cajaHoy is null ||
-                 _cajaHoy.Estado !=
-                    EstadoCaja.Abierta))
+            if (_pagoForm.MedioPago == MedioPago.Efectivo
+                && !CajaHoyAbierta)
             {
                 return false;
             }
 
-
-            if (
-                RequiereCuentaBancaria(
-                    _pagoForm.MedioPago)
-                &&
-                !_pagoForm.CuentaBancariaId
-                    .HasValue)
+            if (RequiereCuentaBancaria(_pagoForm.MedioPago)
+                && !_pagoForm.CuentaBancariaId.HasValue)
             {
                 return false;
             }
-
 
             return true;
         }
+    }
+
+
+    // =========================================================
+    // CUENTA CORRIENTE UNIFICADA
+    // =========================================================
+
+    protected IReadOnlyList<MovimientoCuentaViewModel> MovimientosCuenta =>
+        ConstruirMovimientosCuenta();
+
+
+    private IReadOnlyList<MovimientoCuentaViewModel> ConstruirMovimientosCuenta()
+    {
+        if (_cuenta is null)
+        {
+            return [];
+        }
+
+        var movimientos =
+            new List<MovimientoCuentaViewModel>();
+
+        // =====================================================
+        // CUOTAS = DÉBITOS
+        // =====================================================
+
+        foreach (var cuota in _cuenta.Cuotas
+                     .Where(x => x.Estado != EstadoCuota.Anulada))
+        {
+            movimientos.Add(
+                new MovimientoCuentaViewModel
+                {
+                    Fecha = cuota.Periodo.ToDateTime(TimeOnly.MinValue),
+                    Orden = 0,
+                    FechaTexto = cuota.Periodo.ToString("dd/MM/yyyy"),
+                    Tipo = "Cuota",
+                    Concepto = $"Cuota {FormatearPeriodo(cuota.Periodo)}",
+                    Detalle =
+                        !string.IsNullOrWhiteSpace(cuota.Descripcion)
+                            ? cuota.Descripcion
+                            : $"Vencimiento {cuota.FechaVencimiento:dd/MM/yyyy}",
+                    Debito = cuota.Importe,
+                    Credito = 0
+                });
+        }
+
+        // =====================================================
+        // PAGOS = CRÉDITOS
+        // =====================================================
+
+        foreach (var pago in _cuenta.Pagos)
+        {
+            var fechaArgentina =
+                ConvertirFechaArgentina(pago.FechaUtc);
+
+            movimientos.Add(
+                new MovimientoCuentaViewModel
+                {
+                    Fecha = fechaArgentina,
+                    Orden = 1,
+                    FechaTexto = fechaArgentina.ToString("dd/MM/yyyy HH:mm"),
+                    Tipo = "Pago",
+                    Concepto =
+                        $"Pago - {ObtenerMedioPagoTexto(pago.MedioPago)}" +
+                        (pago.Anulado ? " (anulado)" : ""),
+                    Detalle = ObtenerDetallePagoCuenta(pago),
+                    Debito = 0,
+                    Credito = pago.Importe,
+                    MedioPago = pago.MedioPago
+                });
+
+            /*
+             * Pago anulado: se muestra el pago original y, en la fecha
+             * de la anulación, el contra-movimiento (débito) que lo
+             * revierte. Así el saldo queda bien y se ve el historial.
+             */
+            if (pago.Anulado)
+            {
+                var fechaAnulacion =
+                    ConvertirFechaArgentina(pago.AnuladoUtc ?? pago.FechaUtc);
+
+                movimientos.Add(
+                    new MovimientoCuentaViewModel
+                    {
+                        Fecha = fechaAnulacion,
+                        Orden = 2,
+                        FechaTexto = fechaAnulacion.ToString("dd/MM/yyyy HH:mm"),
+                        Tipo = "Anulación",
+                        Concepto =
+                            $"Anulación de pago - {ObtenerMedioPagoTexto(pago.MedioPago)}",
+                        Detalle = pago.MotivoAnulacion,
+                        Debito = pago.Importe,
+                        Credito = 0,
+                        MedioPago = pago.MedioPago
+                    });
+            }
+        }
+
+        // =====================================================
+        // SALDO ACUMULADO
+        // =====================================================
+
+        var ordenados =
+            movimientos
+                .OrderBy(x => x.Fecha)
+                .ThenBy(x => x.Orden)
+                .ToList();
+
+        decimal saldo = 0;
+
+        foreach (var movimiento in ordenados)
+        {
+            saldo += movimiento.Debito;
+            saldo -= movimiento.Credito;
+
+            movimiento.Saldo = saldo;
+        }
+
+        /*
+         * Calculamos el saldo cronológicamente
+         * y después mostramos lo más reciente arriba.
+         */
+        return ordenados
+            .OrderByDescending(x => x.Fecha)
+            .ThenByDescending(x => x.Orden)
+            .ToList();
+    }
+
+
+    private static string? ObtenerDetallePagoCuenta(
+        PagoCuentaCorrienteDto pago)
+    {
+        var partes =
+            new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(pago.CuentaBancaria))
+            partes.Add(pago.CuentaBancaria);
+
+        if (!string.IsNullOrWhiteSpace(pago.ReferenciaExterna))
+            partes.Add($"Ref. {pago.ReferenciaExterna}");
+
+        if (!string.IsNullOrWhiteSpace(pago.Observaciones))
+            partes.Add(pago.Observaciones);
+
+        return partes.Count == 0
+            ? null
+            : string.Join(" · ", partes);
+    }
+
+
+    protected static string ObtenerClaseSaldoCuenta(
+        decimal saldo)
+    {
+        if (saldo > 0)
+            return "debt";
+
+        if (saldo < 0)
+            return "credit";
+
+        return "zero";
+    }
+
+
+    protected static string ObtenerTextoSaldoCuenta(
+        decimal saldo)
+    {
+        if (saldo > 0)
+            return FormatearMoneda(saldo);
+
+        if (saldo < 0)
+            return $"{FormatearMoneda(Math.Abs(saldo))} a favor";
+
+        return FormatearMoneda(0);
+    }
+
+
+    protected sealed class MovimientoCuentaViewModel
+    {
+        public DateTime Fecha { get; set; }
+
+        public int Orden { get; set; }
+
+        public string FechaTexto { get; set; } = string.Empty;
+
+        public string Tipo { get; set; } = string.Empty;
+
+        public string Concepto { get; set; } = string.Empty;
+
+        public string? Detalle { get; set; }
+
+        public decimal Debito { get; set; }
+
+        public decimal Credito { get; set; }
+
+        public decimal Saldo { get; set; }
+
+        public MedioPago? MedioPago { get; set; }
     }
 
 
@@ -487,8 +334,7 @@ protected sealed class MovimientoCuentaViewModel
 
     protected override async Task OnInitializedAsync()
     {
-        _bebeSeleccionadoId ??=
-            BebeQuery;
+        _bebeSeleccionadoId ??= BebeQuery;
 
         await CargarTodoAsync();
     }
@@ -497,12 +343,11 @@ protected sealed class MovimientoCuentaViewModel
     protected override async Task OnParametersSetAsync()
     {
         // Otra búsqueda estando ya en Pagos: cambia el bebé.
-        if (!_cargando &&
-            BebeQuery.HasValue &&
-            BebeQuery != _bebeSeleccionadoId)
+        if (!_cargando
+            && BebeQuery.HasValue
+            && BebeQuery != _bebeSeleccionadoId)
         {
-            await SeleccionarBebeAsync(
-                BebeQuery.Value);
+            await SeleccionarBebeAsync(BebeQuery.Value);
         }
     }
 
@@ -511,55 +356,37 @@ protected sealed class MovimientoCuentaViewModel
     {
         try
         {
-            _cargando =
-                true;
-
-            _error =
-                null;
-
+            _cargando = true;
+            _error = null;
 
             var bebes =
-                await PagoService
-                    .ListarBebesAsync();
+                await PagoService.ListarBebesAsync();
 
-
-            _bebes =
-                bebes.ToList();
-
+            _bebes = bebes.ToList();
 
             _cuentasBancarias =
                 (await CuentaBancariaService
-                    .ListarAsync(
-                        incluirInactivas: false))
-                    .Where(x =>
-                        x.Activa)
-                    .OrderBy(x =>
-                        x.Banco)
-                    .ThenBy(x =>
-                        x.Nombre)
+                    .ListarAsync(incluirInactivas: false))
+                    .Where(x => x.Activa)
+                    .OrderBy(x => x.Banco)
+                    .ThenBy(x => x.Nombre)
                     .ToList();
 
-
             _cajaHoy =
-                await CajaService
-                    .ObtenerHoyAsync();
-
+                await CajaService.ObtenerHoyAsync();
 
             if (_bebeSeleccionadoId.HasValue)
             {
-                await CargarCuentaAsync(
-                    _bebeSeleccionadoId.Value);
+                await CargarCuentaAsync(_bebeSeleccionadoId.Value);
             }
         }
         catch (Exception ex)
         {
-            _error =
-                Errores.Mensaje(ex);
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
-            _cargando =
-                false;
+            _cargando = false;
         }
     }
 
@@ -571,19 +398,12 @@ protected sealed class MovimientoCuentaViewModel
     protected async Task SeleccionarBebeAsync(
         Guid bebeId)
     {
-        if (_bebeSeleccionadoId ==
-            bebeId)
-        {
+        if (_bebeSeleccionadoId == bebeId)
             return;
-        }
 
+        _bebeSeleccionadoId = bebeId;
 
-        _bebeSeleccionadoId =
-            bebeId;
-
-
-        await CargarCuentaAsync(
-            bebeId);
+        await CargarCuentaAsync(bebeId);
     }
 
 
@@ -592,34 +412,24 @@ protected sealed class MovimientoCuentaViewModel
     {
         try
         {
-            _cargandoCuenta =
-                true;
-
-            _error =
-                null;
-
+            _cargandoCuenta = true;
+            _error = null;
 
             _cuenta =
-                await PagoService
-                    .ObtenerCuentaCorrienteAsync(
-                        bebeId);
-
+                await PagoService.ObtenerCuentaCorrienteAsync(bebeId);
 
             if (_cuenta is null)
             {
-                _error =
-                    "No se encontró la cuenta corriente seleccionada.";
+                _error = "No se encontró la cuenta corriente seleccionada.";
             }
         }
         catch (Exception ex)
         {
-            _error =
-                Errores.Mensaje(ex);
+            _error = Errores.Mensaje(ex);
         }
         finally
         {
-            _cargandoCuenta =
-                false;
+            _cargandoCuenta = false;
         }
     }
 
@@ -627,15 +437,86 @@ protected sealed class MovimientoCuentaViewModel
     protected bool EsSeleccionado(
         Guid bebeId)
     {
-        return _bebeSeleccionadoId ==
-            bebeId;
+        return _bebeSeleccionadoId == bebeId;
     }
 
 
-    protected void LimpiarBusqueda()
+    // =========================================================
+    // BÚSQUEDA
+    // =========================================================
+
+    protected async Task BuscarCambioAsync(
+        ChangeEventArgs e)
     {
         _buscar =
-            string.Empty;
+            e.Value?.ToString() ?? string.Empty;
+
+        _busquedaCts?.Cancel();
+        _busquedaCts?.Dispose();
+
+        _busquedaCts = new CancellationTokenSource();
+
+        var ct = _busquedaCts.Token;
+
+        try
+        {
+            // Evita consultar PostgreSQL por cada tecla.
+            await Task.Delay(300, ct);
+
+            _buscando = true;
+
+            var datos =
+                await PagoService.ListarBebesAsync(
+                    string.IsNullOrWhiteSpace(_buscar)
+                        ? null
+                        : _buscar.Trim(),
+                    ct);
+
+            _bebes = datos.ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            // Se escribió otra tecla.
+        }
+        catch (Exception ex)
+        {
+            _error = Errores.Mensaje(ex);
+        }
+        finally
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                _buscando = false;
+            }
+        }
+    }
+
+
+    protected async Task LimpiarBusquedaAsync()
+    {
+        _busquedaCts?.Cancel();
+        _busquedaCts?.Dispose();
+        _busquedaCts = null;
+
+        _buscar = string.Empty;
+
+        try
+        {
+            _buscando = true;
+
+            var datos =
+                await PagoService.ListarBebesAsync();
+
+            _bebes = datos.ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = Errores.Mensaje(ex);
+        }
+        finally
+        {
+            _buscando = false;
+        }
     }
 
 
@@ -648,47 +529,30 @@ protected sealed class MovimientoCuentaViewModel
         if (_cuenta is null)
             return;
 
-
-        _errorPago =
-            null;
-
-        _preview =
-            null;
-
+        _errorPago = null;
+        _preview = null;
 
         _cajaHoy =
-            await CajaService
-                .ObtenerHoyAsync();
-
+            await CajaService.ObtenerHoyAsync();
 
         _pagoForm =
             new RegistrarPagoDto
             {
-                BebeId =
-                    _cuenta.BebeId,
-
-                ResponsableId =
-                    _cuenta.ResponsablePrincipalId,
-
-                MedioPago =
-                    MedioPago.Efectivo,
+                BebeId = _cuenta.BebeId,
+                ResponsableId = _cuenta.ResponsablePrincipalId,
+                MedioPago = MedioPago.Efectivo,
 
                 /*
                  * Se completa con lo que debe (las cuotas ya tienen
                  * el descuento aplicado). La administrativa lo puede
                  * cambiar si paga otro importe.
                  */
-                Importe =
-                    ImporteSugerido.Importe,
+                Importe = ImporteSugerido.Importe,
 
-                CuentaBancariaId =
-                    null
+                CuentaBancariaId = null
             };
 
-
-        _modalPago =
-            true;
-
+        _modalPago = true;
 
         // Muestra enseguida cómo se va a imputar.
         await ActualizarPreviewAsync();
@@ -730,15 +594,9 @@ protected sealed class MovimientoCuentaViewModel
         if (_procesandoPago)
             return;
 
-
-        _modalPago =
-            false;
-
-        _preview =
-            null;
-
-        _errorPago =
-            null;
+        _modalPago = false;
+        _preview = null;
+        _errorPago = null;
     }
 
 
@@ -752,9 +610,7 @@ protected sealed class MovimientoCuentaViewModel
         var texto =
             e.Value?.ToString();
 
-
-        if (
-            decimal.TryParse(
+        if (decimal.TryParse(
                 texto,
                 NumberStyles.Any,
                 CultureInfo.InvariantCulture,
@@ -766,15 +622,12 @@ protected sealed class MovimientoCuentaViewModel
                 CultureInfo.GetCultureInfo("es-AR"),
                 out importe))
         {
-            _pagoForm.Importe =
-                importe;
+            _pagoForm.Importe = importe;
         }
         else
         {
-            _pagoForm.Importe =
-                0;
+            _pagoForm.Importe = 0;
         }
-
 
         await ActualizarPreviewAsync();
     }
@@ -785,10 +638,7 @@ protected sealed class MovimientoCuentaViewModel
         if (_cuenta is null)
             return;
 
-
-        _pagoForm.Importe =
-            ImporteSugerido.Importe;
-
+        _pagoForm.Importe = ImporteSugerido.Importe;
 
         await ActualizarPreviewAsync();
     }
@@ -796,160 +646,33 @@ protected sealed class MovimientoCuentaViewModel
 
     private async Task ActualizarPreviewAsync()
     {
-        if (
-            _pagoForm.Importe <= 0
-            ||
-            _pagoForm.BebeId ==
-                Guid.Empty)
+        if (_pagoForm.Importe <= 0
+            || _pagoForm.BebeId == Guid.Empty)
         {
-            _preview =
-                null;
-
+            _preview = null;
             return;
         }
 
-
         try
         {
-            _cargandoPreview =
-                true;
-
-            _errorPago =
-                null;
-
+            _cargandoPreview = true;
+            _errorPago = null;
 
             _preview =
-                await PagoService
-                    .PrevisualizarAsync(
-                        _pagoForm);
+                await PagoService.PrevisualizarAsync(_pagoForm);
         }
         catch (Exception ex)
         {
-            _errorPago =
-                Errores.Mensaje(ex);
-
-            _preview =
-                null;
+            _errorPago = Errores.Mensaje(ex);
+            _preview = null;
         }
         finally
         {
-            _cargandoPreview =
-                false;
+            _cargandoPreview = false;
         }
     }
 
 
-
-// =========================================================
-// BÚSQUEDA
-// =========================================================
-
-protected async Task BuscarCambioAsync(
-    ChangeEventArgs e)
-{
-    _buscar =
-        e.Value?.ToString()
-        ??
-        string.Empty;
-
-
-    _busquedaCts?.Cancel();
-    _busquedaCts?.Dispose();
-
-
-    _busquedaCts =
-        new CancellationTokenSource();
-
-
-    var ct =
-        _busquedaCts.Token;
-
-
-    try
-    {
-        /*
-         * Evita consultar PostgreSQL
-         * por cada tecla instantáneamente.
-         */
-        await Task.Delay(
-            300,
-            ct);
-
-
-        _buscando =
-            true;
-
-
-        var datos =
-            await PagoService
-                .ListarBebesAsync(
-                    string.IsNullOrWhiteSpace(_buscar)
-                        ? null
-                        : _buscar.Trim(),
-                    ct);
-
-
-        _bebes =
-            datos.ToList();
-    }
-    catch (OperationCanceledException)
-    {
-        // Se escribió otra tecla.
-    }
-    catch (Exception ex)
-    {
-        _error =
-            Errores.Mensaje(ex);
-    }
-    finally
-    {
-        if (!ct.IsCancellationRequested)
-        {
-            _buscando =
-                false;
-        }
-    }
-}
-
-
-protected async Task LimpiarBusquedaAsync()
-{
-    _busquedaCts?.Cancel();
-    _busquedaCts?.Dispose();
-
-    _busquedaCts =
-        null;
-
-
-    _buscar =
-        string.Empty;
-
-
-    try
-    {
-        _buscando =
-            true;
-
-
-        var datos =
-            await PagoService
-                .ListarBebesAsync();
-
-
-        _bebes =
-            datos.ToList();
-    }
-    catch (Exception ex)
-    {
-        _error =
-            Errores.Mensaje(ex);
-    }
-    finally
-    {
-        _buscando =
-            false;
-    }
-}
     // =========================================================
     // MEDIO DE PAGO
     // =========================================================
@@ -957,48 +680,33 @@ protected async Task LimpiarBusquedaAsync()
     protected async Task MedioPagoCambioAsync(
         ChangeEventArgs e)
     {
-        if (
-            Enum.TryParse<MedioPago>(
+        if (Enum.TryParse<MedioPago>(
                 e.Value?.ToString(),
                 out var medio))
         {
-            _pagoForm.MedioPago =
-                medio;
+            _pagoForm.MedioPago = medio;
         }
 
+        _errorPago = null;
 
-        _errorPago =
-            null;
-
-
-        if (_pagoForm.MedioPago ==
-            MedioPago.Efectivo)
+        if (_pagoForm.MedioPago == MedioPago.Efectivo)
         {
-            _pagoForm.CuentaBancariaId =
-                null;
-
+            _pagoForm.CuentaBancariaId = null;
 
             _cajaHoy =
-                await CajaService
-                    .ObtenerHoyAsync();
+                await CajaService.ObtenerHoyAsync();
         }
-        else if (
-            RequiereCuentaBancaria(
-                _pagoForm.MedioPago))
+        else if (RequiereCuentaBancaria(_pagoForm.MedioPago))
         {
-            if (
-                !_pagoForm.CuentaBancariaId.HasValue
-                &&
-                _cuentasBancarias.Count == 1)
+            if (!_pagoForm.CuentaBancariaId.HasValue
+                && _cuentasBancarias.Count == 1)
             {
-                _pagoForm.CuentaBancariaId =
-                    _cuentasBancarias[0].Id;
+                _pagoForm.CuentaBancariaId = _cuentasBancarias[0].Id;
             }
         }
         else
         {
-            _pagoForm.CuentaBancariaId =
-                null;
+            _pagoForm.CuentaBancariaId = null;
         }
     }
 
@@ -1023,101 +731,63 @@ protected async Task LimpiarBusquedaAsync()
         if (_cuenta is null || _procesandoPago)
             return;
 
-
         if (_pagoForm.Importe <= 0)
         {
-            _errorPago =
-                "El importe debe ser mayor a cero.";
-
+            _errorPago = "El importe debe ser mayor a cero.";
             return;
         }
 
-
-        if (_pagoForm.MedioPago ==
-            MedioPago.Efectivo)
+        if (_pagoForm.MedioPago == MedioPago.Efectivo)
         {
             _cajaHoy =
-                await CajaService
-                    .ObtenerHoyAsync();
+                await CajaService.ObtenerHoyAsync();
 
-
-            if (_cajaHoy is null ||
-                _cajaHoy.Estado !=
-                    EstadoCaja.Abierta)
+            if (!CajaHoyAbierta)
             {
-                _errorPago =
-                    "No hay una caja abierta para el día de hoy.";
-
+                _errorPago = "No hay una caja abierta para el día de hoy.";
                 return;
             }
         }
 
-
-        if (
-            RequiereCuentaBancaria(
-                _pagoForm.MedioPago)
-            &&
-            !_pagoForm.CuentaBancariaId
-                .HasValue)
+        if (RequiereCuentaBancaria(_pagoForm.MedioPago)
+            && !_pagoForm.CuentaBancariaId.HasValue)
         {
-            _errorPago =
-                "Debe seleccionar la cuenta que recibió el pago.";
-
+            _errorPago = "Debe seleccionar la cuenta que recibió el pago.";
             return;
         }
 
-
         try
         {
-            _procesandoPago =
-                true;
-
-            _errorPago =
-                null;
-
-            _error =
-                null;
-
+            _procesandoPago = true;
+            _errorPago = null;
+            _error = null;
 
             var usuarioId =
                 await ObtenerUsuarioIdAsync();
 
-
             var resultado =
-                await PagoService
-                    .RegistrarAsync(
-                        _pagoForm,
-                        usuarioId);
+                await PagoService.RegistrarAsync(
+                    _pagoForm,
+                    usuarioId);
 
-
-            _modalPago =
-                false;
-
-            _preview =
-                null;
-
+            _modalPago = false;
+            _preview = null;
 
             _mensaje =
                 resultado.SaldoAFavor > 0
-
-                    ? $"Pago registrado correctamente. " +
-                      $"Quedó un saldo a favor de " +
-                      $"{FormatearMoneda(resultado.SaldoAFavor)}."
-
+                    ? "Pago registrado correctamente. " +
+                      $"Quedó un saldo a favor de {FormatearMoneda(resultado.SaldoAFavor)}."
                     : "Pago registrado correctamente.";
-
 
             await RecargarDespuesDePagoAsync();
         }
         catch (Exception ex)
         {
-            _errorPago =
-                Errores.Mensaje(ex);
+            _errorPago = Errores.Mensaje(ex);
         }
         finally
         {
-            _procesandoPago =
-                false;
+            _procesandoPago = false;
         }
     }
 
@@ -1157,9 +827,32 @@ protected async Task LimpiarBusquedaAsync()
     private AnulacionPendiente? _anulacion;
 
 
-    protected void AbrirAnularPago(
+    /*
+     * Efectivo: la reversa va a la caja abierta de HOY. Se valida
+     * antes de abrir el modal para no hacer escribir el motivo y
+     * fallar al confirmar. (El servicio lo vuelve a validar y, si
+     * quedó abierta una caja de otro día, lo dice con la fecha.)
+     */
+    protected async Task AbrirAnularPagoAsync(
         PagoCuentaCorrienteDto pago)
     {
+        _error = null;
+
+        if (MueveEfectivo(pago))
+        {
+            _cajaHoy =
+                await CajaService.ObtenerHoyAsync();
+
+            if (!CajaHoyAbierta)
+            {
+                _error =
+                    "Para anular un pago en efectivo tiene que estar abierta la caja de hoy: " +
+                    "ahí se registra el egreso. Si quedó abierta la caja de un día anterior, " +
+                    "cerrala y abrí la de hoy.";
+                return;
+            }
+        }
+
         _anulacion =
             new AnulacionPendiente(
                 Accion: AccionAnulacion.AnularPago,
@@ -1175,9 +868,24 @@ protected async Task LimpiarBusquedaAsync()
     }
 
 
+    /*
+     * Una cuota con pagos imputados no se anula: primero se anula el
+     * pago (la cuota vuelve a Pendiente) y después la cuota.
+     */
     protected void AbrirAnularCuota(
         CuotaCuentaCorrienteDto cuota)
     {
+        _error = null;
+
+        if (cuota.ImportePagado > 0)
+        {
+            _error =
+                $"La cuota {FormatearPeriodo(cuota.Periodo)} tiene " +
+                $"{FormatearMoneda(cuota.ImportePagado)} cobrados. " +
+                "Para anularla, primero anulá el pago desde el Historial de pagos.";
+            return;
+        }
+
         _anulacion =
             new AnulacionPendiente(
                 Accion: AccionAnulacion.AnularCuota,
@@ -1188,20 +896,16 @@ protected async Task LimpiarBusquedaAsync()
                 Detalle: $"Cuota {FormatearPeriodo(cuota.Periodo)}",
                 Importe: cuota.Importe,
                 Aviso:
-                    (cuota.ImportePagado > 0
-                        ? "La cuota deja de cobrarse y no vuelve a generarse. Lo ya pagado " +
-                          $"({FormatearMoneda(cuota.ImportePagado)}) queda como saldo a favor " +
-                          "y se aplica a otras cuotas pendientes. "
-                        : "La cuota deja de cobrarse y no vuelve a generarse. ") +
-                    "No registra ningún movimiento en caja ni en banco. " +
-                    "Si lo que querés es devolver o corregir un cobro, anulá el PAGO " +
-                    "desde el Historial de pagos.");
+                    "La cuota deja de cobrarse y no vuelve a generarse. " +
+                    "No registra ningún movimiento en caja ni en banco.");
     }
 
 
     protected void AbrirReactivarCuota(
         CuotaCuentaCorrienteDto cuota)
     {
+        _error = null;
+
         _anulacion =
             new AnulacionPendiente(
                 Accion: AccionAnulacion.ReactivarCuota,
@@ -1221,23 +925,59 @@ protected async Task LimpiarBusquedaAsync()
 
 
     /*
+     * Un pago en efectivo registrado antes del cobro unificado puede
+     * no tener caja: en ese caso no hay movimiento que revertir.
+     */
+    private static bool MueveEfectivo(
+        PagoCuentaCorrienteDto pago)
+    {
+        return pago.MedioPago == MedioPago.Efectivo
+            && pago.CajaId.HasValue;
+    }
+
+
+    /*
      * Dice exactamente dónde se registra la reversa, para que no
      * se confunda con anular una cuota.
      */
-    private string ObtenerAvisoAnulacionPago(
+    private static string ObtenerAvisoAnulacionPago(
         PagoCuentaCorrienteDto pago)
     {
         var importe =
             FormatearMoneda(pago.Importe);
 
-        var destino =
-            pago.MedioPago == MedioPago.Efectivo
-                ? $"Se registra un egreso de {importe} en la caja de hoy (tiene que estar abierta)."
-                : pago.CuentaBancariaId.HasValue
-                    ? $"Se registra un egreso de {importe} en {pago.CuentaBancaria ?? "la cuenta bancaria"}."
-                    : "Este medio de pago no tiene caja ni cuenta asociada: no se registra movimiento de dinero.";
+        var fechaPago =
+            DateOnly.FromDateTime(ConvertirFechaArgentina(pago.FechaUtc));
 
-        return "Las cuotas que cancelaba vuelven a quedar pendientes. " + destino;
+        var esDeOtroDia =
+            fechaPago != HoyArgentina();
+
+        string destino;
+
+        if (MueveEfectivo(pago))
+        {
+            destino =
+                $"Se registra un egreso de {importe} en la caja de hoy." +
+                (esDeOtroDia
+                    ? $" La caja del {fechaPago:dd/MM/yyyy} no se modifica."
+                    : "");
+        }
+        else if (pago.CuentaBancariaId.HasValue)
+        {
+            destino =
+                $"Se registra un egreso de {importe} con fecha de hoy en " +
+                $"{pago.CuentaBancaria ?? "la cuenta bancaria"}.";
+        }
+        else
+        {
+            destino =
+                "Este pago no tiene caja ni cuenta asociada: no se registra movimiento de dinero.";
+        }
+
+        return
+            "Las cuotas que cancelaba vuelven a quedar pendientes " +
+            "(si hay saldo a favor de otros pagos, se aplica solo). " +
+            destino;
     }
 
 
@@ -1297,29 +1037,19 @@ protected async Task LimpiarBusquedaAsync()
         if (!_bebeSeleccionadoId.HasValue)
             return;
 
-
         var bebeId =
             _bebeSeleccionadoId.Value;
 
-
         var bebes =
-            await PagoService
-                .ListarBebesAsync();
+            await PagoService.ListarBebesAsync();
 
-
-        _bebes =
-            bebes.ToList();
-
+        _bebes = bebes.ToList();
 
         _cuenta =
-            await PagoService
-                .ObtenerCuentaCorrienteAsync(
-                    bebeId);
-
+            await PagoService.ObtenerCuentaCorrienteAsync(bebeId);
 
         _cajaHoy =
-            await CajaService
-                .ObtenerHoyAsync();
+            await CajaService.ObtenerHoyAsync();
     }
 
 
@@ -1327,28 +1057,19 @@ protected async Task LimpiarBusquedaAsync()
     // IDENTITY
     // =========================================================
 
-    private async Task<Guid>
-        ObtenerUsuarioIdAsync()
+    private async Task<Guid> ObtenerUsuarioIdAsync()
     {
         var estado =
-            await AuthenticationStateProvider
-                .GetAuthenticationStateAsync();
-
+            await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
         var valor =
-            estado.User
-                .FindFirstValue(
-                    ClaimTypes.NameIdentifier);
+            estado.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-
-        if (!Guid.TryParse(
-            valor,
-            out var usuarioId))
+        if (!Guid.TryParse(valor, out var usuarioId))
         {
             throw new InvalidOperationException(
                 "No se pudo determinar el usuario autenticado.");
         }
-
 
         return usuarioId;
     }
@@ -1360,15 +1081,13 @@ protected async Task LimpiarBusquedaAsync()
 
     protected void IrACaja()
     {
-        Navigation.NavigateTo(
-            "/caja");
+        Navigation.NavigateTo("/caja");
     }
 
 
     protected void Volver()
     {
-        Navigation.NavigateTo(
-            "/");
+        Navigation.NavigateTo("/");
     }
 
 
@@ -1381,8 +1100,7 @@ protected async Task LimpiarBusquedaAsync()
     {
         return importe.ToString(
             "C2",
-            CultureInfo.GetCultureInfo(
-                "es-AR"));
+            CultureInfo.GetCultureInfo("es-AR"));
     }
 
 
@@ -1390,46 +1108,29 @@ protected async Task LimpiarBusquedaAsync()
         DateOnly periodo)
     {
         var fecha =
-            periodo.ToDateTime(
-                TimeOnly.MinValue);
-
+            periodo.ToDateTime(TimeOnly.MinValue);
 
         var cultura =
-            CultureInfo.GetCultureInfo(
-                "es-AR");
-
+            CultureInfo.GetCultureInfo("es-AR");
 
         var mes =
-            cultura.DateTimeFormat
-                .GetMonthName(
-                    fecha.Month);
+            cultura.DateTimeFormat.GetMonthName(fecha.Month);
 
-
-        if (string.IsNullOrWhiteSpace(
-            mes))
+        if (string.IsNullOrWhiteSpace(mes))
         {
-            return periodo.ToString(
-                "MM/yyyy");
+            return periodo.ToString("MM/yyyy");
         }
 
-
         return
-            $"{char.ToUpper(mes[0], cultura)}" +
-            $"{mes[1..]} {fecha.Year}";
+            $"{char.ToUpper(mes[0], cultura)}{mes[1..]} {fecha.Year}";
     }
 
 
     protected static string FormatearFechaHora(
         DateTimeOffset fechaUtc)
     {
-        var argentina =
-            TimeZoneInfo.ConvertTime(
-                fechaUtc,
-                ObtenerZonaHorariaArgentina());
-
-
-        return argentina.ToString(
-            "dd/MM/yyyy HH:mm");
+        return ConvertirFechaArgentina(fechaUtc)
+            .ToString("dd/MM/yyyy HH:mm");
     }
 
 
@@ -1441,10 +1142,8 @@ protected async Task LimpiarBusquedaAsync()
                 ' ',
                 StringSplitOptions.RemoveEmptyEntries);
 
-
         if (partes.Length == 0)
             return "?";
-
 
         if (partes.Length == 1)
         {
@@ -1452,7 +1151,6 @@ protected async Task LimpiarBusquedaAsync()
                 .ToString()
                 .ToUpperInvariant();
         }
-
 
         return string.Concat(
                 partes[0][0],
@@ -1466,23 +1164,12 @@ protected async Task LimpiarBusquedaAsync()
     {
         return estado switch
         {
-            EstadoCuota.Pendiente =>
-                "Pendiente",
-
-            EstadoCuota.Parcial =>
-                "Parcial",
-
-            EstadoCuota.Pagada =>
-                "Pagada",
-
-            EstadoCuota.Vencida =>
-                "Vencida",
-
-            EstadoCuota.Anulada =>
-                "Anulada",
-
-            _ =>
-                estado.ToString()
+            EstadoCuota.Pendiente => "Pendiente",
+            EstadoCuota.Parcial => "Parcial",
+            EstadoCuota.Pagada => "Pagada",
+            EstadoCuota.Vencida => "Vencida",
+            EstadoCuota.Anulada => "Anulada",
+            _ => estado.ToString()
         };
     }
 
@@ -1492,20 +1179,11 @@ protected async Task LimpiarBusquedaAsync()
     {
         return estado switch
         {
-            EstadoCuota.Pagada =>
-                "paid",
-
-            EstadoCuota.Parcial =>
-                "partial",
-
-            EstadoCuota.Vencida =>
-                "overdue",
-
-            EstadoCuota.Anulada =>
-                "cancelled",
-
-            _ =>
-                "pending"
+            EstadoCuota.Pagada => "paid",
+            EstadoCuota.Parcial => "partial",
+            EstadoCuota.Vencida => "overdue",
+            EstadoCuota.Anulada => "cancelled",
+            _ => "pending"
         };
     }
 
@@ -1518,20 +1196,14 @@ protected async Task LimpiarBusquedaAsync()
             return "width:0%;";
         }
 
-
         var porcentaje =
             Math.Clamp(
-                cuota.ImportePagado /
-                cuota.Importe *
-                100m,
+                cuota.ImportePagado / cuota.Importe * 100m,
                 0,
                 100);
 
-
         return
-            $"width:{porcentaje.ToString(
-                "0.##",
-                CultureInfo.InvariantCulture)}%;";
+            $"width:{porcentaje.ToString("0.##", CultureInfo.InvariantCulture)}%;";
     }
 
 
@@ -1540,23 +1212,12 @@ protected async Task LimpiarBusquedaAsync()
     {
         return medio switch
         {
-            MedioPago.Efectivo =>
-                "Efectivo",
-
-            MedioPago.Transferencia =>
-                "Transferencia",
-
-            MedioPago.Tarjeta =>
-                "Tarjeta",
-
-            MedioPago.MercadoPago =>
-                "Mercado Pago",
-
-            MedioPago.Otro =>
-                "Otro",
-
-            _ =>
-                medio.ToString()
+            MedioPago.Efectivo => "Efectivo",
+            MedioPago.Transferencia => "Transferencia",
+            MedioPago.Tarjeta => "Tarjeta",
+            MedioPago.MercadoPago => "Mercado Pago",
+            MedioPago.Otro => "Otro",
+            _ => medio.ToString()
         };
     }
 
@@ -1566,20 +1227,11 @@ protected async Task LimpiarBusquedaAsync()
     {
         return medio switch
         {
-            MedioPago.Efectivo =>
-                Icons.Material.Filled.Payments,
-
-            MedioPago.Transferencia =>
-                Icons.Material.Filled.AccountBalance,
-
-            MedioPago.Tarjeta =>
-                Icons.Material.Filled.CreditCard,
-
-            MedioPago.MercadoPago =>
-                Icons.Material.Filled.AccountBalanceWallet,
-
-            _ =>
-                Icons.Material.Filled.ReceiptLong
+            MedioPago.Efectivo => Icons.Material.Filled.Payments,
+            MedioPago.Transferencia => Icons.Material.Filled.AccountBalance,
+            MedioPago.Tarjeta => Icons.Material.Filled.CreditCard,
+            MedioPago.MercadoPago => Icons.Material.Filled.AccountBalanceWallet,
+            _ => Icons.Material.Filled.ReceiptLong
         };
     }
 
@@ -1589,41 +1241,48 @@ protected async Task LimpiarBusquedaAsync()
     {
         return medio switch
         {
-            MedioPago.Efectivo =>
-                "cash",
-
-            MedioPago.Transferencia =>
-                "bank",
-
-            MedioPago.Tarjeta =>
-                "card",
-
-            MedioPago.MercadoPago =>
-                "wallet",
-
-            _ =>
-                "other"
+            MedioPago.Efectivo => "cash",
+            MedioPago.Transferencia => "bank",
+            MedioPago.Tarjeta => "card",
+            MedioPago.MercadoPago => "wallet",
+            _ => "other"
         };
     }
 
 
-    
+    // =========================================================
+    // FECHAS (Argentina)
+    // =========================================================
+
+    private static DateTime ConvertirFechaArgentina(
+        DateTimeOffset fechaUtc)
+    {
+        return TimeZoneInfo
+            .ConvertTime(
+                fechaUtc,
+                ObtenerZonaHorariaArgentina())
+            .DateTime;
+    }
 
 
-    private static TimeZoneInfo
-        ObtenerZonaHorariaArgentina()
+    private static DateOnly HoyArgentina()
+    {
+        return DateOnly.FromDateTime(
+            ConvertirFechaArgentina(DateTimeOffset.UtcNow));
+    }
+
+
+    private static TimeZoneInfo ObtenerZonaHorariaArgentina()
     {
         try
         {
-            return TimeZoneInfo
-                .FindSystemTimeZoneById(
-                    "America/Argentina/Buenos_Aires");
+            return TimeZoneInfo.FindSystemTimeZoneById(
+                "America/Argentina/Buenos_Aires");
         }
         catch
         {
-            return TimeZoneInfo
-                .FindSystemTimeZoneById(
-                    "Argentina Standard Time");
+            return TimeZoneInfo.FindSystemTimeZoneById(
+                "Argentina Standard Time");
         }
     }
 }

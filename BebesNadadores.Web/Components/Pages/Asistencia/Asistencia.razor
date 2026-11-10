@@ -491,6 +491,32 @@
                     </section>
 
 
+                    @if (_sesion.Alumnos.Count > 0)
+                    {
+                        <section class="attendance-payment-summary"
+                                 aria-label="Resumen de cuotas vencidas de los alumnos">
+                            <span class="attendance-payment-summary-label">ESTADO DE CUOTAS</span>
+
+                            <span class="attendance-payment-badge attendance-payment-badge--current"
+                                  title="Alumnos sin cuotas vencidas con saldo pendiente">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline" Size="Size.Small" />
+                                @_sesion.Alumnos.Count(x => x.CuotasVencidas == 0) al día
+                            </span>
+
+                            <span class="attendance-payment-badge attendance-payment-badge--one"
+                                  title="Alumnos con una cuota vencida con saldo pendiente">
+                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                @_sesion.Alumnos.Count(x => x.CuotasVencidas == 1) debe 1 cuota
+                            </span>
+
+                            <span class="attendance-payment-badge attendance-payment-badge--multiple"
+                                  title="Alumnos con dos o más cuotas vencidas con saldo pendiente">
+                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                @_sesion.Alumnos.Count(x => x.CuotasVencidas > 1) deben 2 o más
+                            </span>
+                        </section>
+                    }
+
                     @if (_sesion.EstadoSesion ==
                         EstadoSesionClase.Cancelada)
                     {
@@ -603,6 +629,31 @@
                                                 {
                                                     <span class="recovery-attendee">
                                                         RECUPERO
+                                                    </span>
+                                                }
+
+                                                @if (alumno.CuotasVencidas == 0)
+                                                {
+                                                    <span class="attendance-payment-badge attendance-payment-badge--current"
+                                                          title="Sin cuotas vencidas con saldo pendiente">
+                                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline" Size="Size.Small" />
+                                                        Al día
+                                                    </span>
+                                                }
+                                                else if (alumno.CuotasVencidas == 1)
+                                                {
+                                                    <span class="attendance-payment-badge attendance-payment-badge--one"
+                                                          title="Una cuota vencida con saldo pendiente">
+                                                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                                        Debe 1 cuota
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="attendance-payment-badge attendance-payment-badge--multiple"
+                                                          title="@alumno.CuotasVencidas cuotas vencidas con saldo pendiente">
+                                                        <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                                        Debe @alumno.CuotasVencidas cuotas
                                                     </span>
                                                 }
 

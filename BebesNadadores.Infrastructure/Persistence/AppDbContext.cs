@@ -31,6 +31,7 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
     public DbSet<PreferenciaRecuperacion> PreferenciasRecuperacion =>
         Set<PreferenciaRecuperacion>();
     public DbSet<ListaEspera> ListaEspera => Set<ListaEspera>();
+    public DbSet<EsperaInscripcion> EsperaInscripciones => Set<EsperaInscripcion>();
     public DbSet<InvitacionVacante> InvitacionesVacante => Set<InvitacionVacante>();
 
     public DbSet<AptoMedico> AptosMedicos => Set<AptoMedico>();

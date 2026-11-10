@@ -131,6 +131,21 @@ public partial class Recuperos : ComponentBase
         _nivelFiltroId = nivelId;
     }
 
+    // Selección directa desde la columna izquierda.
+    protected async Task SeleccionarRecuperoTarjetaAsync(RecuperacionActivaDto recupero)
+    {
+        if (recupero.Estado != EstadoRecuperacion.Disponible)
+            return;
+
+        if (_recuperacionSeleccionadaId == recupero.RecuperacionId)
+            return;
+
+        _recuperacionSeleccionadaId = recupero.RecuperacionId;
+        _nivelFiltroId = recupero.NivelOrigenId;
+        _respetarDiaPreferido = true;
+        await CargarClasesCompatiblesAsync();
+    }
+
     protected async Task SeleccionarRecuperoAsync(ChangeEventArgs e)
     {
         var valor = e.Value?.ToString();
