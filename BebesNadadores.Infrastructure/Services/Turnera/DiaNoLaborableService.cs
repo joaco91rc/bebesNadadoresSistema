@@ -442,8 +442,7 @@ public sealed class DiaNoLaborableService(
         var recuperosExistentes =
             await db.Recuperaciones
                 .Where(x =>
-                    sesionIds.Contains(
-                        x.SesionOrigenId) &&
+                    (x.SesionOrigenId.HasValue && sesionIds.Contains(x.SesionOrigenId.Value)) &&
                     x.Tipo ==
                         TipoRecuperacion.ClaseNoDictada)
                 .ToListAsync(ct);
@@ -635,8 +634,7 @@ public sealed class DiaNoLaborableService(
                 .AsNoTracking()
                 .AnyAsync(
                     x =>
-                        sesionIds.Contains(
-                            x.SesionOrigenId) &&
+                        (x.SesionOrigenId.HasValue && sesionIds.Contains(x.SesionOrigenId.Value)) &&
 
                         x.Tipo ==
                             TipoRecuperacion

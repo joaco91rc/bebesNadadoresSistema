@@ -12,6 +12,8 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
         : base(options) { }
 
     public DbSet<Bebe> Bebes => Set<Bebe>();
+    public DbSet<HistorialAlumnoLegacy> HistorialAlumnosLegacy => Set<HistorialAlumnoLegacy>();
+    public DbSet<HistorialAlumnoAnioLegacy> HistorialAlumnosAniosLegacy => Set<HistorialAlumnoAnioLegacy>();
     public DbSet<Responsable> Responsables => Set<Responsable>();
     public DbSet<BebeResponsable> BebesResponsables => Set<BebeResponsable>();
 
@@ -31,7 +33,6 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
     public DbSet<PreferenciaRecuperacion> PreferenciasRecuperacion =>
         Set<PreferenciaRecuperacion>();
     public DbSet<ListaEspera> ListaEspera => Set<ListaEspera>();
-    public DbSet<EsperaInscripcion> EsperaInscripciones => Set<EsperaInscripcion>();
     public DbSet<InvitacionVacante> InvitacionesVacante => Set<InvitacionVacante>();
 
     public DbSet<AptoMedico> AptosMedicos => Set<AptoMedico>();

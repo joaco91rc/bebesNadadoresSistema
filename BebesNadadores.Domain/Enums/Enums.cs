@@ -76,7 +76,8 @@ public enum TipoRecuperacion
     ClaseNoDictada = 2,
 
     // Regalo por arrancar a mitad de mes (ver ReglasCuota)
-    InicioMitadDeMes = 3
+    InicioMitadDeMes = 3,
+    SaldoHistoricoVerificado = 4
 }
 
 public enum EstadoRecuperacion

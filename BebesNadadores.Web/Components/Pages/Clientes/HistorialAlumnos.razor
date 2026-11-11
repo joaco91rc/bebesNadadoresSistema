@@ -1,0 +1,76 @@
+@page "/clientes/historial"
+@attribute [Authorize(Policy = PoliticasSistema.ConsultaGeneral)]
+@using BebesNadadores.Domain.Entities
+@using BebesNadadores.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Nav
+
+<PageTitle>Historial de alumnos | Bebés Nadadores</PageTitle>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-5">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-5">
+        <div><MudText Typo="Typo.h4">Historial de alumnos</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Actividad 2019–2025 · Archivo histórico de solo lectura</MudText></div>
+        <MudButton Variant="Variant.Outlined" Href="/clientes" StartIcon="@Icons.Material.Filled.ArrowBack">Bebés / Clientes</MudButton>
+    </MudStack>
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+        <MudGrid AlignItems="AlignItems.Center">
+            <MudItem xs="12" md="7"><MudTextField T="string" @bind-Value="_busqueda" Label="Buscar por apellido o nombre" Immediate="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" /></MudItem>
+            <MudItem xs="12" md="3"><MudSelect T="int" Label="Año" @bind-Value="_anio"><MudSelectItem T="int" Value="0">Todos los años</MudSelectItem>@for(var year=2019;year<=2025;year++){var y=year;<MudSelectItem T="int" Value="@y">@y</MudSelectItem>}</MudSelect></MudItem>
+            <MudItem xs="12" md="2"><MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="BuscarAsync" FullWidth="true">Buscar</MudButton></MudItem>
+        </MudGrid>
+    </MudPaper>
+    @if (_cargando) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" /> }
+    else
+    {
+        <MudText Color="Color.Secondary" Typo="Typo.caption" Class="mb-2">@_total resultados · página @(_pagina + 1)</MudText>
+        <MudTable Items="@_resultados" Dense="true" Hover="true" Elevation="0" Bordered="true">
+            <HeaderContent><MudTh>Alumno</MudTh><MudTh>Primera inscripción</MudTh><MudTh>Años con actividad</MudTh><MudTh>Vínculo actual</MudTh></HeaderContent>
+            <RowTemplate Context="item">
+                <MudTd DataLabel="Alumno">@item.Apellido, @item.Nombre</MudTd>
+                <MudTd DataLabel="Primera inscripción">@(item.FechaPrimeraInscripcion?.ToString("dd/MM/yyyy") ?? "Sin dato")</MudTd>
+                <MudTd DataLabel="Años con actividad">@string.Join(", ",item.Anios.OrderBy(x=>x.Anio).Select(x=>x.Anio))</MudTd>
+                <MudTd DataLabel="Vínculo actual">
+                    @if(item.BebeId is Guid id){<MudButton Size="Size.Small" Variant="Variant.Text" Href="@($"/clientes/{id}")">Ver legajo</MudButton>}
+                    else {<MudText Typo="Typo.caption">Solo histórico</MudText>}
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><MudText Class="pa-3">No se encontraron alumnos para los filtros indicados.</MudText></NoRecordsContent>
+        </MudTable>
+        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Class="mt-3">
+            <MudButton Disabled="@(_pagina==0)" OnClick="AnteriorAsync">Anterior</MudButton>
+            <MudButton Disabled="@((_pagina+1)*25>=_total)" OnClick="SiguienteAsync">Siguiente</MudButton>
+        </MudStack>
+    }
+</MudContainer>
+@code {
+    private string _busqueda="";
+    private int _anio;
+    private int _pagina;
+    private int _total;
+    private bool _cargando=true;
+    private List<HistorialAlumnoLegacy> _resultados=[];
+    protected override async Task OnInitializedAsync()=>await CargarAsync();
+    private async Task BuscarAsync(){_pagina=0;await CargarAsync();}
+    private async Task AnteriorAsync(){_pagina--;await CargarAsync();}
+    private async Task SiguienteAsync(){_pagina++;await CargarAsync();}
+    private async Task CargarAsync()
+    {
+        _cargando=true;
+        try
+        {
+            await using var db=await DbFactory.CreateDbContextAsync();
+            var q=db.HistorialAlumnosLegacy.AsNoTracking().AsQueryable();
+            if(!string.IsNullOrWhiteSpace(_busqueda))
+            {
+                var term=_busqueda.Trim();
+                q=q.Where(x=>EF.Functions.ILike(x.Apellido,"%"+term+"%") || EF.Functions.ILike(x.Nombre,"%"+term+"%") || EF.Functions.ILike(x.NombreOriginal,"%"+term+"%"));
+            }
+            if(_anio!=0)q=q.Where(x=>x.Anios.Any(a=>a.Anio==_anio));
+            _total=await q.CountAsync();
+            _resultados=await q.OrderBy(x=>x.Apellido).ThenBy(x=>x.Nombre).Skip(_pagina*25).Take(25)
+                .Include(x=>x.Anios).ToListAsync();
+        }
+        finally{_cargando=false;}
+    }
+}

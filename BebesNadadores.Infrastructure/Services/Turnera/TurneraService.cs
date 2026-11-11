@@ -5,7 +5,6 @@ using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Application.Configuracion;
 using BebesNadadores.Infrastructure.Persistence;
-using BebesNadadores.Infrastructure.Services.Pagos;
 using BebesNadadores.Infrastructure.Services.Recuperos;
 using Microsoft.EntityFrameworkCore;
 
@@ -345,7 +344,7 @@ public sealed class TurneraService(
 
             var tieneRecuperaciones = await db.Recuperaciones.AnyAsync(
                 x =>
-                    sesionIds.Contains(x.SesionOrigenId)
+                    (x.SesionOrigenId.HasValue && sesionIds.Contains(x.SesionOrigenId.Value))
                     || (x.SesionUsoId.HasValue && sesionIds.Contains(x.SesionUsoId.Value)),
                 ct
             );
@@ -799,7 +798,7 @@ public sealed class TurneraService(
                 .Recuperaciones.AsNoTracking()
                 .AnyAsync(
                     x =>
-                        sesionIds.Contains(x.SesionOrigenId)
+                        (x.SesionOrigenId.HasValue && sesionIds.Contains(x.SesionOrigenId.Value))
                         || (x.SesionUsoId.HasValue && sesionIds.Contains(x.SesionUsoId.Value)),
                     ct
                 );
@@ -1238,35 +1237,6 @@ public sealed class TurneraService(
             .Where(x => x.SesionClaseId == sesion.Id)
             .ToDictionaryAsync(x => x.BebeId, ct);
 
-        // Consultar las cuotas de todos los bebés de la clase en una sola vez
-        // (sin consultas por alumno). Cuenta como morosidad únicamente una
-        // cuota vencida con saldo pendiente; incluye pagos parciales.
-        // La fecha es la actual en Argentina, no la fecha futura de la clase.
-        var hoy = RegistradorCobros.ObtenerFechaArgentina();
-        var cuotasVencidasPorBebe = new Dictionary<Guid, int>();
-
-        if (bebeIds.Count > 0)
-        {
-            var cuotas = await db.Cuotas
-                .AsNoTracking()
-                .Where(c =>
-                    bebeIds.Contains(c.Inscripcion.BebeId)
-                    && c.Estado != EstadoCuota.Anulada
-                    && c.FechaVencimiento < hoy)
-                .Select(c => new
-                {
-                    BebeId = c.Inscripcion.BebeId,
-                    c.Importe,
-                    ImportePagado = c.Imputaciones.Sum(i => (decimal?)i.Importe) ?? 0m
-                })
-                .ToListAsync(ct);
-
-            cuotasVencidasPorBebe = cuotas
-                .Where(c => c.Importe > c.ImportePagado)
-                .GroupBy(c => c.BebeId)
-                .ToDictionary(g => g.Key, g => g.Count());
-        }
-
         var detalleBebes = new List<BebeSesionDto>();
 
         foreach (var esperado in esperados)
@@ -1284,8 +1254,7 @@ public sealed class TurneraService(
                     esperado.Value.InscripcionId,
                     $"{bebe.Nombre} {bebe.Apellido}",
                     asistencia?.Estado,
-                    esperado.Value.EsRecupero,
-                    cuotasVencidasPorBebe.GetValueOrDefault(bebe.Id)
+                    esperado.Value.EsRecupero
                 )
             );
         }

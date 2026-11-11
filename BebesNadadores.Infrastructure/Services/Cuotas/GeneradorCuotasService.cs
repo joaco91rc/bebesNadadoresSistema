@@ -93,24 +93,18 @@ public sealed class GeneradorCuotasService(
          * Noviembre pertenece al Plan B.
          */
 
-        var inscripciones = await db
-            .Inscripciones.AsNoTracking()
-            .Include(x => x.Bebe)
-            .Where(x =>
-                x.FechaInicio <= periodo
-                && (!x.FechaFin.HasValue || x.FechaFin.Value >= periodo)
-                && x.Estado != EstadoInscripcion.Cancelada
-                && x.Estado != EstadoInscripcion.Pausada
-                /*
-                 * Red de seguridad: un bebé dado de baja nunca
-                 * genera cuota nueva, aunque haya quedado una
-                 * inscripción abierta por datos viejos.
-                 */
-                && x.Bebe.Estado == EstadoBebe.Activo
-            )
-            .OrderBy(x => x.Bebe.Apellido)
-            .ThenBy(x => x.Bebe.Nombre)
-            .ToListAsync(ct);
+       var inscripciones = await db
+    .Inscripciones.AsNoTracking()
+    .Include(x => x.Bebe)
+    .Where(x =>
+        x.FechaInicio <= periodo
+        && (!x.FechaFin.HasValue || x.FechaFin.Value >= periodo)
+        && x.Estado == EstadoInscripcion.Activa
+        && x.Bebe.Estado == EstadoBebe.Activo
+    )
+    .OrderBy(x => x.Bebe.Apellido)
+    .ThenBy(x => x.Bebe.Nombre)
+    .ToListAsync(ct);
 
         evaluadas = inscripciones.Count;
 

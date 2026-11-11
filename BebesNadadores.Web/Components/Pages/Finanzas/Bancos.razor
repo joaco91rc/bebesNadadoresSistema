@@ -460,15 +460,6 @@
                             </h3>
 
 
-                            <div class="transfer-counter @(AlcanzoUmbral(cuenta.Id) ? "limit" : "")">
-                                <strong>@ContarTransferenciasMes(cuenta.Id) / @UmbralOperativoTransferencias</strong>
-                                <span>ingresos de alumnos registrados este mes</span>
-                                @if (AlcanzoUmbral(cuenta.Id))
-                                {
-                                    <small>Límite operativo configurado alcanzado. Elegir otra cuenta.</small>
-                                }
-
-                            </div>
                             <div class="account-balance">
 
                                 <span>

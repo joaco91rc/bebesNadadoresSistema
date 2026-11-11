@@ -1,135 +1,1063 @@
 @page "/lista-espera"
+
 @attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
-@using BebesNadadores.Domain.Enums
+
 @using BebesNadadores.Application.ListaEspera.Dtos
-<PageTitle>Lista de espera de inscripción | Bebés Nadadores</PageTitle>
+@using BebesNadadores.Domain.Enums
+
+
+<PageTitle>
+    Lista de espera | Bebés Nadadores
+</PageTitle>
+
+
 <div class="wait-page">
+
+    @* =========================================================
+       HEADER
+       ========================================================= *@
+
     <header class="wait-header">
+
         <div class="header-main">
-            <button type="button" class="back-button" @onclick="Volver"><MudIcon Icon="@Icons.Material.Filled.ArrowBack" /></button>
-            <div><span class="page-eyebrow">NUEVAS INSCRIPCIONES</span><h1>Lista de espera</h1>
-                <p>Familias interesadas en inscribirse que esperan disponibilidad. Los recuperos de alumnos se gestionan en Recuperos.</p></div>
+
+            <button type="button"
+                    class="back-button"
+                    @onclick="Volver">
+
+                <MudIcon Icon="@Icons.Material.Filled.ArrowBack"
+                         Size="Size.Small" />
+
+            </button>
+
+
+            <div>
+
+                <span class="page-eyebrow">
+                    RECUPEROS
+                </span>
+
+                <h1>
+                    Lista de espera
+                </h1>
+
+                <p>
+                    Registrá familias que solicitaron una clase
+                    para utilizar un recupero pendiente.
+                </p>
+
+            </div>
+
         </div>
-        <button type="button" class="primary-action" @onclick="AbrirNuevo"><MudIcon Icon="@Icons.Material.Filled.Add" /> Agregar interesado</button>
+
+
+        <button type="button"
+                class="primary-action"
+                @onclick="AbrirNuevo">
+
+            <MudIcon Icon="@Icons.Material.Filled.Add"
+                     Size="Size.Small" />
+
+            Agregar a lista
+
+        </button>
+
     </header>
-    @if (!string.IsNullOrWhiteSpace(_error)) { <div class="message-box error">@_error</div> }
-    @if (!string.IsNullOrWhiteSpace(_mensaje)) { <div class="message-box success">@_mensaje</div> }
-    <section class="wait-stats">
-        <article class="stat-card"><div><span>En espera</span><strong>@_items.Count(x => x.Estado == EstadoListaEspera.Activa)</strong></div></article>
-        <article class="stat-card"><div><span>Contactados</span><strong>@_items.Count(x => x.Estado == EstadoListaEspera.Notificada)</strong></div></article>
-        <article class="stat-card"><div><span>Inscripciones concretadas</span><strong>@_items.Count(x => x.Estado == EstadoListaEspera.Asignada)</strong></div></article>
-    </section>
-    <div class="wait-filterbar">
-        <input class="wait-control" placeholder="Buscar niño, responsable, teléfono o nivel" @bind="_busqueda" @bind:event="oninput" />
-        <label class="wait-toggle"><input type="checkbox" @bind="_verHistorial" @bind:after="CargarAsync" /> Mostrar historial y finalizadas</label>
-        <small class="availability-date">Vacantes de inscripción al @_fechaDisponibilidad.ToString("dd/MM/yyyy")</small>
-        <button class="wait-btn" @onclick="CargarAsync">Actualizar</button>
-    </div>
-    @if (_cargando) { <div class="page-loading"><MudProgressCircular Indeterminate="true" /> Cargando interesados...</div> }
-    else if (!ItemsFiltrados.Any()) { <div class="wait-empty">No hay solicitudes que coincidan con la búsqueda.</div> }
+
+
+    @* =========================================================
+       MENSAJES
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="message-box error">
+
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline"
+                     Size="Size.Small" />
+
+            @_error
+
+        </div>
+    }
+
+
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="message-box success">
+
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                     Size="Size.Small" />
+
+            @_mensaje
+
+        </div>
+    }
+
+
+    @if (_cargando)
+    {
+        <div class="page-loading">
+
+            <MudProgressCircular Indeterminate="true" />
+
+            <span>
+                Cargando lista de espera...
+            </span>
+
+        </div>
+    }
     else
     {
-        <div class="wait-list">
-            @foreach (var item in ItemsFiltrados)
+        @* =====================================================
+           KPIs
+           ===================================================== *@
+
+        <section class="wait-stats">
+
+            <article class="stat-card">
+
+                <div class="stat-icon blue">
+
+                    <MudIcon Icon="@Icons.Material.Filled.HourglassTop" />
+
+                </div>
+
+                <div>
+
+                    <span>
+                        En espera
+                    </span>
+
+                    <strong>
+                        @CantidadActivas
+                    </strong>
+
+                    <small>
+                        Solicitudes activas
+                    </small>
+
+                </div>
+
+            </article>
+
+
+            <article class="stat-card">
+
+                <div class="stat-icon violet">
+
+                    <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" />
+
+                </div>
+
+                <div>
+
+                    <span>
+                        Notificadas
+                    </span>
+
+                    <strong>
+                        @CantidadNotificadas
+                    </strong>
+
+                    <small>
+                        Esperando respuesta
+                    </small>
+
+                </div>
+
+            </article>
+
+
+            <article class="stat-card">
+
+                <div class="stat-icon green">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Event" />
+
+                </div>
+
+                <div>
+
+                    <span>
+                        Con día preferido
+                    </span>
+
+                    <strong>
+                        @CantidadConDia
+                    </strong>
+
+                    <small>
+                        Solicitudes específicas
+                    </small>
+
+                </div>
+
+            </article>
+
+
+            <article class="stat-card">
+
+                <div class="stat-icon warning">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+
+                </div>
+
+                <div>
+
+                    <span>
+                        Vencen pronto
+                    </span>
+
+                    <strong>
+                        @CantidadVencenPronto
+                    </strong>
+
+                    <small>
+                        Próximos 7 días
+                    </small>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        @* =====================================================
+           TOOLBAR
+           ===================================================== *@
+
+        <section class="wait-toolbar">
+
+            <div class="wait-search">
+
+                <MudIcon Icon="@Icons.Material.Filled.Search"
+                         Size="Size.Small" />
+
+                <input type="text"
+                       placeholder="Buscar bebé, nivel o responsable..."
+                       @bind="_busqueda"
+                       @bind:event="oninput" />
+
+            </div>
+
+
+            <button type="button"
+                    class="refresh-button"
+                    @onclick="CargarAsync">
+
+                <MudIcon Icon="@Icons.Material.Filled.Refresh"
+                         Size="Size.Small" />
+
+                Actualizar
+
+            </button>
+
+        </section>
+
+
+        @* =====================================================
+           LISTADO
+           ===================================================== *@
+
+        <section class="wait-panel">
+
+            <div class="panel-heading">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        SOLICITUDES ACTIVAS
+                    </span>
+
+                    <h2>
+                        Esperando un lugar
+                    </h2>
+
+                    <p>
+                        Sólo aparecen familias que solicitaron
+                        explícitamente utilizar un recupero.
+                    </p>
+
+                </div>
+
+
+                <strong class="panel-counter">
+                    @ItemsFiltrados.Count
+                </strong>
+
+            </div>
+
+
+            @if (ItemsFiltrados.Count == 0)
             {
-                <article class="wait-entry" @key="item.Id">
-                    <div class="wait-entry-main">
-                        <strong>@item.NombreBebe</strong>
-                        <span class="wait-pill">@TextoEstado(item.Estado)</span>
-                        <p>Responsable: @item.NombreResponsable · @item.Telefono</p>
-                        <p>@item.Nivel @if (!string.IsNullOrWhiteSpace(item.Turno)) { <span>· @item.Turno</span> } · @TextoPreferencia(item)</p>
-                        @if (item.Estado is EstadoListaEspera.Activa or EstadoListaEspera.Notificada)
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty" />
+
+                    </div>
+
+                    <strong>
+                        No hay familias en espera
+                    </strong>
+
+                    <span>
+                        Cuando una familia llame solicitando un recupero
+                        y no haya lugar disponible, agregala desde
+                        “Agregar a lista”.
+                    </span>
+
+                </div>
+            }
+            else
+            {
+                <div class="wait-list">
+
+                    @foreach (var item in ItemsFiltrados)
+                    {
+                        <article class="wait-card">
+
+                            <div class="wait-person">
+
+                                <div class="wait-avatar">
+                                    @ObtenerIniciales(item.Bebe)
+                                </div>
+
+
+                                <div>
+
+                                    <strong>
+                                        @item.Bebe
+                                    </strong>
+
+                                    <span>
+                                        @item.Nivel
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="wait-recovery">
+
+                                <span class="field-caption">
+                                    RECUPERO
+                                </span>
+
+                                @if (item.RecuperacionVence.HasValue)
+                                {
+                                    <strong class="@ObtenerClaseVencimiento(item)">
+
+                                        Vence
+
+                                      @(item.RecuperacionVence.Value.ToString("dd/MM/yyyy"))
+
+                                    </strong>
+                                }
+                                else
+                                {
+                                    <strong>
+                                        Sin vencimiento
+                                    </strong>
+                                }
+
+                            </div>
+
+
+                            <div class="wait-preference">
+
+                                <span class="field-caption">
+                                    PREFERENCIA
+                                </span>
+
+                                <div>
+
+                                    <span class="preference-chip">
+
+                                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth"
+                                                 Size="Size.Small" />
+
+                                        @ObtenerDiaTexto(
+                                            item.DiaPreferido)
+
+                                    </span>
+
+
+                                    <span class="preference-chip">
+
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule"
+                                                 Size="Size.Small" />
+
+                                        @ObtenerFranjaTexto(
+                                            item.FranjaHoraria)
+
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="wait-contact">
+
+                                <span class="field-caption">
+                                    CONTACTO
+                                </span>
+
+                                <strong>
+                                    @(item.ResponsablePrincipal
+                                        ?? "Sin contacto principal")
+                                </strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.WhatsApp))
+                                {
+                                    <span>
+                                        WhatsApp: @item.WhatsApp
+                                    </span>
+                                }
+
+                            </div>
+
+
+                            <div class="wait-state">
+
+                                <span class="state-chip @ObtenerClaseEstado(item.Estado)">
+
+                                    @ObtenerEstadoTexto(
+                                        item.Estado)
+
+                                </span>
+
+                            </div>
+
+
+                           <div class="wait-actions">
+
+    @if (
+        item.Estado ==
+            EstadoListaEspera.Activa
+        ||
+        item.Estado ==
+            EstadoListaEspera.Notificada)
+    {
+        <button type="button"
+                class="icon-action whatsapp"
+                title="Avisar por WhatsApp"
+                disabled="@string.IsNullOrWhiteSpace(item.WhatsApp)"
+                @onclick="async () =>
+                    await AvisarWhatsAppAsync(item)">
+
+            <MudIcon Icon="@Icons.Material.Filled.Chat"
+                     Size="Size.Small" />
+
+        </button>
+    }
+
+
+    <button type="button"
+            class="icon-action edit"
+            title="Editar preferencia"
+            @onclick="() => AbrirEditar(item)">
+
+        <MudIcon Icon="@Icons.Material.Filled.Edit"
+                 Size="Size.Small" />
+
+    </button>
+
+
+    <button type="button"
+            class="icon-action cancel"
+            title="Quitar de lista"
+            @onclick="() => SolicitarCancelar(item)">
+
+        <MudIcon Icon="@Icons.Material.Filled.Close"
+                 Size="Size.Small" />
+
+    </button>
+
+</div>
+
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                item.Observaciones))
+                            {
+                                <div class="wait-observation">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Notes"
+                                             Size="Size.Small" />
+
+                                    @item.Observaciones
+
+                                </div>
+                            }
+
+                        </article>
+                    }
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>
+
+
+@* =============================================================
+   MODAL ALTA / EDICIÓN
+   ============================================================= *@
+
+@if (_modalAbierto)
+{
+    <div class="modal-backdrop"
+         @onclick="CerrarModal">
+
+        <div class="wait-modal"
+             @onclick:stopPropagation="true">
+
+            <header class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+
+                        @(_editando is null
+                            ? "NUEVA SOLICITUD"
+                            : "EDITAR SOLICITUD")
+
+                    </span>
+
+
+                    <h2>
+
+                        @(_editando is null
+                            ? "Agregar a lista de espera"
+                            : _editando.Bebe)
+
+                    </h2>
+
+
+                    <p>
+
+                        @(_editando is null
+                            ? "Seleccioná el bebé, recupero y preferencias solicitadas."
+                            : "Modificá las preferencias indicadas por la familia.")
+
+                    </p>
+
+                </div>
+
+
+                <button type="button"
+                        class="modal-close"
+                        @onclick="CerrarModal">
+
+                    <MudIcon Icon="@Icons.Material.Filled.Close" />
+
+                </button>
+
+            </header>
+
+
+            <div class="modal-body">
+
+                @if (!string.IsNullOrWhiteSpace(_errorModal))
+                {
+                    <div class="message-box error">
+                        @_errorModal
+                    </div>
+                }
+
+
+                @* =================================================
+                   BEBÉ
+                   ================================================= *@
+
+                @if (_editando is null)
+                {
+                    <section class="form-section">
+
+                        <div class="form-section-heading">
+
+                            <span class="step-number">
+                                01
+                            </span>
+
+                            <div>
+
+                                <strong>
+                                    Bebé
+                                </strong>
+
+                                <span>
+                                    Buscá entre los bebés que tengan
+                                    recuperos disponibles.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="field-group">
+
+                            <label>
+                                Buscar bebé
+                            </label>
+
+
+                            <div class="wait-autocomplete">
+
+                                <MudAutocomplete T="BebeListaEsperaBusquedaDto"
+                                                 Value="_bebeSeleccionado"
+                                                 ValueChanged="BebeSeleccionadoAsync"
+                                                 SearchFunc="BuscarBebesAsync"
+                                                 ToStringFunc="TextoBebe"
+                                                 MinCharacters="2"
+                                                 MaxItems="10"
+                                                 DebounceInterval="250"
+                                                 Clearable="true"
+                                                 ResetValueOnEmptyText="true"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.None"
+                                                 Placeholder="Escribí nombre o apellido..."
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentIcon="@Icons.Material.Filled.Search" />
+
+                            </div>
+
+                        </div>
+
+
+                        @if (_bebeSeleccionado is not null)
                         {
-                            var disponibilidad = Disponibilidad(item);
-                            <div class="wait-availability @disponibilidad.Clase" aria-live="polite">
-                                <strong>@disponibilidad.Titulo</strong>
-                                @if (!string.IsNullOrWhiteSpace(disponibilidad.Detalle))
-                                { <span>@disponibilidad.Detalle</span> }
+                            <div class="selected-baby">
+
+                                <div class="selected-avatar">
+                                    @ObtenerIniciales(
+                                        _bebeSeleccionado.NombreCompleto)
+                                </div>
+
+
+                                <div class="selected-baby-main">
+
+                                    <strong>
+                                        @_bebeSeleccionado.NombreCompleto
+                                    </strong>
+
+                                    <span>
+                                        @_bebeSeleccionado.Nivel
+                                    </span>
+
+                                </div>
+
+
+                                <div class="selected-contact">
+
+                                    <span>
+                                        Contacto principal
+                                    </span>
+
+                                    <strong>
+                                        @(_bebeSeleccionado.ResponsablePrincipal
+                                            ?? "Sin contacto")
+                                    </strong>
+
+                                </div>
+
                             </div>
                         }
-                        @if (!string.IsNullOrWhiteSpace(item.Observaciones)) { <p>@item.Observaciones</p> }
-                        <small>Registrado: @item.FechaAltaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+
+                    </section>
+
+
+                    @* =================================================
+                       RECUPERO
+                       ================================================= *@
+
+                    @if (_bebeSeleccionado is not null)
+                    {
+                        <section class="form-section">
+
+                            <div class="form-section-heading">
+
+                                <span class="step-number">
+                                    02
+                                </span>
+
+                                <div>
+
+                                    <strong>
+                                        Recupero
+                                    </strong>
+
+                                    <span>
+                                        Elegí cuál de sus recuperos quiere utilizar.
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="recovery-options">
+
+                                @foreach (var recupero in
+                                    _bebeSeleccionado.Recuperaciones)
+                                {
+                                    var seleccionado =
+                                        _recuperacionSeleccionadaId ==
+                                            recupero.Id;
+
+
+                                    <button type="button"
+                                            class="recovery-option @(seleccionado ? "selected" : "")"
+                                            @onclick="() => SeleccionarRecupero(recupero.Id)">
+
+                                        <div class="recovery-option-icon">
+
+                                            <MudIcon Icon="@Icons.Material.Filled.Replay" />
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <strong>
+                                                @ObtenerTipoRecuperoTexto(
+                                                    recupero.Tipo)
+                                            </strong>
+
+                                            <span>
+                                                Generado
+                                               @(recupero.FechaGeneracion.ToString("dd/MM/yyyy"))
+                                            </span>
+
+                                        </div>
+
+
+                                        <div class="recovery-expiration">
+
+                                            @if (recupero.FechaVencimiento.HasValue)
+                                            {
+                                                <span>
+                                                    Vence
+                                                </span>
+
+                                               <strong>
+    @(recupero.FechaVencimiento.Value.ToString("dd/MM/yyyy"))
+</strong>
+                                            }
+                                            else
+                                            {
+                                                <strong>
+                                                    Sin vencimiento
+                                                </strong>
+                                            }
+
+                                        </div>
+
+
+                                        <div class="selection-dot">
+
+                                            @if (seleccionado)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Check"
+                                                         Size="Size.Small" />
+                                            }
+
+                                        </div>
+
+                                    </button>
+                                }
+
+                            </div>
+
+                        </section>
+                    }
+                }
+
+
+                @* =================================================
+                   PREFERENCIA
+                   ================================================= *@
+
+                <section class="form-section">
+
+                    <div class="form-section-heading">
+
+                        <span class="step-number">
+                            @(_editando is null ? "03" : "01")
+                        </span>
+
+                        <div>
+
+                            <strong>
+                                Preferencia de recuperación
+                            </strong>
+
+                            <span>
+                                Indicá las condiciones solicitadas
+                                por la familia.
+                            </span>
+
+                        </div>
+
                     </div>
-                    <div class="wait-entry-actions">
-                        <button class="wait-btn" @onclick="() => AbrirEditar(item)">Editar</button>
-                        @if (item.Estado is EstadoListaEspera.Activa or EstadoListaEspera.Notificada)
+
+
+                    <div class="preference-block">
+
+                        <label>
+                            Día
+                        </label>
+
+
+                        <div class="choice-row">
+
+                            <button type="button"
+                                    class="choice-pill @(!_diaEspecifico ? "selected" : "")"
+                                    @onclick="SeleccionarCualquierDia">
+
+                                <MudIcon Icon="@Icons.Material.Filled.DateRange"
+                                         Size="Size.Small" />
+
+                                Cualquier día
+
+                            </button>
+
+
+                            <button type="button"
+                                    class="choice-pill @(_diaEspecifico ? "selected" : "")"
+                                    @onclick="SeleccionarDiaEspecifico">
+
+                                <MudIcon Icon="@Icons.Material.Filled.Event"
+                                         Size="Size.Small" />
+
+                                Día específico
+
+                            </button>
+
+                        </div>
+
+
+                        @if (_diaEspecifico)
                         {
-                            <button class="wait-btn" @onclick="() => AvisarAsync(item)">Abrir WhatsApp</button>
-                            @if (item.Estado == EstadoListaEspera.Activa)
-                            { <button class="wait-btn" @onclick="() => CambiarEstadoAsync(item, EstadoListaEspera.Notificada)">Marcar avisado</button> }
-                            <button class="primary-action wait-start" disabled="@(!PuedeIniciarInscripcion(item))"
-                                    title="@(PuedeIniciarInscripcion(item) ? "Completar inscripción con los datos de esta solicitud" : "No hay vacantes regulares para este nivel")"
-                                    @onclick="() => IniciarInscripcion(item)">Iniciar inscripción</button>
-                            <button class="wait-btn wait-danger" @onclick="() => CambiarEstadoAsync(item, EstadoListaEspera.Cancelada)">Cancelar</button>
+                            <div class="days-grid">
+
+                                @foreach (var dia in DiasDisponibles)
+                                {
+                                    <button type="button"
+                                            class="day-button @(_diaPreferido == dia ? "selected" : "")"
+                                            @onclick="() => SeleccionarDia(dia)">
+
+                                        @ObtenerDiaCorto(
+                                            dia)
+
+                                    </button>
+                                }
+
+                            </div>
                         }
-                        @if (item.Estado == EstadoListaEspera.Cancelada) { <button class="wait-btn" @onclick="() => CambiarEstadoAsync(item, EstadoListaEspera.Activa)">Reabrir</button> }
+
                     </div>
-                </article>
-            }
+
+
+                    <div class="preference-block">
+
+                        <label>
+                            Franja horaria
+                        </label>
+
+
+                        <div class="time-grid">
+
+                            @foreach (var franja in FranjasDisponibles)
+                            {
+                                <button type="button"
+                                        class="time-button @(_franja == franja ? "selected" : "")"
+                                        @onclick="() => SeleccionarFranja(franja)">
+
+                                    <MudIcon Icon="@ObtenerIconoFranja(franja)"
+                                             Size="Size.Small" />
+
+                                    @ObtenerFranjaTexto(
+                                        franja)
+
+                                </button>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="preference-summary">
+
+                        <MudIcon Icon="@Icons.Material.Filled.Tune"
+                                 Size="Size.Small" />
+
+                        <div>
+
+                            <span>
+                                La familia solicita
+                            </span>
+
+                            <strong>
+                                @TextoPreferenciaActual
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                @* =================================================
+                   OBSERVACIONES
+                   ================================================= *@
+
+                <section class="form-section">
+
+                    <div class="form-section-heading">
+
+                        <span class="step-number">
+                            @(_editando is null ? "04" : "02")
+                        </span>
+
+                        <div>
+
+                            <strong>
+                                Observaciones
+                            </strong>
+
+                            <span>
+                                Información adicional de la solicitud.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <textarea class="notes-input"
+                              maxlength="1000"
+                              placeholder="Ej: La mamá prefiere después de las 17 hs..."
+                              @bind="_observaciones">
+                    </textarea>
+
+                </section>
+
+            </div>
+
+
+            <footer class="modal-footer">
+
+                <button type="button"
+                        class="cancel-button"
+                        disabled="@_guardando"
+                        @onclick="CerrarModal">
+
+                    Cancelar
+
+                </button>
+
+
+                <button type="button"
+                        class="save-button"
+                        disabled="@_guardando"
+                        @onclick="GuardarAsync">
+
+                    @if (_guardando)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Check"
+                                 Size="Size.Small" />
+                    }
+
+
+                    @(_editando is null
+                        ? "Agregar a lista"
+                        : "Guardar cambios")
+
+                </button>
+
+            </footer>
+
         </div>
-    }
-    @if (_modalAbierto)
-    {
-        <div class="wait-overlay" @onclick="CerrarModal">
-            <section class="wait-dialog" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-label="Interesado en inscripción">
-                <h2>@(_editandoId.HasValue ? "Editar interesado" : "Nuevo interesado")</h2>
-                @if (!string.IsNullOrWhiteSpace(_errorModal)) { <div class="message-box error">@_errorModal</div> }
-                <div class="wait-fields">
-                    <label>Nombre del niño/a * <input class="wait-control" maxlength="200" @bind="_form.NombreBebe" /></label>
-                    <label>Nombre del responsable * <input class="wait-control" maxlength="200" @bind="_form.NombreResponsable" /></label>
-                    <label>WhatsApp / teléfono * <input class="wait-control" maxlength="60" @bind="_form.Telefono" /></label>
-                    <label>Email <input class="wait-control" maxlength="200" @bind="_form.Email" /></label>
-                    <label>Nivel *
-                        <select class="wait-control" value="@_form.NivelId.ToString()" @onchange="CambiarNivel">
-                            <option value="@Guid.Empty">Elegir nivel</option>
-                            @foreach (var nivel in _niveles) { <option value="@nivel.Id">@nivel.Nombre</option> }
-                        </select>
-                    </label>
-                    <label>Horario solicitado
-                        <select class="wait-control" value="@(_form.TurnoId?.ToString() ?? "")" @onchange="CambiarTurno">
-                            <option value="">Sin horario específico</option>
-                            @foreach (var turno in _turnos.Where(x => x.NivelId == _form.NivelId))
-                            { <option value="@turno.Id">@turno.Nombre · @turno.Hora.ToString("HH:mm")</option> }
-                        </select>
-                    </label>
-                    <label>Día preferido
-                        <select class="wait-control" value="@(_form.DiaPreferido?.ToString() ?? "")" @onchange="CambiarDia">
-                            <option value="">Cualquier día</option>
-                            @foreach (var dia in Enum.GetValues<DiaSemana>()) { <option value="@dia">@dia</option> }
-                        </select>
-                    </label>
-                    <label>Franja horaria
-                        <select class="wait-control" @bind="_form.FranjaHoraria">
-                            @foreach (var franja in Enum.GetValues<FranjaHoraria>()) { <option value="@franja">@franja</option> }
-                        </select>
-                    </label>
-                    <label class="wait-full">Observaciones <textarea class="wait-control" rows="3" maxlength="1000" @bind="_form.Observaciones"></textarea></label>
-                </div>
-                <div class="wait-modal-actions"><button class="wait-btn" @onclick="CerrarModal">Cancelar</button>
-                    <button class="primary-action" disabled="@_guardando" @onclick="GuardarAsync">Guardar interesado</button></div>
-            </section>
+
+    </div>
+}
+
+
+@* =============================================================
+   CONFIRMAR CANCELACIÓN
+   ============================================================= *@
+
+@if (_itemACancelar is not null)
+{
+    <div class="modal-backdrop cancel-backdrop">
+
+        <div class="confirm-modal">
+
+            <div class="confirm-icon">
+
+                <MudIcon Icon="@Icons.Material.Filled.PersonRemove" />
+
+            </div>
+
+
+            <h3>
+                Quitar de lista de espera
+            </h3>
+
+
+            <p>
+
+                ¿Querés quitar a
+
+                <strong>
+                    @_itemACancelar.Bebe
+                </strong>
+
+                de la lista de espera?
+
+            </p>
+
+
+            <div class="confirm-actions">
+
+                <button type="button"
+                        class="cancel-button"
+                        @onclick="CerrarCancelar">
+
+                    Volver
+
+                </button>
+
+
+                <button type="button"
+                        class="danger-button"
+                        disabled="@_cancelando"
+                        @onclick="ConfirmarCancelarAsync">
+
+                    Quitar de lista
+
+                </button>
+
+            </div>
+
         </div>
-    }
-    @if (_inscribiendo is not null)
-    {
-        <div class="wait-overlay" @onclick="() => _inscribiendo = null">
-            <section class="wait-dialog" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
-                <h2>Vincular inscripción de @_inscribiendo.NombreBebe</h2>
-                <p>Seleccioná el alumno ya inscripto. La lista no genera inscripciones automáticamente.</p>
-                <label>Buscar por nombre o apellido
-                    <input class="wait-control" @bind="_buscarInscrito" />
-                </label>
-                <button class="wait-btn" @onclick="BuscarInscritosAsync">Buscar alumnos inscriptos</button>
-                <select class="wait-control" @bind="_bebeInscriptoId">
-                    <option value="@Guid.Empty">Seleccioná un alumno</option>
-                    @foreach (var alumno in _inscritos)
-                    { <option value="@alumno.Id">@alumno.Nombre</option> }
-                </select>
-                <div class="wait-modal-actions">
-                    <button class="wait-btn" @onclick="() => _inscribiendo = null">Cancelar</button>
-                    <button class="primary-action" disabled="@(_bebeInscriptoId == Guid.Empty)" @onclick="ConfirmarInscripcionAsync">Confirmar inscripción</button>
-                </div>
-            </section>
-        </div>
-    }
-</div>
+
+    </div>
+}

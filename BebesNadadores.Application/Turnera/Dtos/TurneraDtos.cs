@@ -109,9 +109,7 @@ public sealed record BebeSesionDto(
     Guid InscripcionId,
     string NombreCompleto,
     EstadoAsistencia? EstadoAsistencia,
-    bool EsRecupero,
-    // Cuotas vencidas con saldo pendiente, calculadas desde pagos reales.
-    int CuotasVencidas = 0);
+    bool EsRecupero);
 
 
 public sealed record SesionClaseDetalleDto(

@@ -1,0 +1,25 @@
+@using BebesNadadores.Infrastructure.Persistence
+@using BebesNadadores.Domain.Entities
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@if(_historia is not null)
+{
+    <MudPaper Class="pa-4 my-4" Elevation="0" Outlined="true">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.History" Color="Color.Primary" Class="mr-1"/> Trayectoria histórica</MudText>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Href="/clientes/historial">Ver historial</MudButton>
+        </MudStack>
+        <MudText Typo="Typo.body2">Primera inscripción registrada: <strong>@(_historia.FechaPrimeraInscripcion?.ToString("dd/MM/yyyy") ?? "Fecha no disponible")</strong></MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">Años anteriores con actividad: <strong>@string.Join(", ",_historia.Anios.OrderBy(a=>a.Anio).Select(a=>a.Anio))</strong></MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Fuente: sistema anterior (2019–2025). No afecta la inscripción, la caja ni los cupos actuales.</MudText>
+    </MudPaper>
+}
+@code {
+    [Parameter] public Guid BebeId {get;set;}
+    private HistorialAlumnoLegacy? _historia;
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var db=await DbFactory.CreateDbContextAsync();
+        _historia=await db.HistorialAlumnosLegacy.AsNoTracking().Include(x=>x.Anios).FirstOrDefaultAsync(x=>x.BebeId==BebeId);
+    }
+}

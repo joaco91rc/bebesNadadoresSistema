@@ -1,0 +1,97 @@
+@page "/recuperos/regularizacion"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
+@using BebesNadadores.Web.Services.Recuperos
+@inject RegularizacionHistoricaService Servicio
+@inject NavigationManager Nav
+
+<PageTitle>Regularización histórica de recuperos</PageTitle>
+<div class="regularizacion-page">
+    <header class="regularizacion-header">
+        <div><span class="eyebrow">RECUPEROS / MIGRACIÓN 2026</span><h1>Regularizar saldo histórico</h1>
+            <p>Verificá el saldo en el sistema anterior antes de acreditarlo. No se generarán recuperos automáticamente.</p></div>
+        <button class="btn-neutral" @onclick="Volver">Volver a recuperos</button>
+    </header>
+    @if (!string.IsNullOrEmpty(_error)) { <div class="notice error">@_error</div> }
+    @if (!string.IsNullOrEmpty(_mensaje)) { <div class="notice ok">@_mensaje</div> }
+    <section class="regularizacion-card">
+        <h2>1. Buscar alumno con turno oficial</h2>
+        <MudAutocomplete T="AlumnoRegularizacionDto"
+                         Label="Buscar bebé por nombre o apellido"
+                         Placeholder="Escribí al menos 3 letras..."
+                         Value="_seleccionado"
+                         ValueChanged="Seleccionar"
+                         SearchFunc="BuscarOpciones"
+                         ToStringFunc="MostrarAlumno"
+                         MinCharacters="3"
+                         MaxItems="20"
+                         Clearable="true"
+                         ResetValueOnEmptyText="true"
+                         Variant="Variant.Outlined"
+                         FullWidth="true" />
+        <p class="muted">Los resultados se filtran mientras escribís, sin pulsar Buscar.</p>
+    </section>
+    @if (_seleccionado is not null)
+    {
+        <section class="regularizacion-card">
+            <h2>2. Confirmar saldo de @_seleccionado.Nombre</h2>
+            <p class="muted">Nivel: @_seleccionado.Nivel. La carga se realiza una única vez por alumno y queda auditada.</p>
+            <div class="fields">
+                <label>Cantidad de recuperos disponibles <input type="number" min="1" max="10" @bind="_cantidad" /></label>
+                <label>Vencimiento comprobado <input type="date" @bind="_vencimiento" @bind:format="yyyy-MM-dd" /></label>
+            </div>
+            <label class="full-field">Detalle de verificación<textarea rows="3" @bind="_observaciones" placeholder="Ej.: consultado en el sistema anterior, 2 recuperos disponibles al 11/11/2026" /></label>
+            <label class="confirm-check"><input type="checkbox" @bind="_verificado" /> Comprobé en el sistema anterior que estos recuperos siguen disponibles y no fueron utilizados.</label>
+            <button class="btn-primary" @onclick="Acreditar" disabled="@(_trabajando || !_verificado || _seleccionado.CreditosExistentes > 0)">Acreditar saldo histórico</button>
+        </section>
+    }
+</div>
+@code {
+    private void Volver() => Nav.NavigateTo("/recuperos");
+    private AlumnoRegularizacionDto? _seleccionado;
+    private int _cantidad = 1;
+    private DateTime _vencimiento = DateTime.Today.AddDays(45);
+    private string _observaciones = "";
+    private bool _verificado;
+    private bool _trabajando;
+    private string? _error, _mensaje;
+
+    private static string MostrarAlumno(AlumnoRegularizacionDto? a) =>
+        a is null ? string.Empty : $"{a.Nombre} · {a.Nivel}";
+
+    private async Task<IEnumerable<AlumnoRegularizacionDto>> BuscarOpciones(string texto, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3)
+            return [];
+        try
+        {
+            return await Servicio.BuscarAsync(texto, token);
+        }
+        catch (OperationCanceledException) { return []; }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            return [];
+        }
+    }
+
+    private Task Seleccionar(AlumnoRegularizacionDto? a)
+    {
+        _seleccionado = a; _cantidad = 1; _verificado = false; _observaciones = "";
+        _vencimiento = DateTime.Today.AddDays(45); _error = _mensaje = null;
+        return Task.CompletedTask;
+    }
+    private async Task Acreditar()
+    {
+        if (_seleccionado is null) return;
+        _error = _mensaje = null; _trabajando = true;
+        try
+        {
+            await Servicio.AcreditarAsync(_seleccionado, _cantidad, DateOnly.FromDateTime(_vencimiento), _observaciones, _verificado);
+            _mensaje = $"Se acreditaron {_cantidad} recuperos históricos a {_seleccionado.Nombre}.";
+            _seleccionado = null;
+        }
+        catch(Exception ex) { _error = ex.Message; }
+        finally { _trabajando = false; }
+    }
+}

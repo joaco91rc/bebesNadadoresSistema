@@ -88,24 +88,23 @@
                 </button>
             }
 
-
             <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
 
-                <Authorized>
+    <Authorized>
 
-                    <a href="/pagos/cuotas"
-                       class="secondary-action quota-action">
+        <a href="/pagos/cuotas"
+           class="secondary-action quota-action">
 
-                        <MudIcon Icon="@Icons.Material.Filled.Autorenew"
-                                 Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.Autorenew"
+                     Size="Size.Small" />
 
-                        Generar cuotas
+            Generar cuotas
 
-                    </a>
+        </a>
 
-                </Authorized>
+    </Authorized>
 
-            </AuthorizeView>
+</AuthorizeView>
 
         </div>
 
@@ -204,27 +203,38 @@
                              Size="Size.Small" />
 
                     <input type="search"
-                           placeholder="Buscar bebé, responsable o DNI..."
-                           value="@_buscar"
-                           @oninput="BuscarCambioAsync" />
+       placeholder="Buscar bebé, responsable o DNI..."
+       value="@_buscar"
+       @oninput="BuscarCambioAsync" />
 
-                    @if (_buscando)
-                    {
-                        <span class="search-loading">
-                            <MudProgressCircular Indeterminate="true"
-                                                 Size="Size.Small" />
-                        </span>
-                    }
-                    else if (!string.IsNullOrWhiteSpace(_buscar))
-                    {
-                        <button type="button"
-                                @onclick="LimpiarBusquedaAsync">
+       @if (_buscando)
+{
+    <span class="search-loading">
+        <MudProgressCircular Indeterminate="true"
+                             Size="Size.Small" />
+    </span>
+}
+else if (!string.IsNullOrWhiteSpace(_buscar))
+{
+    <button type="button"
+            @onclick="LimpiarBusquedaAsync">
 
-                            <MudIcon Icon="@Icons.Material.Filled.Close"
-                                     Size="Size.Small" />
+        <MudIcon Icon="@Icons.Material.Filled.Close"
+                 Size="Size.Small" />
 
-                        </button>
-                    }
+    </button>
+}
+
+                   @if (!string.IsNullOrWhiteSpace(_buscar))
+{
+    <button type="button"
+            @onclick="LimpiarBusquedaAsync">
+
+        <MudIcon Icon="@Icons.Material.Filled.Close"
+                 Size="Size.Small" />
+
+    </button>
+}
 
                 </div>
 
@@ -267,7 +277,8 @@
                                     </strong>
 
                                     <small>
-                                        @(string.IsNullOrWhiteSpace(bebe.ResponsablePrincipal)
+                                        @(string.IsNullOrWhiteSpace(
+                                            bebe.ResponsablePrincipal)
                                             ? "Sin responsable informado"
                                             : bebe.ResponsablePrincipal)
                                     </small>
@@ -465,516 +476,358 @@
 
                     </section>
 
-
-                    @* =========================================
-                       PESTAÑAS
-                       ========================================= *@
-
                     <div class="account-tabs">
 
-                        <button type="button"
-                                class="@(_vistaCuenta == "resumen" ? "active" : "")"
-                                @onclick='() => _vistaCuenta = "resumen"'>
+    <button type="button"
+            class="@(_vistaCuenta == "resumen" ? "active" : "")"
+            @onclick='() => _vistaCuenta = "resumen"'>
 
-                            <MudIcon Icon="@Icons.Material.Filled.Dashboard"
-                                     Size="Size.Small" />
+        <MudIcon Icon="@Icons.Material.Filled.Dashboard"
+                 Size="Size.Small" />
 
-                            Resumen
+        Resumen
 
-                        </button>
+    </button>
 
 
-                        <button type="button"
-                                class="@(_vistaCuenta == "cuenta" ? "active" : "")"
-                                @onclick='() => _vistaCuenta = "cuenta"'>
+    <button type="button"
+            class="@(_vistaCuenta == "cuenta" ? "active" : "")"
+            @onclick='() => _vistaCuenta = "cuenta"'>
 
-                            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong"
-                                     Size="Size.Small" />
+        <MudIcon Icon="@Icons.Material.Filled.ReceiptLong"
+                 Size="Size.Small" />
 
-                            Cuenta corriente
+        Cuenta corriente
 
-                        </button>
+    </button>
 
 
-                        <button type="button"
-                                class="@(_vistaCuenta == "pagos" ? "active" : "")"
-                                @onclick='() => _vistaCuenta = "pagos"'>
+    <button type="button"
+            class="@(_vistaCuenta == "pagos" ? "active" : "")"
+            @onclick='() => _vistaCuenta = "pagos"'>
 
-                            <MudIcon Icon="@Icons.Material.Filled.Payments"
-                                     Size="Size.Small" />
+        <MudIcon Icon="@Icons.Material.Filled.Payments"
+                 Size="Size.Small" />
 
-                            Pagos
+        Pagos
 
-                        </button>
+    </button>
 
-                    </div>
+</div>
 
+@if (_vistaCuenta == "resumen")
+{
+                    <div class="account-sections">
 
-                    @* =========================================
-                       RESUMEN (cuotas + historial)
-                       y PAGOS (solo historial, a todo el ancho)
-                       ========================================= *@
+                        @* =====================================
+                           CUOTAS
+                           ===================================== *@
 
-                    @if (_vistaCuenta is "resumen" or "pagos")
-                    {
-                        <div class="account-sections @(_vistaCuenta == "pagos" ? "single" : "")">
+                        <section class="workspace-card">
 
-                            @if (_vistaCuenta == "resumen")
-                            {
-                                @* =====================================
-                                   CUOTAS
-                                   ===================================== *@
-
-                                <section class="workspace-card">
-
-                                    <div class="section-header">
-
-                                        <div>
-
-                                            <span class="section-eyebrow">
-                                                CUENTA CORRIENTE
-                                            </span>
-
-                                            <h3>
-                                                Cuotas
-                                            </h3>
-
-                                        </div>
-
-
-                                        <span class="section-count">
-                                            @_cuenta.Cuotas.Count
-                                        </span>
-
-                                    </div>
-
-
-                                    @if (_cuenta.Cuotas.Count == 0)
-                                    {
-                                        <div class="empty-section">
-
-                                            <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
-
-                                            <span>
-                                                Todavía no hay cuotas generadas.
-                                            </span>
-
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="fees-list">
-
-                                            @foreach (var cuota in _cuenta.Cuotas)
-                                            {
-                                                <article class="fee-item @(cuota.Estado == EstadoCuota.Anulada ? "is-voided" : "")">
-
-                                                    <div class="fee-period">
-
-                                                        <strong>
-                                                            @FormatearPeriodo(cuota.Periodo)
-                                                        </strong>
-
-                                                        <small>
-                                                            Vence
-                                                            @(cuota.FechaVencimiento.ToString("dd/MM/yyyy"))
-                                                        </small>
-
-                                                        @if (cuota.ReactivadaUtc.HasValue
-                                                             && cuota.Estado != EstadoCuota.Anulada)
-                                                        {
-                                                            <small class="fee-reactivated"
-                                                                   title="@($"Reactivada el {FormatearFechaHora(cuota.ReactivadaUtc.Value)}: {cuota.MotivoReactivacion}")">
-                                                                <MudIcon Icon="@Icons.Material.Filled.Restore"
-                                                                         Size="Size.Small" />
-                                                                Reactivada
-                                                            </small>
-                                                        }
-
-                                                    </div>
-
-
-                                                    <div class="fee-progress">
-
-                                                        <div class="fee-progress-top">
-
-                                                            <span>
-                                                                Pagado
-                                                                @FormatearMoneda(cuota.ImportePagado)
-                                                            </span>
-
-                                                            <span>
-                                                                de
-                                                                @FormatearMoneda(cuota.Importe)
-                                                            </span>
-
-                                                        </div>
-
-
-                                                        <div class="progress-track">
-
-                                                            <span style="@ObtenerEstiloProgreso(cuota)">
-                                                            </span>
-
-                                                        </div>
-
-                                                    </div>
-
-
-                                                    <span class="fee-status @ObtenerClaseCuota(cuota.Estado)">
-                                                        @ObtenerEstadoCuotaTexto(cuota.Estado)
-                                                    </span>
-
-
-                                                    <div class="fee-balance">
-
-                                                        @if (cuota.Estado == EstadoCuota.Anulada)
-                                                        {
-                                                            <small>
-                                                                No se cobra
-                                                            </small>
-
-                                                            <strong>
-                                                                —
-                                                            </strong>
-                                                        }
-                                                        else
-                                                        {
-                                                            <small>
-                                                                Pendiente
-                                                            </small>
-
-                                                            <strong>
-                                                                @FormatearMoneda(cuota.Saldo)
-                                                            </strong>
-                                                        }
-
-                                                    </div>
-
-
-                                                    @if (cuota.Estado == EstadoCuota.Anulada)
-                                                    {
-                                                        <button type="button"
-                                                                class="void-action restore-action"
-                                                                title="@($"Cuota anulada: {cuota.MotivoAnulacion ?? "sin motivo"}. Clic para reactivarla.")"
-                                                                @onclick="() => AbrirReactivarCuota(cuota)">
-                                                            <MudIcon Icon="@Icons.Material.Filled.Restore"
-                                                                     Size="Size.Small" />
-                                                        </button>
-                                                    }
-                                                    else
-                                                    {
-                                                        var tienePagos = cuota.ImportePagado > 0;
-
-                                                        @* Con pagos imputados no se anula: el clic explica por qué. *@
-                                                        <button type="button"
-                                                                class="void-action @(tienePagos ? "locked" : "")"
-                                                                aria-disabled="@(tienePagos ? "true" : "false")"
-                                                                title="@(tienePagos
-                                                                    ? "Tiene pagos imputados: para anularla, primero anulá el pago desde el Historial de pagos"
-                                                                    : "Anular cuota (deja de cobrarse; no devuelve dinero)")"
-                                                                @onclick="() => AbrirAnularCuota(cuota)">
-                                                            <MudIcon Icon="@Icons.Material.Filled.Block"
-                                                                     Size="Size.Small" />
-                                                        </button>
-                                                    }
-
-                                                </article>
-                                            }
-
-                                        </div>
-                                    }
-
-                                </section>
-                            }
-
-
-                            @* =====================================
-                               HISTORIAL DE PAGOS
-                               ===================================== *@
-
-                            <section class="workspace-card">
-
-                                <div class="section-header">
-
-                                    <div>
-
-                                        <span class="section-eyebrow">
-                                            MOVIMIENTOS
-                                        </span>
-
-                                        <h3>
-                                            Historial de pagos
-                                        </h3>
-
-                                    </div>
-
-
-                                    <span class="section-count">
-                                        @_cuenta.Pagos.Count
-                                    </span>
-
-                                </div>
-
-
-                                @if (_cuenta.Pagos.Count == 0)
-                                {
-                                    <div class="empty-section">
-
-                                        <MudIcon Icon="@Icons.Material.Filled.Payments" />
-
-                                        <span>
-                                            Todavía no hay pagos registrados.
-                                        </span>
-
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="payments-history">
-
-                                        @foreach (var pago in _cuenta.Pagos)
-                                        {
-                                            <article class="payment-item @(pago.Anulado ? "is-voided" : "")">
-
-                                                <span class="payment-icon @ObtenerClaseMedioPago(pago.MedioPago)">
-
-                                                    <MudIcon Icon="@ObtenerIconoMedioPago(pago.MedioPago)"
-                                                             Size="Size.Small" />
-
-                                                </span>
-
-
-                                                <div class="payment-main">
-
-                                                    <strong>
-                                                        @ObtenerMedioPagoTexto(pago.MedioPago)
-                                                    </strong>
-
-                                                    <small>
-                                                        @FormatearFechaHora(pago.FechaUtc)
-
-                                                        @if (!string.IsNullOrWhiteSpace(pago.CuentaBancaria))
-                                                        {
-                                                            <text>
-                                                                · @pago.CuentaBancaria
-                                                            </text>
-                                                        }
-
-                                                        <text>
-                                                            · por @(pago.RegistradoPor ?? "Sistema")
-                                                        </text>
-
-                                                    </small>
-
-                                                </div>
-
-
-                                                <div class="payment-allocation">
-
-                                                    <small>
-                                                        Imputado
-                                                    </small>
-
-                                                    <span>
-                                                        @FormatearMoneda(pago.ImporteImputado)
-                                                    </span>
-
-                                                </div>
-
-
-                                                @if (pago.SaldoNoImputado > 0)
-                                                {
-                                                    <div class="payment-credit">
-
-                                                        <small>
-                                                            A favor
-                                                        </small>
-
-                                                        <span>
-                                                            @FormatearMoneda(pago.SaldoNoImputado)
-                                                        </span>
-
-                                                    </div>
-                                                }
-
-
-                                                <strong class="payment-total">
-                                                    @FormatearMoneda(pago.Importe)
-                                                </strong>
-
-
-                                                @if (pago.Anulado)
-                                                {
-                                                    <span class="void-badge"
-                                                          title="@($"Anulado por {pago.AnuladoPor ?? "—"}: {pago.MotivoAnulacion}")">
-                                                        Anulado
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <button type="button"
-                                                            class="void-action"
-                                                            title="Anular pago (revierte el dinero en caja o banco)"
-                                                            @onclick="() => AbrirAnularPagoAsync(pago)">
-                                                        <MudIcon Icon="@Icons.Material.Filled.Block"
-                                                                 Size="Size.Small" />
-                                                    </button>
-                                                }
-
-                                            </article>
-                                        }
-
-                                    </div>
-                                }
-
-                            </section>
-
-                        </div>
-                    }
-                    else if (_vistaCuenta == "cuenta")
-                    {
-                        @* =========================================
-                           CUENTA CORRIENTE (movimientos con saldo)
-                           ========================================= *@
-
-                        <section class="workspace-card current-account-card">
-
-                            <div class="current-account-header">
+                            <div class="section-header">
 
                                 <div>
 
                                     <span class="section-eyebrow">
-                                        ESTADO DE CUENTA
+                                        CUENTA CORRIENTE
                                     </span>
 
                                     <h3>
-                                        Movimientos de cuenta corriente
+                                        Cuotas
                                     </h3>
 
-                                    <p>
-                                        Cuotas generadas y pagos recibidos
-                                        ordenados cronológicamente.
-                                    </p>
-
                                 </div>
 
 
-                                <div class="current-balance">
-
-                                    <span>
-                                        Saldo actual
-                                    </span>
-
-                                    <strong class="@ObtenerClaseSaldoCuenta(_cuenta.Deuda - _cuenta.SaldoAFavor)">
-                                        @ObtenerTextoSaldoCuenta(_cuenta.Deuda - _cuenta.SaldoAFavor)
-                                    </strong>
-
-                                </div>
+                                <span class="section-count">
+                                    @_cuenta.Cuotas.Count
+                                </span>
 
                             </div>
 
 
-                            @if (MovimientosCuenta.Count == 0)
+                            @if (_cuenta.Cuotas.Count == 0)
                             {
                                 <div class="empty-section">
 
                                     <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
 
                                     <span>
-                                        Todavía no hay movimientos
-                                        en la cuenta corriente.
+                                        Todavía no hay cuotas generadas.
                                     </span>
 
                                 </div>
                             }
                             else
                             {
-                                <div class="current-account-table">
+                                <div class="fees-list">
 
-                                    <div class="current-account-row table-header">
-
-                                        <span>
-                                            Fecha
-                                        </span>
-
-                                        <span>
-                                            Concepto
-                                        </span>
-
-                                        <span class="amount-column">
-                                            Débito
-                                        </span>
-
-                                        <span class="amount-column">
-                                            Crédito
-                                        </span>
-
-                                        <span class="amount-column">
-                                            Saldo
-                                        </span>
-
-                                    </div>
-
-
-                                    @foreach (var movimiento in MovimientosCuenta)
+                                    @foreach (var cuota in _cuenta.Cuotas)
                                     {
-                                        <div class="current-account-row">
+                                        <article class="fee-item @(cuota.Estado == EstadoCuota.Anulada ? "is-voided" : "")">
 
-                                            <div class="movement-date">
+                                            <div class="fee-period">
 
                                                 <strong>
-                                                    @movimiento.FechaTexto
+                                                    @FormatearPeriodo(cuota.Periodo)
                                                 </strong>
 
                                                 <small>
-                                                    @movimiento.Tipo
+                                                    Vence
+                                                    @(cuota.FechaVencimiento.ToString("dd/MM/yyyy"))
                                                 </small>
 
-                                            </div>
-
-
-                                            <div class="movement-concept">
-
-                                                <strong>
-                                                    @movimiento.Concepto
-                                                </strong>
-
-                                                @if (!string.IsNullOrWhiteSpace(movimiento.Detalle))
+                                                @if (cuota.ReactivadaUtc.HasValue
+                                                     && cuota.Estado != EstadoCuota.Anulada)
                                                 {
-                                                    <small>
-                                                        @movimiento.Detalle
+                                                    <small class="fee-reactivated"
+                                                           title="@($"Reactivada el {FormatearFechaHora(cuota.ReactivadaUtc.Value)}: {cuota.MotivoReactivacion}")">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Restore"
+                                                                 Size="Size.Small" />
+                                                        Reactivada
                                                     </small>
                                                 }
 
                                             </div>
 
 
-                                            <div class="amount-column debit">
-                                                @(movimiento.Debito > 0
-                                                    ? FormatearMoneda(movimiento.Debito)
-                                                    : "—")
+                                            <div class="fee-progress">
+
+                                                <div class="fee-progress-top">
+
+                                                    <span>
+                                                        Pagado
+                                                        @FormatearMoneda(cuota.ImportePagado)
+                                                    </span>
+
+                                                    <span>
+                                                        de
+                                                        @FormatearMoneda(cuota.Importe)
+                                                    </span>
+
+                                                </div>
+
+
+                                                <div class="progress-track">
+
+                                                    <span style="@ObtenerEstiloProgreso(cuota)">
+                                                    </span>
+
+                                                </div>
+
                                             </div>
 
 
-                                            <div class="amount-column credit">
-                                                @(movimiento.Credito > 0
-                                                    ? FormatearMoneda(movimiento.Credito)
-                                                    : "—")
+                                            <span class="fee-status @ObtenerClaseCuota(cuota.Estado)">
+
+                                                @ObtenerEstadoCuotaTexto(
+                                                    cuota.Estado)
+
+                                            </span>
+
+
+                                            <div class="fee-balance">
+
+                                                @if (cuota.Estado == EstadoCuota.Anulada)
+                                                {
+                                                    <small>
+                                                        No se cobra
+                                                    </small>
+
+                                                    <strong>
+                                                        —
+                                                    </strong>
+                                                }
+                                                else
+                                                {
+                                                    <small>
+                                                        Pendiente
+                                                    </small>
+
+                                                    <strong>
+                                                        @FormatearMoneda(cuota.Saldo)
+                                                    </strong>
+                                                }
+
                                             </div>
 
 
-                                            <div class="amount-column balance @ObtenerClaseSaldoCuenta(movimiento.Saldo)">
-                                                @ObtenerTextoSaldoCuenta(movimiento.Saldo)
-                                            </div>
+                                            @if (cuota.Estado == EstadoCuota.Anulada)
+                                            {
+                                                <button type="button"
+                                                        class="void-action restore-action"
+                                                        title="@($"Cuota anulada: {cuota.MotivoAnulacion ?? "sin motivo"}. Clic para reactivarla.")"
+                                                        @onclick="() => AbrirReactivarCuota(cuota)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Restore"
+                                                             Size="Size.Small" />
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="void-action"
+                                                        title="Anular cuota (deja de cobrarse; no devuelve dinero)"
+                                                        @onclick="() => AbrirAnularCuota(cuota)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Block"
+                                                             Size="Size.Small" />
+                                                </button>
+                                            }
 
-                                        </div>
+                                        </article>
                                     }
 
                                 </div>
                             }
 
                         </section>
+
+
+                        @* =====================================
+                           PAGOS
+                           ===================================== *@
+
+                        <section class="workspace-card">
+
+                            <div class="section-header">
+
+                                <div>
+
+                                    <span class="section-eyebrow">
+                                        MOVIMIENTOS
+                                    </span>
+
+                                    <h3>
+                                        Historial de pagos
+                                    </h3>
+
+                                </div>
+
+
+                                <span class="section-count">
+                                    @_cuenta.Pagos.Count
+                                </span>
+
+                            </div>
+
+
+                            @if (_cuenta.Pagos.Count == 0)
+                            {
+                                <div class="empty-section">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.Payments" />
+
+                                    <span>
+                                        Todavía no hay pagos registrados.
+                                    </span>
+
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="payments-history">
+
+                                    @foreach (var pago in _cuenta.Pagos)
+                                    {
+                                        <article class="payment-item @(pago.Anulado ? "is-voided" : "")">
+
+                                            <span class="payment-icon @ObtenerClaseMedioPago(pago.MedioPago)">
+
+                                                <MudIcon Icon="@ObtenerIconoMedioPago(pago.MedioPago)"
+                                                         Size="Size.Small" />
+
+                                            </span>
+
+
+                                            <div class="payment-main">
+
+                                                <strong>
+                                                    @ObtenerMedioPagoTexto(pago.MedioPago)
+                                                </strong>
+
+                                                <small>
+                                                    @FormatearFechaHora(pago.FechaUtc)
+
+                                                    @if (!string.IsNullOrWhiteSpace(
+                                                        pago.CuentaBancaria))
+                                                    {
+                                                        <text>
+                                                            · @pago.CuentaBancaria
+                                                        </text>
+                                                    }
+
+                                                    <text>
+                                                        · por @(pago.RegistradoPor ?? "Sistema")
+                                                    </text>
+
+                                                </small>
+
+                                            </div>
+
+
+                                            <div class="payment-allocation">
+
+                                                <small>
+                                                    Imputado
+                                                </small>
+
+                                                <span>
+                                                    @FormatearMoneda(
+                                                        pago.ImporteImputado)
+                                                </span>
+
+                                            </div>
+
+
+                                            @if (pago.SaldoNoImputado > 0)
+                                            {
+                                                <div class="payment-credit">
+
+                                                    <small>
+                                                        A favor
+                                                    </small>
+
+                                                    <span>
+                                                        @FormatearMoneda(
+                                                            pago.SaldoNoImputado)
+                                                    </span>
+
+                                                </div>
+                                            }
+
+
+                                            <strong class="payment-total">
+                                                @FormatearMoneda(pago.Importe)
+                                            </strong>
+
+
+                                            @if (pago.Anulado)
+                                            {
+                                                <span class="void-badge"
+                                                      title="@($"Anulado por {pago.AnuladoPor ?? "—"}: {pago.MotivoAnulacion}")">
+                                                    Anulado
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="void-action"
+                                                        title="Anular pago (revierte el dinero en caja o banco)"
+                                                        @onclick="() => AbrirAnularPago(pago)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Block"
+                                                             Size="Size.Small" />
+                                                </button>
+                                            }
+
+                                        </article>
+                                    }
+
+                                </div>
+                            }
+
+                        </section>
+
+                    </div>
                     }
                 }
 
@@ -985,6 +838,162 @@
 
 </div>
 
+@if (_vistaCuenta == "cuenta")
+{
+    <section class="workspace-card current-account-card">
+
+        <div class="current-account-header">
+
+            <div>
+
+                <span class="section-eyebrow">
+                    ESTADO DE CUENTA
+                </span>
+
+                <h3>
+                    Movimientos de cuenta corriente
+                </h3>
+
+                <p>
+                    Cuotas generadas y pagos recibidos
+                    ordenados cronológicamente.
+                </p>
+
+            </div>
+
+
+            <div class="current-balance">
+
+                <span>
+                    Saldo actual
+                </span>
+
+                <strong class="@ObtenerClaseSaldoCuenta(
+                    _cuenta.Deuda - _cuenta.SaldoAFavor)">
+
+                    @ObtenerTextoSaldoCuenta(
+                        _cuenta.Deuda - _cuenta.SaldoAFavor)
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        @if (MovimientosCuenta.Count == 0)
+        {
+            <div class="empty-section">
+
+                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
+
+                <span>
+                    Todavía no hay movimientos
+                    en la cuenta corriente.
+                </span>
+
+            </div>
+        }
+        else
+        {
+            <div class="current-account-table">
+
+                <div class="current-account-row table-header">
+
+                    <span>
+                        Fecha
+                    </span>
+
+                    <span>
+                        Concepto
+                    </span>
+
+                    <span class="amount-column">
+                        Débito
+                    </span>
+
+                    <span class="amount-column">
+                        Crédito
+                    </span>
+
+                    <span class="amount-column">
+                        Saldo
+                    </span>
+
+                </div>
+
+
+                @foreach (var movimiento in MovimientosCuenta)
+                {
+                    <div class="current-account-row">
+
+                        <div class="movement-date">
+
+                            <strong>
+                                @movimiento.FechaTexto
+                            </strong>
+
+                            <small>
+                                @movimiento.Tipo
+                            </small>
+
+                        </div>
+
+
+                        <div class="movement-concept">
+
+                            <strong>
+                                @movimiento.Concepto
+                            </strong>
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                movimiento.Detalle))
+                            {
+                                <small>
+                                    @movimiento.Detalle
+                                </small>
+                            }
+
+                        </div>
+
+
+                        <div class="amount-column debit">
+
+                            @(movimiento.Debito > 0
+                                ? FormatearMoneda(movimiento.Debito)
+                                : "—")
+
+                        </div>
+
+
+                        <div class="amount-column credit">
+
+                            @(movimiento.Credito > 0
+                                ? FormatearMoneda(movimiento.Credito)
+                                : "—")
+
+                        </div>
+
+
+                        <div class="amount-column balance @ObtenerClaseSaldoCuenta(movimiento.Saldo)">
+
+                            @ObtenerTextoSaldoCuenta(
+                                movimiento.Saldo)
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+        }
+
+    </section>
+}
+
+@* =============================================================
+   MODAL REGISTRAR PAGO
+   ============================================================= *@
 
 @* =========================================================
    ANULACIÓN DE PAGO / CUOTA
@@ -1007,11 +1016,8 @@
                   OnCerrar="CerrarAnulacion" />
 
 
-@* =============================================================
-   MODAL REGISTRAR PAGO
-   ============================================================= *@
-
-@if (_modalPago && _cuenta is not null)
+@if (_modalPago &&
+     _cuenta is not null)
 {
     <div class="modal-overlay"
          @onclick="CerrarModalPago">
@@ -1134,7 +1140,8 @@
                                     Sin especificar
                                 </option>
 
-                                @foreach (var responsable in _cuenta.Responsables)
+                                @foreach (var responsable in
+                                    _cuenta.Responsables)
                                 {
                                     <option value="@responsable.Id">
 
@@ -1176,11 +1183,14 @@
                         </div>
 
 
-                        @if (_pagoForm.MedioPago == MedioPago.Efectivo)
+                        @if (_pagoForm.MedioPago ==
+                            MedioPago.Efectivo)
                         {
                             <div class="payment-route full">
 
-                                @if (CajaHoyAbierta)
+                                @if (_cajaHoy is not null &&
+                                     _cajaHoy.Estado ==
+                                         EstadoCaja.Abierta)
                                 {
                                     <span class="route-icon success">
 
@@ -1198,7 +1208,7 @@
                                         <small>
                                             El cobro ingresará automáticamente
                                             en la caja del
-                                            @(_cajaHoy!.FechaOperativa.ToString("dd/MM/yyyy")).
+                                            @(_cajaHoy.FechaOperativa.ToString("dd/MM/yyyy")).
                                         </small>
 
                                     </div>
@@ -1239,7 +1249,8 @@
                         }
 
 
-                        @if (RequiereCuentaBancaria(_pagoForm.MedioPago))
+                        @if (RequiereCuentaBancaria(
+                            _pagoForm.MedioPago))
                         {
                             <div class="form-field full">
 
@@ -1266,7 +1277,8 @@
                                             Seleccionar cuenta...
                                         </option>
 
-                                        @foreach (var cuenta in _cuentasBancarias)
+                                        @foreach (var cuenta in
+                                            _cuentasBancarias)
                                         {
                                             <option value="@cuenta.Id">
                                                 @cuenta.Banco · @cuenta.Nombre
@@ -1361,7 +1373,8 @@
                         {
                             <div class="preview-lines">
 
-                                @foreach (var item in _preview.Imputaciones)
+                                @foreach (var item in
+                                    _preview.Imputaciones)
                                 {
                                     <div class="preview-line">
 
@@ -1380,7 +1393,8 @@
 
 
                                         <span>
-                                            @FormatearMoneda(item.ImporteAImputar)
+                                            @FormatearMoneda(
+                                                item.ImporteAImputar)
                                         </span>
 
                                     </div>
@@ -1399,7 +1413,8 @@
                                 </span>
 
                                 <strong>
-                                    @FormatearMoneda(_preview.ImportePago)
+                                    @FormatearMoneda(
+                                        _preview.ImportePago)
                                 </strong>
 
                             </div>
@@ -1412,7 +1427,8 @@
                                 </span>
 
                                 <strong>
-                                    @FormatearMoneda(_preview.TotalImputado)
+                                    @FormatearMoneda(
+                                        _preview.TotalImputado)
                                 </strong>
 
                             </div>
@@ -1425,7 +1441,8 @@
                                 </span>
 
                                 <strong>
-                                    @FormatearMoneda(_preview.SaldoAFavor)
+                                    @FormatearMoneda(
+                                        _preview.SaldoAFavor)
                                 </strong>
 
                             </div>
@@ -1444,7 +1461,8 @@
                                     El pago supera la deuda actualmente
                                     imputable. El excedente de
                                     <strong>
-                                        @FormatearMoneda(_preview.SaldoAFavor)
+                                        @FormatearMoneda(
+                                            _preview.SaldoAFavor)
                                     </strong>
                                     quedará como saldo a favor.
                                 </span>

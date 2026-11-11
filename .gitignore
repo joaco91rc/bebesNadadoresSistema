@@ -75,3 +75,15 @@ appsettings.Local.json
 *.bak
 *.swp
 *~
+# Respaldos y datos de migracion
+*.sql
+*.rar
+**/App_Data/
+**/Conciliacion/
+reportes-finanzas-v48/
+reportes-importacion-test/
+
+# Archivos sensibles
+*.bak
+*.dump
+*.backup

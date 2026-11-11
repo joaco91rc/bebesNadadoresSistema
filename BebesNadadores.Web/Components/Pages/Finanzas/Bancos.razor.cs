@@ -19,15 +19,6 @@ public partial class Bancos : ComponentBase
     protected Dictionary<Guid, decimal> _saldos =
         [];
 
-    // Número de ingresos por pagos de alumnos registrados durante el mes actual.
-    protected Dictionary<Guid, int> _transferenciasMes = [];
-    protected const int UmbralOperativoTransferencias = 45;
-    protected int ContarTransferenciasMes(Guid cuentaId) =>
-        _transferenciasMes.GetValueOrDefault(cuentaId);
-    protected bool AlcanzoUmbral(Guid cuentaId) =>
-        ContarTransferenciasMes(cuentaId) >= UmbralOperativoTransferencias;
-
-
     protected List<MovimientoBancarioDto> _movimientos =
         [];
 
@@ -243,19 +234,6 @@ public partial class Bancos : ComponentBase
                 saldos.ToDictionary(
                     x => x.Id,
                     x => x.Saldo);
-
-            // Consultamos el mes calendario local, no los últimos 30 días.
-            var inicioMes = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var finMes = inicioMes.AddMonths(1).AddDays(-1);
-            var conteos = await Task.WhenAll(_cuentas.Select(async cuenta =>
-            {
-                var movimientos = await MovimientoBancarioService.ListarAsync(
-                    cuenta.Id, inicioMes, finMes);
-                return (cuenta.Id, Cantidad: movimientos.Count(x =>
-                    x.Tipo == TipoMovimientoBancario.Ingreso &&
-                    x.Origen == OrigenMovimientoBancario.PagoBebe));
-            }));
-            _transferenciasMes = conteos.ToDictionary(x => x.Id, x => x.Cantidad);
         }
         catch (Exception ex)
         {

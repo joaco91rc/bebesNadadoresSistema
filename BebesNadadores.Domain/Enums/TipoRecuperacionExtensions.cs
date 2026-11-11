@@ -13,6 +13,7 @@ public static class TipoRecuperacionExtensions
             TipoRecuperacion.AusenciaConAviso => "Ausencia con aviso",
             TipoRecuperacion.ClaseNoDictada => "Clase no dictada",
             TipoRecuperacion.InicioMitadDeMes => "Bonificación por inicio a mitad de mes",
+            TipoRecuperacion.SaldoHistoricoVerificado => "Saldo histórico verificado",
             _ => tipo.ToString()
         };
     }

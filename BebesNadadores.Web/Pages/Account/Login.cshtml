@@ -79,16 +79,8 @@
                                 <div class="input-wrapper">
                                     <span class="input-icon password-dot">●</span>
 
-                                    <input asp-for="Input.Password" type="password" autocomplete="current-password"
+                                    <input asp-for="Input.Password" autocomplete="current-password"
                                            placeholder="Ingresá tu contraseña" />
-                                    <button type="button" class="password-visibility" id="toggle-password"
-                                            aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña">
-                                        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor"
-                                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/>
-                                            <circle cx="12" cy="12" r="3" />
-                                        </svg>
-                                    </button>
                                 </div>
 
                                 <span class="field-error" asp-validation-for="Input.Password">
@@ -121,20 +113,6 @@
         </div>
 
     </div>
-<script>
-    (() => {
-        const toggle = document.getElementById('toggle-password');
-        const password = document.getElementById('Input_Password');
-        if (!toggle || !password) return;
-        toggle.addEventListener('click', () => {
-            const visible = password.type === 'password';
-            password.type = visible ? 'text' : 'password';
-            toggle.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
-            toggle.setAttribute('title', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
-            toggle.setAttribute('aria-pressed', String(visible));
-        });
-    })();
-</script>
 </body>
 
 </html>

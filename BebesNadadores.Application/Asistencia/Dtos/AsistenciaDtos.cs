@@ -11,9 +11,7 @@ public sealed record AsistenciaAlumnoDto(
     string? Observaciones,
     DateTimeOffset? RegistradaUtc,
     bool GeneroRecupero,
-    DateOnly? RecuperoVence,
-    // Se computan cuotas vencidas con saldo pendiente, incluidas las parcialmente pagadas.
-    int CuotasVencidas = 0);
+    DateOnly? RecuperoVence);
 
 
 public sealed record AsistenciaSesionDto(

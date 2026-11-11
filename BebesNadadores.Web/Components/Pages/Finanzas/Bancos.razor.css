@@ -3026,16 +3026,3 @@
         font-size: 10px;
     }
 }
-
-.transfer-counter {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
-    margin: 13px 0; padding: 11px 13px; border-radius: 11px;
-    border: 1px solid color-mix(in srgb, var(--mud-palette-primary) 40%, var(--mud-palette-divider));
-    background: color-mix(in srgb, var(--mud-palette-primary) 8%, var(--mud-palette-surface));
-    color: var(--mud-palette-text-primary);
-}
-.transfer-counter strong { font-size: 18px; color: var(--mud-palette-primary); }
-.transfer-counter span { font-size: 12px; }
-.transfer-counter small { width: 100%; font-size: 11px; }
-.transfer-counter.limit { border-color: var(--mud-palette-error); }
-.transfer-counter.limit strong,.transfer-counter.limit small { color: var(--mud-palette-error); }

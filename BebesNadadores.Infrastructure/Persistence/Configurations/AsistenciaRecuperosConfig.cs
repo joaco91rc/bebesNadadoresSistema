@@ -96,6 +96,19 @@ public class RecuperacionConfig
         // PostgreSQL permite múltiples NULL en este índice.
         // -----------------------------------------------------
 
+        // Un único lote de regularización histórica por alumno.
+        // Los NULL de recuperos normales no participan en esta unicidad.
+        builder.HasIndex(x => new { x.BebeId, x.NumeroCreditoHistorico })
+            .IsUnique()
+            .HasFilter("\"NumeroCreditoHistorico\" IS NOT NULL");
+
+        builder.Property(x => x.ObservacionesRegularizacion).HasMaxLength(500);
+
+        builder.HasOne(x => x.NivelOrigen)
+            .WithMany()
+            .HasForeignKey(x => x.NivelOrigenId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(x => x.AsistenciaOrigenId)
             .IsUnique();
 

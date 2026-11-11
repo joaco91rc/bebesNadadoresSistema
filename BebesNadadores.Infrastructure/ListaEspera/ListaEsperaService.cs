@@ -1,127 +1,925 @@
 using BebesNadadores.Application.ListaEspera;
 using BebesNadadores.Application.ListaEspera.Dtos;
-using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
+using ListaEsperaEntity =
+    BebesNadadores.Domain.Entities.ListaEspera;
+
 namespace BebesNadadores.Infrastructure.Services.ListaEspera;
 
-public sealed class ListaEsperaService(IDbContextFactory<AppDbContext> factory) : IListaEsperaService
+public sealed class ListaEsperaService(
+    IDbContextFactory<AppDbContext> factory)
+    : IListaEsperaService
 {
-    public async Task<IReadOnlyList<ListaEsperaItemDto>> ListarAsync(bool incluirFinalizadas = false, CancellationToken ct = default)
+    // =========================================================
+    // BUSCAR BEBÉS PARA EL AUTOCOMPLETE
+    // =========================================================
+
+    public async Task<IReadOnlyList<BebeListaEsperaBusquedaDto>>
+        BuscarBebesAsync(
+            string? texto,
+            int maxResultados = 10,
+            CancellationToken ct = default)
     {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        var query = db.EsperaInscripciones.AsNoTracking().Include(x => x.Nivel).Include(x => x.Turno).AsQueryable();
-        if (!incluirFinalizadas) query = query.Where(x => x.Estado == EstadoListaEspera.Activa || x.Estado == EstadoListaEspera.Notificada);
-        var items = await query.OrderBy(x => x.Estado).ThenBy(x => x.FechaAltaUtc).ToListAsync(ct);
-        return items.Select(x => new ListaEsperaItemDto(x.Id, x.NombreBebe, x.NombreResponsable,
-            x.Telefono, x.Email, x.NivelId, x.Nivel.Nombre, x.TurnoId, x.Turno?.Nombre,
-            x.DiaPreferido, x.FranjaHoraria, x.Estado, x.FechaAltaUtc, x.FechaNotificacionUtc,
-            x.Observaciones, x.BebeInscriptoId)).ToList();
+        if (maxResultados <= 0)
+        {
+            return [];
+        }
+
+
+        maxResultados =
+            Math.Min(
+                maxResultados,
+                30);
+
+
+        await using var db =
+            await factory.CreateDbContextAsync(ct);
+
+
+        var hoy =
+            DateOnly.FromDateTime(
+                DateTime.Today);
+
+
+        var busqueda =
+            Normalizar(texto);
+
+
+        // =====================================================
+        // BEBÉS ACTIVOS CON RECUPEROS DISPONIBLES
+        // =====================================================
+
+        var query =
+            db.Bebes
+                .AsNoTracking()
+
+                .Include(x =>
+                    x.NivelActual)
+
+                .Include(x =>
+                    x.Responsables)
+                    .ThenInclude(x =>
+                        x.Responsable)
+
+                .Include(x =>
+                    x.Recuperaciones)
+
+                .Where(x =>
+                    x.Estado ==
+                        EstadoBebe.Activo
+
+                    &&
+                    x.NivelActualId.HasValue
+
+                    &&
+                    x.NivelActual != null
+
+                    &&
+                    x.Recuperaciones.Any(r =>
+                        r.Estado ==
+                            EstadoRecuperacion.Disponible
+
+                        &&
+                        !r.SesionUsoId.HasValue
+
+                        &&
+                        (
+                            !r.FechaVencimiento.HasValue
+                            ||
+                            r.FechaVencimiento.Value >=
+                                hoy
+                        )));
+
+
+        // =====================================================
+        // FILTRO TEXTO
+        // =====================================================
+
+        if (!string.IsNullOrWhiteSpace(
+            busqueda))
+        {
+            var textoLower =
+                busqueda.ToLower();
+
+
+            query =
+                query.Where(x =>
+                    x.Nombre.ToLower()
+                        .Contains(textoLower)
+
+                    ||
+
+                    x.Apellido.ToLower()
+                        .Contains(textoLower)
+
+                    ||
+
+                    (
+                        x.Nombre + " " + x.Apellido
+                    )
+                    .ToLower()
+                    .Contains(textoLower)
+
+                    ||
+
+                    (
+                        x.Apellido + " " + x.Nombre
+                    )
+                    .ToLower()
+                    .Contains(textoLower));
+        }
+
+
+        var bebes =
+            await query
+                .OrderBy(x =>
+                    x.Apellido)
+
+                .ThenBy(x =>
+                    x.Nombre)
+
+                .Take(maxResultados)
+
+                .ToListAsync(ct);
+
+
+        if (bebes.Count == 0)
+        {
+            return [];
+        }
+
+
+        var bebeIds =
+            bebes
+                .Select(x =>
+                    x.Id)
+                .ToList();
+
+
+        // =====================================================
+        // RECUPEROS QUE YA ESTÁN EN LISTA DE ESPERA
+        //
+        // Un bebé puede tener más de un recupero.
+        //
+        // Si uno ya está en lista, todavía puede aparecer
+        // si tiene otro recupero disponible.
+        // =====================================================
+
+        var recuperacionesEnEspera =
+            await db.ListaEspera
+                .AsNoTracking()
+
+                .Where(x =>
+                    bebeIds.Contains(
+                        x.BebeId)
+
+                    &&
+                    x.RecuperacionId.HasValue
+
+                    &&
+                    (
+                        x.Estado ==
+                            EstadoListaEspera.Activa
+
+                        ||
+
+                        x.Estado ==
+                            EstadoListaEspera.Notificada
+                    ))
+
+                .Select(x =>
+                    x.RecuperacionId!.Value)
+
+                .ToListAsync(ct);
+
+
+        var recuperacionesEnEsperaSet =
+            recuperacionesEnEspera
+                .ToHashSet();
+
+
+        var resultado =
+            new List<BebeListaEsperaBusquedaDto>();
+
+
+        foreach (var bebe in bebes)
+        {
+            var recuperaciones =
+                bebe
+                    .Recuperaciones
+
+                    .Where(x =>
+                        x.Estado ==
+                            EstadoRecuperacion.Disponible
+
+                        &&
+                        !x.SesionUsoId.HasValue
+
+                        &&
+                        (
+                            !x.FechaVencimiento.HasValue
+                            ||
+                            x.FechaVencimiento.Value >=
+                                hoy
+                        )
+
+                        &&
+                        !recuperacionesEnEsperaSet
+                            .Contains(x.Id))
+
+                    /*
+                     * Primero mostramos los que vencen antes.
+                     *
+                     * Los que no vencen quedan últimos.
+                     */
+                    .OrderBy(x =>
+                        x.FechaVencimiento
+                        ??
+                        DateOnly.MaxValue)
+
+                    .ThenBy(x =>
+                        x.FechaGeneracion)
+
+                    .Select(x =>
+                        new RecuperacionDisponibleListaEsperaDto(
+                            x.Id,
+                            x.Tipo,
+                            x.FechaGeneracion,
+                            x.FechaVencimiento,
+                            x.SinVencimiento))
+
+                    .ToList();
+
+
+            /*
+             * Todos los recuperos disponibles de este bebé
+             * ya podrían estar actualmente en lista.
+             */
+            if (recuperaciones.Count == 0)
+            {
+                continue;
+            }
+
+
+            var principal =
+                bebe
+                    .Responsables
+
+                    .OrderByDescending(x =>
+                        x.EsContactoPrincipal)
+
+                    .ThenBy(x =>
+                        x.Responsable.Apellido)
+
+                    .ThenBy(x =>
+                        x.Responsable.Nombre)
+
+                    .FirstOrDefault();
+
+
+            resultado.Add(
+                new BebeListaEsperaBusquedaDto(
+                    bebe.Id,
+
+                    $"{bebe.Nombre} {bebe.Apellido}"
+                        .Trim(),
+
+                    bebe.NivelActualId!.Value,
+
+                    bebe.NivelActual!.Nombre,
+
+                    principal is null
+                        ? null
+                        : $"{principal.Responsable.Nombre} " +
+                          $"{principal.Responsable.Apellido}",
+
+                    principal?.Responsable.WhatsApp,
+
+                    principal?.Responsable.Email,
+
+                    recuperaciones));
+        }
+
+
+        return resultado;
     }
 
-    public async Task<IReadOnlyList<NivelEsperaDto>> ListarNivelesAsync(CancellationToken ct = default)
+
+    // =========================================================
+    // LISTAR
+    // =========================================================
+
+    public async Task<IReadOnlyList<ListaEsperaItemDto>>
+        ListarAsync(
+            bool incluirFinalizadas = false,
+            CancellationToken ct = default)
     {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.Niveles.AsNoTracking().Where(x => x.Activo).OrderBy(x => x.Orden)
-            .Select(x => new NivelEsperaDto(x.Id, x.Nombre)).ToListAsync(ct);
+        await using var db =
+            await factory.CreateDbContextAsync(ct);
+
+
+        var hoy =
+            DateOnly.FromDateTime(
+                DateTime.Today);
+
+
+        /*
+         * Primero dejamos consistentes las solicitudes
+         * cuyos recuperos ya vencieron.
+         */
+        await ActualizarVencidasAsync(
+            db,
+            hoy,
+            ct);
+
+
+        var query =
+            db.ListaEspera
+                .AsNoTracking()
+
+                .Include(x =>
+                    x.Bebe)
+                    .ThenInclude(x =>
+                        x.Responsables)
+                            .ThenInclude(x =>
+                                x.Responsable)
+
+                .Include(x =>
+                    x.Nivel)
+
+                .Include(x =>
+                    x.Recuperacion)
+
+                .AsQueryable();
+
+
+        if (!incluirFinalizadas)
+        {
+            query =
+                query.Where(x =>
+                    x.Estado ==
+                        EstadoListaEspera.Activa
+
+                    ||
+
+                    x.Estado ==
+                        EstadoListaEspera.Notificada);
+        }
+
+
+        var items =
+            await query
+                .OrderBy(x =>
+                    x.Estado)
+
+                .ThenBy(x =>
+                    x.FechaAltaUtc)
+
+                .ToListAsync(ct);
+
+
+        return items
+            .Select(Mapear)
+            .ToList();
     }
 
-    public async Task<IReadOnlyList<TurnoEsperaDto>> ListarTurnosAsync(CancellationToken ct = default)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.Turnos.AsNoTracking().Where(x => x.Estado == EstadoTurno.Activo)
-            .OrderBy(x => x.DiaSemana).ThenBy(x => x.HoraInicio)
-            .Select(x => new TurnoEsperaDto(x.Id, x.NivelId, x.Nombre, x.DiaSemana, x.HoraInicio))
-            .ToListAsync(ct);
-    }
 
-    public async Task<IReadOnlyList<BebeInscritoEsperaDto>> BuscarInscritosAsync(string texto, CancellationToken ct = default)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        texto = (texto ?? "").Trim().ToLower();
-        if (texto.Length < 2) return [];
-        return await db.Inscripciones.AsNoTracking()
-            .Where(x => x.Estado == EstadoInscripcion.Activa &&
-                (x.Bebe.Nombre.ToLower().Contains(texto) || x.Bebe.Apellido.ToLower().Contains(texto)))
-            .Select(x => new BebeInscritoEsperaDto(x.BebeId, x.Bebe.Nombre + " " + x.Bebe.Apellido))
-            .Distinct().Take(20).ToListAsync(ct);
-    }
+    // =========================================================
+    // AGREGAR
+    // =========================================================
 
-    public async Task<Guid> AgregarAsync(CrearListaEsperaDto dto, CancellationToken ct = default)
+    public async Task<Guid> AgregarAsync(
+        CrearListaEsperaDto dto,
+        CancellationToken ct = default)
     {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        await ValidarAsync(db, dto, ct);
-        var telefono = dto.Telefono.Trim();
-        if (await db.EsperaInscripciones.AnyAsync(x => x.Telefono == telefono && x.NivelId == dto.NivelId &&
-            (x.Estado == EstadoListaEspera.Activa || x.Estado == EstadoListaEspera.Notificada), ct))
-            throw new InvalidOperationException("Ya hay una solicitud activa para ese teléfono y nivel. Editá la existente.");
-        var item = new EsperaInscripcion { Id = Guid.NewGuid() };
-        Copiar(item, dto);
-        db.EsperaInscripciones.Add(item);
+        ValidarDto(
+            dto.DiaPreferido,
+            dto.FranjaHoraria,
+            dto.Observaciones);
+
+
+        await using var db =
+            await factory.CreateDbContextAsync(ct);
+
+
+        await using var transaction =
+            await db.Database
+                .BeginTransactionAsync(ct);
+
+
+        var hoy =
+            DateOnly.FromDateTime(
+                DateTime.Today);
+
+
+        // =====================================================
+        // BEBÉ
+        // =====================================================
+
+        var bebe =
+            await db.Bebes
+
+                .Include(x =>
+                    x.NivelActual)
+
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id ==
+                            dto.BebeId,
+                    ct)
+
+            ?? throw new InvalidOperationException(
+                "El bebé seleccionado no existe.");
+
+
+        if (bebe.Estado !=
+            EstadoBebe.Activo)
+        {
+            throw new InvalidOperationException(
+                "El bebé seleccionado no se encuentra activo.");
+        }
+
+
+        if (
+            !bebe.NivelActualId.HasValue
+            ||
+            bebe.NivelActual is null)
+        {
+            throw new InvalidOperationException(
+                "El bebé no tiene un nivel actual asignado.");
+        }
+
+
+        // =====================================================
+        // RECUPERO
+        // =====================================================
+
+        var recuperacion =
+            await db.Recuperaciones
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id ==
+                            dto.RecuperacionId,
+                    ct)
+
+            ?? throw new InvalidOperationException(
+                "El recupero seleccionado no existe.");
+
+
+        if (recuperacion.BebeId !=
+            bebe.Id)
+        {
+            throw new InvalidOperationException(
+                "El recupero seleccionado no pertenece al bebé.");
+        }
+
+
+        if (recuperacion.Estado !=
+            EstadoRecuperacion.Disponible)
+        {
+            throw new InvalidOperationException(
+                "El recupero seleccionado ya no está disponible.");
+        }
+
+
+        if (recuperacion.SesionUsoId.HasValue)
+        {
+            throw new InvalidOperationException(
+                "El recupero seleccionado ya tiene una clase asignada.");
+        }
+
+
+        // =====================================================
+        // VENCIMIENTO
+        // =====================================================
+
+        if (
+            recuperacion.FechaVencimiento.HasValue
+            &&
+            recuperacion.FechaVencimiento.Value <
+                hoy)
+        {
+            recuperacion.Estado =
+                EstadoRecuperacion.Vencida;
+
+
+            await db.SaveChangesAsync(ct);
+
+            await transaction.CommitAsync(ct);
+
+
+            throw new InvalidOperationException(
+                "El recupero seleccionado se encuentra vencido.");
+        }
+
+
+        // =====================================================
+        // NO DUPLICAR EL MISMO RECUPERO EN LA LISTA
+        // =====================================================
+
+        var yaExiste =
+            await db.ListaEspera
+                .AnyAsync(
+                    x =>
+                        x.RecuperacionId ==
+                            recuperacion.Id
+
+                        &&
+                        (
+                            x.Estado ==
+                                EstadoListaEspera.Activa
+
+                            ||
+
+                            x.Estado ==
+                                EstadoListaEspera.Notificada
+                        ),
+                    ct);
+
+
+        if (yaExiste)
+        {
+            throw new InvalidOperationException(
+                "Ese recupero ya se encuentra en la lista de espera.");
+        }
+
+
+        // =====================================================
+        // CREAR SOLICITUD
+        // =====================================================
+
+        var item =
+            new ListaEsperaEntity
+            {
+                Id =
+                    Guid.NewGuid(),
+
+                BebeId =
+                    bebe.Id,
+
+                NivelId =
+                    bebe.NivelActualId.Value,
+
+                TurnoId =
+                    null,
+
+                RecuperacionId =
+                    recuperacion.Id,
+
+                DiaPreferido =
+                    dto.DiaPreferido,
+
+                FranjaHoraria =
+                    dto.FranjaHoraria,
+
+                Estado =
+                    EstadoListaEspera.Activa,
+
+                FechaAltaUtc =
+                    DateTimeOffset.UtcNow,
+
+                Observaciones =
+                    Normalizar(
+                        dto.Observaciones)
+            };
+
+
+        db.ListaEspera.Add(
+            item);
+
+
         await db.SaveChangesAsync(ct);
+
+        await transaction.CommitAsync(ct);
+
+
         return item.Id;
     }
 
-    public async Task ActualizarAsync(Guid id, ActualizarListaEsperaDto dto, CancellationToken ct = default)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        var item = await db.EsperaInscripciones.FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new InvalidOperationException("La solicitud no existe.");
-        if (item.Estado is EstadoListaEspera.Asignada or EstadoListaEspera.Cancelada or EstadoListaEspera.Vencida)
-            throw new InvalidOperationException("No podés editar una solicitud finalizada.");
-        await ValidarAsync(db, dto, ct);
-        if (await db.EsperaInscripciones.AnyAsync(x => x.Id != id && x.Telefono == dto.Telefono.Trim() &&
-            x.NivelId == dto.NivelId && (x.Estado == EstadoListaEspera.Activa || x.Estado == EstadoListaEspera.Notificada), ct))
-            throw new InvalidOperationException("Ya hay una solicitud activa para ese teléfono y nivel.");
-        Copiar(item, dto);
-        await db.SaveChangesAsync(ct);
-    }
 
-    public async Task CambiarEstadoAsync(Guid id, EstadoListaEspera estado, Guid? bebeInscriptoId = null, CancellationToken ct = default)
+    // =========================================================
+    // ACTUALIZAR PREFERENCIAS
+    // =========================================================
+
+    public async Task ActualizarAsync(
+        Guid listaEsperaId,
+        ActualizarListaEsperaDto dto,
+        CancellationToken ct = default)
     {
-        if (estado is not (EstadoListaEspera.Activa or EstadoListaEspera.Notificada or EstadoListaEspera.Asignada or EstadoListaEspera.Cancelada))
-            throw new InvalidOperationException("Estado inválido.");
-        await using var db = await factory.CreateDbContextAsync(ct);
-        var item = await db.EsperaInscripciones.FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new InvalidOperationException("La solicitud no existe.");
-        if (item.Estado == EstadoListaEspera.Asignada && estado != EstadoListaEspera.Asignada)
-            throw new InvalidOperationException("Una inscripción concretada no se puede reabrir.");
-        if (estado == EstadoListaEspera.Asignada)
+        ValidarDto(
+            dto.DiaPreferido,
+            dto.FranjaHoraria,
+            dto.Observaciones);
+
+
+        await using var db =
+            await factory.CreateDbContextAsync(ct);
+
+
+        var item =
+            await db.ListaEspera
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id ==
+                            listaEsperaId,
+                    ct)
+
+            ?? throw new InvalidOperationException(
+                "La solicitud de lista de espera no existe.");
+
+
+        if (item.Estado is
+            EstadoListaEspera.Asignada
+            or
+            EstadoListaEspera.Cancelada
+            or
+            EstadoListaEspera.Vencida)
         {
-            if (!bebeInscriptoId.HasValue || !await db.Bebes.AnyAsync(x => x.Id == bebeInscriptoId.Value, ct))
-                throw new InvalidOperationException("Para marcar como inscripto, vinculá un bebé existente.");
-            if (!await db.Inscripciones.AnyAsync(x => x.BebeId == bebeInscriptoId.Value && x.Estado == EstadoInscripcion.Activa, ct))
-                throw new InvalidOperationException("El bebé seleccionado no tiene inscripción activa.");
-            item.BebeInscriptoId = bebeInscriptoId;
+            throw new InvalidOperationException(
+                "La solicitud ya no puede modificarse.");
         }
-        item.Estado = estado;
-        if (estado == EstadoListaEspera.Notificada) item.FechaNotificacionUtc = DateTimeOffset.UtcNow;
+
+
+        item.DiaPreferido =
+            dto.DiaPreferido;
+
+
+        item.FranjaHoraria =
+            dto.FranjaHoraria;
+
+
+        item.Observaciones =
+            Normalizar(
+                dto.Observaciones);
+
+
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task ValidarAsync(AppDbContext db, CrearListaEsperaDto dto, CancellationToken ct)
+
+    // =========================================================
+    // CANCELAR
+    // =========================================================
+
+    public async Task CancelarAsync(
+        Guid listaEsperaId,
+        CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(dto.NombreBebe) || dto.NombreBebe.Trim().Length > 200 ||
-            string.IsNullOrWhiteSpace(dto.NombreResponsable) || dto.NombreResponsable.Trim().Length > 200 ||
-            string.IsNullOrWhiteSpace(dto.Telefono) || dto.Telefono.Trim().Length > 60)
-            throw new InvalidOperationException("Completá nombre del niño, responsable y teléfono (máximo 200/200/60 caracteres).");
-        if (dto.Email?.Length > 200 || dto.Observaciones?.Length > 1000)
-            throw new InvalidOperationException("Email u observaciones superan el largo permitido.");
-        if (!await db.Niveles.AnyAsync(x => x.Id == dto.NivelId && x.Activo, ct))
-            throw new InvalidOperationException("Seleccioná un nivel válido.");
-        if (dto.TurnoId.HasValue && !await db.Turnos.AnyAsync(x => x.Id == dto.TurnoId.Value && x.NivelId == dto.NivelId && x.Estado == EstadoTurno.Activo, ct))
-            throw new InvalidOperationException("El horario no corresponde al nivel seleccionado.");
-        if (dto.DiaPreferido.HasValue && !Enum.IsDefined(dto.DiaPreferido.Value))
-            throw new InvalidOperationException("Día inválido.");
-        if (!Enum.IsDefined(dto.FranjaHoraria)) throw new InvalidOperationException("Franja horaria inválida.");
+        await using var db =
+            await factory.CreateDbContextAsync(ct);
+
+
+        var item =
+            await db.ListaEspera
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.Id ==
+                            listaEsperaId,
+                    ct)
+
+            ?? throw new InvalidOperationException(
+                "La solicitud de lista de espera no existe.");
+
+
+        if (item.Estado ==
+            EstadoListaEspera.Cancelada)
+        {
+            return;
+        }
+
+
+        if (item.Estado ==
+            EstadoListaEspera.Asignada)
+        {
+            throw new InvalidOperationException(
+                "No puede cancelar una solicitud que ya fue asignada.");
+        }
+
+
+        item.Estado =
+            EstadoListaEspera.Cancelada;
+
+
+        await db.SaveChangesAsync(ct);
     }
-    private static void Copiar(EsperaInscripcion x, CrearListaEsperaDto dto)
+
+
+    // =========================================================
+    // ACTUALIZAR SOLICITUDES VENCIDAS
+    // =========================================================
+
+    private static async Task ActualizarVencidasAsync(
+        AppDbContext db,
+        DateOnly hoy,
+        CancellationToken ct)
     {
-        x.NombreBebe = dto.NombreBebe.Trim(); x.NombreResponsable = dto.NombreResponsable.Trim();
-        x.Telefono = dto.Telefono.Trim(); x.Email = dto.Email?.Trim(); x.NivelId = dto.NivelId;
-        x.TurnoId = dto.TurnoId; x.DiaPreferido = dto.DiaPreferido; x.FranjaHoraria = dto.FranjaHoraria;
-        x.Observaciones = dto.Observaciones?.Trim();
+        var solicitudes =
+            await db.ListaEspera
+
+                .Include(x =>
+                    x.Recuperacion)
+
+                .Where(x =>
+                    x.RecuperacionId.HasValue
+
+                    &&
+                    (
+                        x.Estado ==
+                            EstadoListaEspera.Activa
+
+                        ||
+
+                        x.Estado ==
+                            EstadoListaEspera.Notificada
+                    ))
+
+                .ToListAsync(ct);
+
+
+        var huboCambios =
+            false;
+
+
+        foreach (var solicitud in solicitudes)
+        {
+            var recuperacion =
+                solicitud.Recuperacion;
+
+
+            if (recuperacion is null)
+            {
+                continue;
+            }
+
+
+            // -------------------------------------------------
+            // RECUPERO VENCIDO
+            // -------------------------------------------------
+
+            if (
+                recuperacion.Estado ==
+                    EstadoRecuperacion.Vencida
+
+                ||
+
+                (
+                    recuperacion.FechaVencimiento.HasValue
+                    &&
+                    recuperacion.FechaVencimiento.Value <
+                        hoy
+                ))
+            {
+                solicitud.Estado =
+                    EstadoListaEspera.Vencida;
+
+                huboCambios =
+                    true;
+
+                continue;
+            }
+
+
+            // -------------------------------------------------
+            // RECUPERO ANULADO
+            // -------------------------------------------------
+
+            if (recuperacion.Estado ==
+                EstadoRecuperacion.Anulada)
+            {
+                solicitud.Estado =
+                    EstadoListaEspera.Cancelada;
+
+                huboCambios =
+                    true;
+            }
+        }
+
+
+        if (huboCambios)
+        {
+            await db.SaveChangesAsync(ct);
+        }
+    }
+
+
+    // =========================================================
+    // MAPEO
+    // =========================================================
+
+    private static ListaEsperaItemDto Mapear(
+        ListaEsperaEntity item)
+    {
+        var principal =
+            item
+                .Bebe
+                .Responsables
+
+                .OrderByDescending(x =>
+                    x.EsContactoPrincipal)
+
+                .ThenBy(x =>
+                    x.Responsable.Apellido)
+
+                .ThenBy(x =>
+                    x.Responsable.Nombre)
+
+                .FirstOrDefault();
+
+
+        return new ListaEsperaItemDto(
+            item.Id,
+
+            item.BebeId,
+
+            $"{item.Bebe.Nombre} {item.Bebe.Apellido}"
+                .Trim(),
+
+            item.NivelId,
+
+            item.Nivel.Nombre,
+
+            item.RecuperacionId,
+
+            item.Recuperacion?.Tipo,
+
+            item.Recuperacion?.FechaVencimiento,
+
+            item.DiaPreferido,
+
+            item.FranjaHoraria,
+
+            item.Estado,
+
+            item.FechaAltaUtc,
+
+            item.Observaciones,
+
+            principal is null
+                ? null
+                : $"{principal.Responsable.Nombre} " +
+                  $"{principal.Responsable.Apellido}",
+
+            principal?.Responsable.WhatsApp,
+
+            principal?.Responsable.Email);
+    }
+
+
+    // =========================================================
+    // VALIDACIONES
+    // =========================================================
+
+    private static void ValidarDto(
+        DiaSemana? diaPreferido,
+        FranjaHoraria franja,
+        string? observaciones)
+    {
+        if (
+            diaPreferido.HasValue
+            &&
+            !Enum.IsDefined(
+                typeof(DiaSemana),
+                diaPreferido.Value))
+        {
+            throw new InvalidOperationException(
+                "El día preferido no es válido.");
+        }
+
+
+        if (!Enum.IsDefined(
+            typeof(FranjaHoraria),
+            franja))
+        {
+            throw new InvalidOperationException(
+                "La franja horaria no es válida.");
+        }
+
+
+        if (
+            observaciones is not null
+            &&
+            observaciones.Trim().Length >
+                1000)
+        {
+            throw new InvalidOperationException(
+                "Las observaciones no pueden superar los 1000 caracteres.");
+        }
+    }
+
+
+    // =========================================================
+    // NORMALIZAR
+    // =========================================================
+
+    private static string? Normalizar(
+        string? texto)
+    {
+        return string.IsNullOrWhiteSpace(
+            texto)
+            ? null
+            : texto.Trim();
     }
 }

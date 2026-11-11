@@ -923,72 +923,6 @@
 
 
 /* ============================================================
-   ESTADO DE CUOTAS - mismos colores que Turnera
-   ============================================================ */
-
-.attendance-payment-summary {
-    margin: 0 0 12px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    border: 1px solid var(--mud-palette-divider);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--mud-palette-surface) 96%, var(--mud-palette-primary) 4%);
-}
-
-.attendance-payment-summary-label {
-    margin-right: 4px;
-    color: var(--mud-palette-text-secondary);
-    font-family: var(--bn-font-title);
-    font-weight: 800;
-    font-size: 10px;
-    letter-spacing: .5px;
-}
-
-.attendance-payment-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    flex: 0 0 auto;
-    padding: 5px 9px;
-    border-radius: 7px;
-    border: 1px solid transparent;
-    font-family: var(--bn-font-title);
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1.2;
-    white-space: nowrap;
-}
-
-.attendance-payment-badge ::deep .mud-icon-root {
-    font-size: 15px;
-}
-
-.attendance-payment-badge--current {
-    color: #168259;
-    color: color-mix(in srgb, #1baf7c 65%, var(--mud-palette-text-primary) 35%);
-    background: rgba(25, 161, 108, .11);
-    border-color: rgba(25, 161, 108, .28);
-}
-
-.attendance-payment-badge--one {
-    color: #cd304c;
-    color: color-mix(in srgb, #f03c5c 65%, var(--mud-palette-text-primary) 35%);
-    background: rgba(223, 49, 80, .11);
-    border-color: rgba(223, 49, 80, .30);
-}
-
-.attendance-payment-badge--multiple {
-    color: #8744c4;
-    color: color-mix(in srgb, #a35ce5 65%, var(--mud-palette-text-primary) 35%);
-    background: rgba(147, 72, 201, .11);
-    border-color: rgba(147, 72, 201, .30);
-}
-
-/* ============================================================
    STUDENTS
    ============================================================ */
 
@@ -1114,7 +1048,6 @@
 .student-name > div {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
 
     gap: 6px;
 }

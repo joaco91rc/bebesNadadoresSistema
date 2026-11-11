@@ -1,0 +1,27 @@
+@using BebesNadadores.Web.Services.Finanzas
+
+<span class="fin-badge @Clase" title="@Descripcion" aria-label="@Descripcion">
+    @Texto
+</span>
+
+@code {
+    [Parameter] public IndicadorFinancieroDto? Estado { get; set; }
+
+    private string Texto => Estado?.Tipo switch
+    {
+        IndicadorFinancieroTipo.AlDia => "Al día",
+        IndicadorFinancieroTipo.DebeUna => "Debe 1 cuota",
+        IndicadorFinancieroTipo.DebeVarias => "Debe +1 cuota",
+        _ => "Revisar"
+    };
+
+    private string Clase => Estado?.Tipo switch
+    {
+        IndicadorFinancieroTipo.AlDia => "fin-ok",
+        IndicadorFinancieroTipo.DebeUna => "fin-one",
+        IndicadorFinancieroTipo.DebeVarias => "fin-many",
+        _ => "fin-review"
+    };
+
+    private string Descripcion => Estado?.Motivo ?? "No se pudo verificar el estado financiero.";
+}

@@ -15,9 +15,16 @@ public class Recuperacion : EntidadAuditable
     public Inscripcion Inscripcion { get; set; } = null!;
 
 
-    public Guid SesionOrigenId { get; set; }
+    public Guid? SesionOrigenId { get; set; }
 
-    public SesionClase SesionOrigen { get; set; } = null!;
+    public SesionClase? SesionOrigen { get; set; }
+
+    // Saldo histórico confirmado: sin clase de origen inventada.
+    public Guid? NivelOrigenId { get; set; }
+    public Nivel? NivelOrigen { get; set; }
+    public int? NumeroCreditoHistorico { get; set; }
+    public DateOnly? FechaVerificacionHistorica { get; set; }
+    public string? ObservacionesRegularizacion { get; set; }
 
 
     /*
