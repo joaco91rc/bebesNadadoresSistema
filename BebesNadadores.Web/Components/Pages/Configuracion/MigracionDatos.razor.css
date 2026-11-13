@@ -207,17 +207,24 @@
     overflow-wrap: anywhere
 }
 
-.bn-file-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    overflow: hidden;
-    clip-path: inset(50%)
+/* InputFile renders its native <input> inside a child component.
+   Hide a real wrapper in this CSS-isolated page, not a class on InputFile. */
+.bn-file-native-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important
 }
 
-.bn-file-input:focus-visible+.bn-btn {
-    outline: 3px solid rgba(36, 139, 209, .35)
+.bn-file-native-hidden ::deep input[type="file"] {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important
 }
 
 .datos {

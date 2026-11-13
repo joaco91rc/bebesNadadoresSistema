@@ -50,9 +50,11 @@
             <label for="migracion-archivo-sql" class="bn-btn bn-btn-primary @((_trabajando || Ejecutor.Ocupado) ? "bn-btn-disabled" : "")">
                 Seleccionar archivo SQL
             </label>
-            <InputFile id="migracion-archivo-sql" class="bn-file-input"
-                       OnChange="Seleccionar" accept=".sql"
-                       disabled="@(_trabajando || Ejecutor.Ocupado)" />
+            <span class="bn-file-native-hidden">
+                <InputFile id="migracion-archivo-sql"
+                           OnChange="Seleccionar" accept=".sql"
+                           disabled="@(_trabajando || Ejecutor.Ocupado)" />
+            </span>
         </div>
 
         @if (_fase == FaseOperacion.CargandoSql)
@@ -166,7 +168,9 @@
                 <strong>Tarifas mensuales</strong>
                 <code>tarifas_validadas_2026.csv</code>
                 <label for="tarifas-generales" class="bn-btn bn-btn-outline @((ArchivosDeshabilitados) ? "bn-btn-disabled" : "")">Seleccionar CSV</label>
-                <InputFile id="tarifas-generales" class="bn-file-input" OnChange="SubirTarifasGenerales" accept=".csv" disabled="@ArchivosDeshabilitados" />
+                <span class="bn-file-native-hidden">
+                    <InputFile id="tarifas-generales" OnChange="SubirTarifasGenerales" accept=".csv" disabled="@ArchivosDeshabilitados" />
+                </span>
                 @if (!string.IsNullOrEmpty(_tarifasGeneralesEstado)) { <p class="bn-csv-feedback">@_tarifasGeneralesEstado</p> }
             </div>
             <div class="bn-csv-panel">
@@ -174,7 +178,9 @@
                 <code>tarifas_excepciones_2026.csv</code>
                 <span class="muted">Puede contener solo encabezado.</span>
                 <label for="tarifas-excepciones" class="bn-btn bn-btn-outline @((ArchivosDeshabilitados) ? "bn-btn-disabled" : "")">Seleccionar CSV</label>
-                <InputFile id="tarifas-excepciones" class="bn-file-input" OnChange="SubirTarifasExcepciones" accept=".csv" disabled="@ArchivosDeshabilitados" />
+                <span class="bn-file-native-hidden">
+                    <InputFile id="tarifas-excepciones" OnChange="SubirTarifasExcepciones" accept=".csv" disabled="@ArchivosDeshabilitados" />
+                </span>
                 @if (!string.IsNullOrEmpty(_tarifasExcepcionesEstado)) { <p class="bn-csv-feedback">@_tarifasExcepcionesEstado</p> }
             </div>
         </div>
