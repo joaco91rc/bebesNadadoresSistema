@@ -248,50 +248,107 @@ public sealed class MigracionEjecucionService(
             throw new InvalidOperationException("La base destino ya contiene datos operativos. No se mezcla ni sobreescribe información existente: preparar una base limpia con maestros y usuarios.");
     }
 
-    // El dump legado incluye varios esquemas, incluso mysql. Copiamos el bloque bbn2
-    // SIN interpretar ni recodificar los bytes de sus INSERT, para no alterar acentos.
-    // Las credenciales restringidas de staging son la barrera obligatoria de seguridad.
+    // Acepta dos formatos de respaldo MySQL:
+    // 1) Exportación antigua multibase: CREATE DATABASE `bbn2`; USE `bbn2`;
+    //    al principio. Conservamos exclusivamente el primer bloque bbn2.
+    // 2) mysqldump de una sola base: encabezado "-- Host: ... Database: bbn2",
+    //    sin CREATE DATABASE ni USE. Se importa en la base de staging YA seleccionada.
+    // Los INSERT se mantienen byte a byte (Latin1 se usa solo para sustituir DEFINER).
+    // La cuenta MySQL de staging debe tener privilegios SOLO sobre bbn_migracion_*.
     private static async Task ExtraerSoloBbn2Async(string source, string destination)
     {
         var bytes = await File.ReadAllBytesAsync(source);
+        if (bytes.Length < 1024)
+            throw new InvalidOperationException("El respaldo está vacío o incompleto.");
+
         var finPrimera = Array.IndexOf(bytes, (byte)'\n', 0);
         var finSegunda = finPrimera < 0 ? -1 : Array.IndexOf(bytes, (byte)'\n', finPrimera + 1);
         if (finPrimera < 0 || finSegunda < 0)
             throw new InvalidOperationException("El respaldo no tiene encabezado válido.");
-        var primera = Encoding.ASCII.GetString(bytes, 0, Math.Min(finPrimera, 200)).TrimStart('\uFEFF');
-        var segunda = Encoding.ASCII.GetString(bytes, finPrimera + 1, Math.Min(finSegunda - finPrimera - 1, 200));
-        if (!Regex.IsMatch(primera, "^CREATE\\s+DATABASE\\s+IF\\s+NOT\\s+EXISTS\\s+`bbn2`", RegexOptions.IgnoreCase) ||
-            !Regex.IsMatch(segunda, "^USE\\s+`bbn2`\\s*;", RegexOptions.IgnoreCase))
-            throw new InvalidOperationException("El SQL no comienza con CREATE DATABASE bbn2 / USE bbn2. No se restaura.");
-        var inicio = finSegunda + 1;
-        var finBloque = bytes.Length;
-        var nLineas = 0;
-        for (var pos = inicio; pos < bytes.Length;)
+
+        var primera = Encoding.ASCII.GetString(bytes, 0, Math.Min(finPrimera, 200))
+            .TrimStart('\uFEFF').Trim();
+        var segunda = Encoding.ASCII.GetString(bytes, finPrimera + 1,
+            Math.Min(finSegunda - finPrimera - 1, 200)).Trim();
+
+        int inicio;
+        int finBloque;
+
+        if (Regex.IsMatch(primera,
+                @"^CREATE\s+DATABASE\s+IF\s+NOT\s+EXISTS\s+`bbn2`",
+                RegexOptions.IgnoreCase) &&
+            Regex.IsMatch(segunda, @"^USE\s+`bbn2`\s*;", RegexOptions.IgnoreCase))
         {
-            var finLinea = Array.IndexOf(bytes, (byte)'\n', pos);
-            if (finLinea < 0) finLinea = bytes.Length;
-            var limite = Math.Min(160, finLinea - pos);
-            var encabezado = Encoding.ASCII.GetString(bytes, pos, limite).TrimStart();
-            if (Regex.IsMatch(encabezado, "^(CREATE\\s+DATABASE|USE\\s+`)", RegexOptions.IgnoreCase))
+            // Respaldo multibase. Solo aislamos su primer bloque, como antes.
+            inicio = finSegunda + 1;
+            finBloque = bytes.Length;
+            for (var pos = inicio; pos < bytes.Length;)
             {
-                finBloque = pos;
-                break;
+                var finLinea = Array.IndexOf(bytes, (byte)'\n', pos);
+                if (finLinea < 0) finLinea = bytes.Length;
+                var encabezado = Encoding.ASCII.GetString(bytes, pos,
+                    Math.Min(160, finLinea - pos)).TrimStart();
+                if (Regex.IsMatch(encabezado,
+                        @"^(CREATE\s+DATABASE|USE\s+`)", RegexOptions.IgnoreCase))
+                {
+                    finBloque = pos;
+                    break;
+                }
+                pos = finLinea + 1;
             }
-            if (encabezado.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase) &&
-                encabezado.Contains("INTO OUTFILE", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Sentencia OUTFILE inesperada en el dump.");
-            nLineas++;
-            pos = finLinea + 1;
         }
-        if (nLineas < 100)
-            throw new InvalidOperationException("El bloque bbn2 parece incompleto.");
-        // Los triggers y vistas antiguos especifican DEFINER=SECRETARIA/root, que
-        // un usuario de staging restringido no debe poder adoptar. Se remueve solo
-        // esa cláusula y se mantienen los demás bytes del dump en su codificación.
+        else
+        {
+            // Respaldo monobase de MySQL 5.1 (ej.: BebesNadadoresBase.sql).
+            // La base bbn2 figura en el comentario del encabezado; no ejecutamos
+            // CREATE DATABASE/USE porque la conexión CLI selecciona staging.
+            var encabezado = Encoding.ASCII.GetString(bytes, 0,
+                Math.Min(bytes.Length, 4096));
+            if (!encabezado.Contains("MySQL dump", StringComparison.OrdinalIgnoreCase) ||
+                !Regex.IsMatch(encabezado,
+                    @"(?m)^--\s*Host:\s*[^\r\n]*?\bDatabase:\s*`?bbn2`?\s*\r?$",
+                    RegexOptions.IgnoreCase))
+                throw new InvalidOperationException(
+                    "El SQL no corresponde a un mysqldump de la base bbn2. No se restaura.");
+
+            inicio = 0;
+            finBloque = bytes.Length;
+        }
+
         var bloque = Encoding.Latin1.GetString(bytes, inicio, finBloque - inicio);
+
+        // Una base MySQL aislada no debe poder cambiarse desde el archivo.
+        // Revisamos todas las líneas, incluyendo las instrucciones ejecutables /*!...*/.
+        // Estas defensas complementan los privilegios restringidos del usuario MySQL.
+        if (Regex.IsMatch(bloque,
+                @"(?im)^\s*(?:CREATE|DROP|ALTER)\s+(?:DATABASE|SCHEMA)\b|^\s*USE\s+[`\w]",
+                RegexOptions.IgnoreCase | RegexOptions.Multiline) ||
+            Regex.IsMatch(bloque,
+                @"(?im)^\s*/\*!\d{5}\s+(?:(?:CREATE|DROP|ALTER)\s+(?:DATABASE|SCHEMA)\b|USE\s+)",
+                RegexOptions.IgnoreCase | RegexOptions.Multiline) ||
+            Regex.IsMatch(bloque, @"(?i)\bINTO\s+(?:OUTFILE|DUMPFILE)\b") ||
+            Regex.IsMatch(bloque, @"(?im)^\s*(?:SOURCE|\\\.|SYSTEM)\s+"))
+            throw new InvalidOperationException(
+                "El SQL incluye comandos que podrían abandonar el esquema temporal. No se restaura.");
+
+        // No aceptar nombres de base calificados en SQL ejecutable del dump.
+        // Evita operaciones directas sobre esquemas diferentes al seleccionado.
+        if (Regex.IsMatch(bloque,
+                @"(?i)\b(?:FROM|JOIN|INTO|UPDATE|TABLE|VIEW|TRIGGER|REFERENCES)\s+`[^`]+`\s*\.\s*`"))
+            throw new InvalidOperationException(
+                "El SQL contiene objetos calificados con un nombre de base. Revisar antes de restaurar.");
+
+        var tablas = Regex.Matches(bloque, @"(?im)^CREATE\s+TABLE\s+`?\w+`?\s*\(").Count;
+        if (tablas < 10 || bloque.Count(c => c == '\n') < 100)
+            throw new InvalidOperationException(
+                "El bloque bbn2 parece incompleto: faltan tablas o contenido.");
+
+        // El dump de MySQL 5.1 contiene DEFINER de usuarios SECRETARIA/root.
+        // Al quitarlos, los objetos quedan bajo el usuario restringido de staging.
         bloque = Regex.Replace(bloque,
-            @"/\*!\d{5}\s+DEFINER=[^\r\n]*?\*/", "/* DEFINER legado omitido */",
-            RegexOptions.IgnoreCase);
+            @"/\*!\d{5}\s+DEFINER=[^\r\n]*?\*/",
+            "/* DEFINER legado omitido */", RegexOptions.IgnoreCase);
+
         await File.WriteAllBytesAsync(destination, Encoding.Latin1.GetBytes(bloque));
     }
 
