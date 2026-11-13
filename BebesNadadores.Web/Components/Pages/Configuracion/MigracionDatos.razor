@@ -40,6 +40,12 @@
        @bind="_corte"
        @bind:format="yyyy-MM-dd"
        disabled="@(_trabajando || Ejecutor.Ocupado)" /><div style="margin-top:12px">
+       <p class="muted">
+    Diagnóstico:
+    Trabajando=@_trabajando |
+    Ejecutor ocupado=@Ejecutor.Ocupado |
+    SQL cargado=@(_analisis is not null)
+</p>
             <button @onclick="Preparar" disabled="@(_analisis is null || _trabajando || Ejecutor.Ocupado)">Restaurar staging + simular (ROLLBACK)</button>
         </div>
         @if (_analisis is not null)
