@@ -237,9 +237,20 @@ public sealed class MigracionEjecucionService(
         {
             if (actual != "BebesNadadores_MigracionTest")
                 throw new InvalidOperationException("Destino prohibido: solo BebesNadadores_MigracionTest.");
-            var postgres = new Npgsql.NpgsqlConnectionStringBuilder(db.Database.GetDbConnection().ConnectionString);
-            if (postgres.Host != "localhost" && postgres.Host != "127.0.0.1")
-                throw new InvalidOperationException("La base PostgreSQL de TEST debe estar en localhost.");
+            var postgres = new Npgsql.NpgsqlConnectionStringBuilder(
+    db.Database.GetDbConnection().ConnectionString);
+
+var postgres = new Npgsql.NpgsqlConnectionStringBuilder(
+    db.Database.GetDbConnection().ConnectionString);
+
+var hostPermitido = configuration["Migracion:PostgresHostTestPermitido"];
+
+if (string.IsNullOrWhiteSpace(hostPermitido) ||
+    !string.Equals(postgres.Host, hostPermitido, StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "Host PostgreSQL de TEST no autorizado.");
+}
         }
         if (await db.Bebes.AnyAsync() || await db.Inscripciones.AnyAsync() ||
             await db.Asistencias.AnyAsync() || await db.Recuperaciones.AnyAsync() ||
