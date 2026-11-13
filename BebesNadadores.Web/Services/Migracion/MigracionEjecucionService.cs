@@ -240,8 +240,7 @@ public sealed class MigracionEjecucionService(
             var postgres = new Npgsql.NpgsqlConnectionStringBuilder(
     db.Database.GetDbConnection().ConnectionString);
 
-var postgres = new Npgsql.NpgsqlConnectionStringBuilder(
-    db.Database.GetDbConnection().ConnectionString);
+
 
 var hostPermitido = configuration["Migracion:PostgresHostTestPermitido"];
 
