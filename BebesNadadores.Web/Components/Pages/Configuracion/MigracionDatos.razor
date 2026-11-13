@@ -35,8 +35,11 @@
         <h2>2. Preparar y simular</h2>
         <p class="muted">Requiere MySQL temporal aislado, PostgreSQL destino vacío de alumnos/pagos/cuotas, y entorno habilitado. El SQL original nunca se ejecuta en PostgreSQL.</p>
         <label>Fecha de corte del respaldo</label>
-        <input type="date" id="fecha-corte-migracion" class="form-control" @bind="_corte" @bind:format="yyyy-MM-dd" disabled="@(_trabajando || Ejecutor.Ocupado)" style="display:block;max-width:260px;width:100%;padding:11px 12px;border:1px solid #7899ac;border-radius:9px;background:var(--mud-palette-surface, #fff);color:var(--mud-palette-text-primary, #132b40);color-scheme:light;" />
-        <div style="margin-top:12px">
+       <input type="date"
+       class="form-control"
+       @bind="_corte"
+       @bind:format="yyyy-MM-dd"
+       disabled="@(_trabajando || Ejecutor.Ocupado)" /><div style="margin-top:12px">
             <button @onclick="Preparar" disabled="@(_analisis is null || _trabajando || Ejecutor.Ocupado)">Restaurar staging + simular (ROLLBACK)</button>
         </div>
         @if (_analisis is not null)
@@ -99,6 +102,10 @@
         @if (!string.IsNullOrEmpty(_error)) { <p class="error">@_error</p> }
         @if (!string.IsNullOrEmpty(_exito)) { <p>@_exito</p> }
         <button @onclick="Refrescar">Actualizar estado</button>
+
+<p class="muted">
+    Última actualización: @_ultimaActualizacion
+</p>
         @if (!string.IsNullOrWhiteSpace(Ejecutor.Registro))
         {
             <pre style="white-space:pre-wrap; overflow-wrap:anywhere; max-height:350px; overflow:auto">@Ejecutor.Registro</pre>
@@ -138,7 +145,15 @@
 
     private string? _error, _exito;
     private void Volver() => Nav.NavigateTo("/configuracion");
-    private void Refrescar() => StateHasChanged();
+    private string _ultimaActualizacion = "Sin actualizar";
+
+private void Refrescar()
+{
+    _ultimaActualizacion =
+        DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+
+    StateHasChanged();
+}
 
     private async Task Seleccionar(InputFileChangeEventArgs args)
     {
