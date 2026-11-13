@@ -1,12 +1,14 @@
 @page "/administracion/migracion"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
+@using System.Globalization
 @using BebesNadadores.Web.Services.Migracion
 @inject MigracionCargaService Carga
 @inject MigracionEjecucionService Ejecutor
 @inject NavigationManager Nav
 
 <PageTitle>Migración | Bebés Nadadores</PageTitle>
+
 <div class="migracion-page">
     <header class="migracion-header">
         <div>
@@ -14,14 +16,61 @@
             <h1>Migración desde el sistema anterior</h1>
             <p>Restaurá el respaldo en MySQL aislado, simulá y revisá las diferencias antes de importar.</p>
         </div>
-        <button @onclick="Volver">Volver</button>
+        <button type="button" class="bn-btn bn-btn-outline" @onclick="Volver">
+            <span aria-hidden="true">←</span> Volver
+        </button>
     </header>
+
+    @if (_trabajando || Ejecutor.Ocupado)
+    {
+        <div class="migracion-global-status" role="status" aria-live="polite">
+            <MudProgressCircular Indeterminate="true" Color="Color.Info" Size="Size.Small" />
+            <div>
+                <strong>@(string.IsNullOrWhiteSpace(_mensajeCarga) ? "Hay una operación en curso" : _mensajeCarga)</strong>
+                <span>Los botones de operación permanecen deshabilitados para evitar ejecuciones duplicadas.</span>
+            </div>
+        </div>
+    }
+
     <section class="migracion-card">
-        <h2>1. Cargar respaldo MySQL</h2>
-        <p class="muted">Archivo SQL de hasta 150 MB. No debe incluir contraseñas. La aplicación lo guarda fuera de wwwroot.</p>
-        <InputFile OnChange="Seleccionar" accept=".sql" disabled="@(_trabajando || Ejecutor.Ocupado)" />
-        @if (_analisis is not null)
+        <div class="migracion-section-head">
+            <span class="migracion-num">01</span>
+            <div>
+                <h2>Cargar respaldo MySQL</h2>
+                <p class="muted">Archivo .sql de hasta 150 MB. Se almacena fuera de wwwroot y nunca se ejecuta directamente sobre PostgreSQL.</p>
+            </div>
+        </div>
+
+        <div class="bn-upload-box">
+            <div class="bn-upload-icon" aria-hidden="true">↑</div>
+            <div class="bn-upload-copy">
+                <strong>Respaldo del sistema anterior</strong>
+                <span>@(_analisis is null ? "Seleccioná el archivo .sql para analizarlo." : _analisis.NombreArchivo)</span>
+            </div>
+            <label for="migracion-archivo-sql" class="bn-btn bn-btn-primary @((_trabajando || Ejecutor.Ocupado) ? "bn-btn-disabled" : "")">
+                Seleccionar archivo SQL
+            </label>
+            <InputFile id="migracion-archivo-sql" class="bn-file-input"
+                       OnChange="Seleccionar" accept=".sql"
+                       disabled="@(_trabajando || Ejecutor.Ocupado)" />
+        </div>
+
+        @if (_fase == FaseOperacion.CargandoSql)
         {
+            <div class="bn-working" role="status" aria-live="polite">
+                <div class="bn-working-title">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" />
+                    <div>
+                        <strong>Recibiendo y analizando SQL</strong>
+                        <span>La carga del archivo puede tardar. No cierres la página.</span>
+                    </div>
+                </div>
+                <MudProgressLinear Indeterminate="true" Color="Color.Info" Class="mt-3" />
+            </div>
+        }
+        else if (_analisis is not null)
+        {
+            <div class="bn-result bn-result-ok"><span aria-hidden="true">✓</span> Respaldo cargado y analizado</div>
             <dl class="datos">
                 <dt>Archivo</dt><dd>@_analisis.NombreArchivo</dd>
                 <dt>Tamaño</dt><dd>@((_analisis.Bytes / 1048576.0).ToString("F1")) MB</dd>
@@ -31,182 +80,328 @@
             </dl>
         }
     </section>
+
     <section class="migracion-card">
-        <h2>2. Preparar y simular</h2>
-        <p class="muted">Requiere MySQL temporal aislado, PostgreSQL destino vacío de alumnos/pagos/cuotas, y entorno habilitado. El SQL original nunca se ejecuta en PostgreSQL.</p>
-        <label>Fecha de corte del respaldo</label>
-       <input type="date"
-       class="form-control"
-       @bind="_corte"
-       @bind:format="yyyy-MM-dd"
-       disabled="@(_trabajando || Ejecutor.Ocupado)" /><div style="margin-top:12px">
-       <p class="muted">
-    Diagnóstico:
-    Trabajando=@_trabajando |
-    Ejecutor ocupado=@Ejecutor.Ocupado |
-    SQL cargado=@(_analisis is not null)
-</p>
-            <button @onclick="Preparar" disabled="@(_analisis is null || _trabajando || Ejecutor.Ocupado)">Restaurar staging + simular (ROLLBACK)</button>
+        <div class="migracion-section-head">
+            <span class="migracion-num">02</span>
+            <div>
+                <h2>Preparar y simular</h2>
+                <p class="muted">Restaura MySQL temporal aislado y ejecuta una simulación con ROLLBACK. Requiere PostgreSQL operativo vacío y entorno habilitado.</p>
+            </div>
         </div>
+
+        <div class="bn-date-row">
+            <div class="bn-date-field">
+                <label class="bn-field-label">Fecha de corte del respaldo</label>
+                <div class="bn-date-picker-shell">
+                    <MudDatePicker Date="@((DateTime?)_corte)"
+                                   DateChanged="CambiarCorte"
+                                   DateFormat="dd/MM/yyyy"
+                                   Culture="@Cultura"
+                                   Editable="false"
+                                   ShowToolbar="false"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.None"
+                                   Disabled="@(_trabajando || Ejecutor.Ocupado)"
+                                   Adornment="Adornment.End"
+                                   AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                                   AnchorOrigin="Origin.BottomLeft"
+                                   TransformOrigin="Origin.TopLeft" />
+                </div>
+            </div>
+            <div class="bn-date-hint">La fecha debe coincidir con el corte del dump MySQL.</div>
+        </div>
+
+        <button type="button" class="bn-btn bn-btn-primary bn-btn-action"
+                @onclick="Preparar"
+                disabled="@(_analisis is null || _trabajando || Ejecutor.Ocupado)">
+            @if (_fase == FaseOperacion.Simulando)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Inherit" />
+                <span>Simulando migración...</span>
+            }
+            else
+            {
+                <span aria-hidden="true">↻</span>
+                <span>Restaurar staging + simular (ROLLBACK)</span>
+            }
+        </button>
+
+        @if (_fase == FaseOperacion.Simulando)
+        {
+            <div class="bn-working" role="status" aria-live="polite">
+                <div class="bn-working-title">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" />
+                    <div>
+                        <strong>Restaurando MySQL temporal y ejecutando simulación</strong>
+                        <span>Analizando alumnos, inscripciones, asistencias y finanzas. La barra no representa un porcentaje.</span>
+                    </div>
+                </div>
+                <MudProgressLinear Indeterminate="true" Color="Color.Info" Class="mt-3" />
+                <p class="bn-working-state">Estado del servicio: @Ejecutor.Estado</p>
+            </div>
+        }
+        else if (_analisis is not null && Ejecutor.PrevisualizacionCompleta && Ejecutor.CodigoPreparado == _analisis.Codigo)
+        {
+            <div class="bn-result bn-result-ok"><span aria-hidden="true">✓</span> Previsualización disponible para este SQL. Revisá los reportes antes de seguir.</div>
+        }
+
         @if (_analisis is not null)
         {
-            <p class="muted">Reportes: <code>@Ejecutor.CarpetaReportes(_analisis.Codigo)</code></p>
+            <p class="bn-report-path">Reportes: <code>@Ejecutor.CarpetaReportes(_analisis.Codigo)</code></p>
         }
     </section>
+
     <section class="migracion-card">
-        <h2>3. Subir tarifas históricas verificadas</h2>
-        <p class="muted">Después de simular, cargá los CSV correspondientes al mismo respaldo SQL. No hace falta acceder al VPS.</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin:16px 0">
+        <div class="migracion-section-head">
+            <span class="migracion-num">03</span>
             <div>
-                <label for="tarifas-generales"><strong>Tarifas mensuales</strong></label>
-                <p class="muted"><code>tarifas_validadas_2026.csv</code></p>
-                <InputFile id="tarifas-generales" OnChange="SubirTarifasGenerales" accept=".csv" disabled="@(_trabajando || Ejecutor.Ocupado || !Ejecutor.PrevisualizacionCompleta || _analisis is null)" />
-                @if (!string.IsNullOrEmpty(_tarifasGeneralesEstado)) { <p>@_tarifasGeneralesEstado</p> }
-            </div>
-            <div>
-                <label for="tarifas-excepciones"><strong>Excepciones por alumno</strong></label>
-                <p class="muted"><code>tarifas_excepciones_2026.csv</code> (puede contener solo encabezado)</p>
-                <InputFile id="tarifas-excepciones" OnChange="SubirTarifasExcepciones" accept=".csv" disabled="@(_trabajando || Ejecutor.Ocupado || !Ejecutor.PrevisualizacionCompleta || _analisis is null)" />
-                @if (!string.IsNullOrEmpty(_tarifasExcepcionesEstado)) { <p>@_tarifasExcepcionesEstado</p> }
+                <h2>Subir tarifas históricas verificadas</h2>
+                <p class="muted">Después de simular, cargá los CSV correspondientes al mismo respaldo SQL.</p>
             </div>
         </div>
-        <p class="muted">Formatos: <code>MES;TARIFA_NETA</code> y <code>IDPERSONA;MES;TARIFA_NETA</code>. Máximo 1 MB por archivo. El COMMIT requiere ambos CSV cargados y verificados desde esta pantalla.</p>
-        <p><strong>Archivos preparados:</strong> @(CSVListos ? "Los dos CSV están cargados y verificados" : "Falta subir o verificar alguno de los dos CSV")</p>
+        <div class="bn-csv-grid">
+            <div class="bn-csv-panel">
+                <strong>Tarifas mensuales</strong>
+                <code>tarifas_validadas_2026.csv</code>
+                <label for="tarifas-generales" class="bn-btn bn-btn-outline @((ArchivosDeshabilitados) ? "bn-btn-disabled" : "")">Seleccionar CSV</label>
+                <InputFile id="tarifas-generales" class="bn-file-input" OnChange="SubirTarifasGenerales" accept=".csv" disabled="@ArchivosDeshabilitados" />
+                @if (!string.IsNullOrEmpty(_tarifasGeneralesEstado)) { <p class="bn-csv-feedback">@_tarifasGeneralesEstado</p> }
+            </div>
+            <div class="bn-csv-panel">
+                <strong>Excepciones por alumno</strong>
+                <code>tarifas_excepciones_2026.csv</code>
+                <span class="muted">Puede contener solo encabezado.</span>
+                <label for="tarifas-excepciones" class="bn-btn bn-btn-outline @((ArchivosDeshabilitados) ? "bn-btn-disabled" : "")">Seleccionar CSV</label>
+                <InputFile id="tarifas-excepciones" class="bn-file-input" OnChange="SubirTarifasExcepciones" accept=".csv" disabled="@ArchivosDeshabilitados" />
+                @if (!string.IsNullOrEmpty(_tarifasExcepcionesEstado)) { <p class="bn-csv-feedback">@_tarifasExcepcionesEstado</p> }
+            </div>
+        </div>
+        @if (_fase == FaseOperacion.SubiendoCsv)
+        {
+            <div class="bn-working" role="status">
+                <div class="bn-working-title">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Info" Size="Size.Small" />
+                    <strong>Validando archivo de tarifas...</strong>
+                </div>
+                <MudProgressLinear Indeterminate="true" Color="Color.Info" Class="mt-3" />
+            </div>
+        }
+        <p class="muted bn-small-note">Formatos: <code>MES;TARIFA_NETA</code> y <code>IDPERSONA;MES;TARIFA_NETA</code>. Máximo 1 MB por archivo.</p>
+        <div class="bn-result @(CSVListos ? "bn-result-ok" : "bn-result-neutral")">
+            @(CSVListos ? "✓ Los dos CSV están cargados y verificados" : "Falta subir o verificar alguno de los dos CSV")
+        </div>
     </section>
+
     <section class="migracion-card">
-        <h2>4. Confirmar y aplicar la migración</h2>
-        <p class="muted">Secuencia: importador principal, Turnera oficial y conciliación financiera V4.8. No acredita recuperos históricos sin verificar.</p>
+        <div class="migracion-section-head">
+            <span class="migracion-num">04</span>
+            <div>
+                <h2>Confirmar y aplicar la migración</h2>
+                <p class="muted">Importador principal, Turnera oficial y conciliación financiera V4.8. No acredita recuperos históricos sin verificar.</p>
+            </div>
+        </div>
         <div class="precaucion">
             <strong>Protección obligatoria</strong>
-            <p>Revisá las tarifas cargadas y los reportes del SQL actual. La operación no es atómica entre etapas: si un paso falla, restaurá el respaldo antes de reintentar.</p>
+            <p>Revisá las tarifas y los reportes del SQL actual. La operación no es atómica entre etapas: si falla, restaurá el backup antes de reintentar.</p>
         </div>
-        <label style="display:block; margin:12px 0">
-            <input type="checkbox" @bind="_confirmoTest" /> Confirmo que es una base de PRUEBA vacía y que revisé el informe y las tarifas.
+        <label class="bn-check-row">
+            <input type="checkbox" @bind="_confirmoTest" disabled="@(_trabajando || Ejecutor.Ocupado)" />
+            <span>Confirmo que es una base de PRUEBA vacía y que revisé el informe y las tarifas.</span>
         </label>
-        <button @onclick="AplicarTest" disabled="@(_trabajando || Ejecutor.Ocupado || !Ejecutor.PrevisualizacionCompleta || !_confirmoTest || _analisis is null || !CSVListos)">Aplicar solo en TEST</button>
+        <button type="button" class="bn-btn bn-btn-primary bn-btn-action" @onclick="AplicarTest"
+                disabled="@(_trabajando || Ejecutor.Ocupado || !Ejecutor.PrevisualizacionCompleta || !_confirmoTest || _analisis is null || !CSVListos)">
+            @(_fase == FaseOperacion.AplicandoTest ? "Aplicando migración en TEST..." : "Aplicar solo en TEST")
+        </button>
         @if (Ejecutor.ProduccionHabilitada)
         {
-            <div class="precaucion" style="margin-top:15px">
-                <strong>COMMIT PRODUCTIVO — acción irreversible sin restaurar el backup</strong>
-                <p>Confirmo que el sistema está en mantenimiento, revisé los reportes y los CSV del corte,
-                   y acepto que las diferencias históricas quedarán pendientes para la administrativa.
-                   Se hará un respaldo pg_dump antes del primer COMMIT. No reintentar tras un fallo.</p>
-                <label><input type="checkbox" @bind="_confirmoProduccion" /> Acepto el plan de migración productiva</label>
-                <label>Escribí MIGRAR seguido del nombre exacto de la base de producción</label>
-                <input type="text" @bind="_fraseProduccion" autocomplete="off" />
-                <button @onclick="AplicarProduccion" disabled="@(_trabajando || Ejecutor.Ocupado || !Ejecutor.PrevisualizacionCompleta || !_confirmoProduccion || _analisis is null || !CSVListos)">Confirmar COMMIT productivo</button>
+            <div class="precaucion bn-production">
+                <strong>COMMIT PRODUCTIVO — acción irreversible sin restaurar backup</strong>
+                <p>Confirmo mantenimiento, reportes y tarifas revisados, y diferencias históricas pendientes para la administrativa. Se hará pg_dump antes del primer COMMIT. No reintentar tras un fallo.</p>
+                <label class="bn-check-row">
+                    <input type="checkbox" @bind="_confirmoProduccion" disabled="@(_trabajando || Ejecutor.Ocupado)" />
+                    <span>Acepto el plan de migración productiva</span>
+                </label>
+                <label class="bn-field-label" for="frase-produccion">Escribí MIGRAR seguido del nombre exacto de la base productiva</label>
+                <input id="frase-produccion" class="bn-text-input" type="text" @bind="_fraseProduccion" autocomplete="off" disabled="@(_trabajando || Ejecutor.Ocupado)" />
+                <button type="button" class="bn-btn bn-btn-danger" @onclick="AplicarProduccion"
+                        disabled="@(_trabajando || Ejecutor.Ocupado || !Ejecutor.PrevisualizacionCompleta || !_confirmoProduccion || _analisis is null || !CSVListos)">
+                    @(_fase == FaseOperacion.AplicandoProduccion ? "Ejecutando COMMIT productivo..." : "Confirmar COMMIT productivo")
+                </button>
             </div>
         }
         else
         {
-            <button disabled title="Requiere habilitación expresa y base autorizada">Producción no habilitada</button>
+            <p class="bn-prod-disabled">Producción no habilitada en este entorno</p>
+        }
+        @if (_fase == FaseOperacion.AplicandoTest || _fase == FaseOperacion.AplicandoProduccion)
+        {
+            <div class="bn-working" role="status">
+                <div class="bn-working-title">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Info" />
+                    <div>
+                        <strong>@_mensajeCarga</strong>
+                        <span>No cierres la página mientras termina la operación.</span>
+                    </div>
+                </div>
+                <MudProgressLinear Indeterminate="true" Color="Color.Info" Class="mt-3" />
+            </div>
         }
     </section>
-    <section class="migracion-card">
-        <h2>Estado</h2>
-        <p><strong>@Ejecutor.Estado</strong></p>
-        @if (!string.IsNullOrEmpty(_error)) { <p class="error">@_error</p> }
-        @if (!string.IsNullOrEmpty(_exito)) { <p>@_exito</p> }
-        <button @onclick="Refrescar">Actualizar estado</button>
 
-<p class="muted">
-    Última actualización: @_ultimaActualizacion
-</p>
+    <section class="migracion-card">
+        <div class="migracion-status-head">
+            <h2>Estado de ejecución</h2>
+            <button type="button" class="bn-btn bn-btn-outline bn-btn-small" @onclick="Refrescar">↻ Actualizar estado</button>
+        </div>
+        <p class="bn-executor-state"><strong>@Ejecutor.Estado</strong></p>
+        @if (!string.IsNullOrEmpty(_error)) { <div class="bn-result bn-result-error" role="alert">@_error</div> }
+        @if (!string.IsNullOrEmpty(_exito)) { <div class="bn-result bn-result-ok" role="status">@_exito</div> }
+        <p class="muted bn-small-note">Última actualización: @_ultimaActualizacion</p>
+        <details class="bn-diagnostics">
+            <summary>Diagnóstico técnico</summary>
+            <p>Trabajando=@_trabajando | Ejecutor ocupado=@Ejecutor.Ocupado | SQL cargado=@(_analisis is not null)</p>
+        </details>
         @if (!string.IsNullOrWhiteSpace(Ejecutor.Registro))
         {
-            <pre style="white-space:pre-wrap; overflow-wrap:anywhere; max-height:350px; overflow:auto">@Ejecutor.Registro</pre>
+            <pre class="bn-log">@Ejecutor.Registro</pre>
         }
     </section>
 </div>
+
 @code {
+    private enum FaseOperacion { Ninguna, CargandoSql, Simulando, SubiendoCsv, AplicandoTest, AplicandoProduccion }
+    private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
     private MigracionAnalisisDto? _analisis;
     private DateTime _corte = DateTime.Today;
     private bool _confirmoTest;
     private bool _confirmoProduccion;
     private string _fraseProduccion = "";
     private bool _trabajando;
+    private FaseOperacion _fase = FaseOperacion.Ninguna;
+    private string _mensajeCarga = "";
     private string? _tarifasGeneralesEstado, _tarifasExcepcionesEstado;
+    private string? _error, _exito;
+    private string _ultimaActualizacion = "Sin actualizar";
+
+    private bool ArchivosDeshabilitados => _trabajando || Ejecutor.Ocupado ||
+        !Ejecutor.PrevisualizacionCompleta || _analisis is null;
+
     private bool CSVListos => _analisis is not null &&
         Ejecutor.PrevisualizacionCompleta && Ejecutor.CodigoPreparado == _analisis.Codigo &&
         MigracionCargaService.TarifasSubidasYVerificadas(Ejecutor.CarpetaReportes(_analisis.Codigo));
+
+    private Task CambiarCorte(DateTime? fecha)
+    {
+        if (fecha.HasValue)
+            _corte = fecha.Value.Date;
+        return Task.CompletedTask;
+    }
+
+    private void Volver() => Nav.NavigateTo("/configuracion");
+
+    private void Refrescar()
+    {
+        _ultimaActualizacion = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+        StateHasChanged();
+    }
+
+    private async Task ComenzarOperacionAsync(FaseOperacion fase, string mensaje)
+    {
+        _trabajando = true;
+        _fase = fase;
+        _mensajeCarga = mensaje;
+        _ultimaActualizacion = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield(); // Permite dibujar la indicación antes del trabajo de servicio.
+    }
+
+    private async Task FinalizarOperacionAsync()
+    {
+        _trabajando = false;
+        _fase = FaseOperacion.Ninguna;
+        _mensajeCarga = "";
+        _ultimaActualizacion = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+        await InvokeAsync(StateHasChanged);
+    }
 
     private Task SubirTarifasGenerales(InputFileChangeEventArgs args) => SubirCsv(args, false);
     private Task SubirTarifasExcepciones(InputFileChangeEventArgs args) => SubirCsv(args, true);
 
     private async Task SubirCsv(InputFileChangeEventArgs args, bool excepciones)
     {
+        if (_analisis is null || ArchivosDeshabilitados ||
+            Ejecutor.CodigoPreparado != _analisis.Codigo)
+            return;
+
         _error = _exito = null;
-        if (_analisis is null || !Ejecutor.PrevisualizacionCompleta ||
-            Ejecutor.CodigoPreparado != _analisis.Codigo || Ejecutor.Ocupado) return;
-        _trabajando = true;
+        await ComenzarOperacionAsync(FaseOperacion.SubiendoCsv, "Validando tarifas históricas...");
         try
         {
-            var message = await Carga.GuardarTarifasAsync(args.File, _analisis.Codigo, excepciones);
-            if (excepciones) _tarifasExcepcionesEstado = message;
-            else _tarifasGeneralesEstado = message;
+            var mensaje = await Carga.GuardarTarifasAsync(args.File, _analisis.Codigo, excepciones);
+            if (excepciones) _tarifasExcepcionesEstado = mensaje;
+            else _tarifasGeneralesEstado = mensaje;
         }
         catch (Exception ex) { _error = ex.Message; }
-        finally { _trabajando = false; }
+        finally { await FinalizarOperacionAsync(); }
     }
-
-    private string? _error, _exito;
-    private void Volver() => Nav.NavigateTo("/configuracion");
-    private string _ultimaActualizacion = "Sin actualizar";
-
-private void Refrescar()
-{
-    _ultimaActualizacion =
-        DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
-
-    StateHasChanged();
-}
 
     private async Task Seleccionar(InputFileChangeEventArgs args)
     {
-        _error = _exito = null; _analisis = null; _confirmoTest = false;
-        _confirmoProduccion = false; _tarifasGeneralesEstado = _tarifasExcepcionesEstado = null;
-        _trabajando = true;
-        try { _analisis = await Carga.RecibirYAnalizarAsync(args.File); }
-        catch (Exception ex) { _error = ex.Message; }
-        finally { _trabajando = false; }
-    }
-    private async Task Preparar()
-    {
-        if (_analisis is null) return;
-        _error = _exito = null; _trabajando = true;
+        if (_trabajando || Ejecutor.Ocupado) return;
+        _error = _exito = null;
+        _analisis = null;
         _confirmoTest = _confirmoProduccion = false;
         _tarifasGeneralesEstado = _tarifasExcepcionesEstado = null;
+        await ComenzarOperacionAsync(FaseOperacion.CargandoSql, "Recibiendo y analizando el archivo SQL...");
+        try { _analisis = await Carga.RecibirYAnalizarAsync(args.File); }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { await FinalizarOperacionAsync(); }
+    }
+
+    private async Task Preparar()
+    {
+        if (_analisis is null || _trabajando || Ejecutor.Ocupado) return;
+        _error = _exito = null;
+        _confirmoTest = _confirmoProduccion = false;
+        _tarifasGeneralesEstado = _tarifasExcepcionesEstado = null;
+        await ComenzarOperacionAsync(FaseOperacion.Simulando, "Restaurando staging y simulando migración (ROLLBACK)...");
         try
         {
             await Ejecutor.PrepararAsync(_analisis.Codigo, DateOnly.FromDateTime(_corte));
             _exito = "Simulación terminada. Revisá los CSV antes de confirmar la aplicación TEST.";
         }
         catch (Exception ex) { _error = ex.Message; }
-        finally { _trabajando = false; }
-    }
-    private async Task AplicarProduccion()
-    {
-        if (_analisis is null || !_confirmoProduccion) return;
-        _error = _exito = null; _trabajando = true;
-        try
-        {
-            await Ejecutor.AplicarProduccionAsync(_analisis.Codigo, _fraseProduccion);
-            _exito = "Importación productiva terminada. Revisá reportes y pendientes manuales.";
-        }
-        catch (Exception ex) { _error = ex.Message; }
-        finally { _trabajando = false; }
+        finally { await FinalizarOperacionAsync(); }
     }
 
     private async Task AplicarTest()
     {
-        if (_analisis is null || !_confirmoTest) return;
-        _error = _exito = null; _trabajando = true;
+        if (_analisis is null || !_confirmoTest || _trabajando || Ejecutor.Ocupado || !CSVListos) return;
+        _error = _exito = null;
+        await ComenzarOperacionAsync(FaseOperacion.AplicandoTest, "Aplicando migración en TEST...");
         try
         {
             await Ejecutor.AplicarSoloTestAsync(_analisis.Codigo);
             _exito = "Migración completada en TEST. No se modificó producción.";
         }
         catch (Exception ex) { _error = ex.Message; }
-        finally { _trabajando = false; }
+        finally { await FinalizarOperacionAsync(); }
+    }
+
+    private async Task AplicarProduccion()
+    {
+        if (_analisis is null || !_confirmoProduccion || _trabajando || Ejecutor.Ocupado ||
+            !Ejecutor.ProduccionHabilitada || !CSVListos) return;
+        _error = _exito = null;
+        await ComenzarOperacionAsync(FaseOperacion.AplicandoProduccion, "Ejecutando migración productiva...");
+        try
+        {
+            await Ejecutor.AplicarProduccionAsync(_analisis.Codigo, _fraseProduccion);
+            _exito = "Importación productiva terminada. Revisá reportes y pendientes manuales.";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { await FinalizarOperacionAsync(); }
     }
 }
