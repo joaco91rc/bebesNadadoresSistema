@@ -35,7 +35,7 @@
         <h2>2. Preparar y simular</h2>
         <p class="muted">Requiere MySQL temporal aislado, PostgreSQL destino vacío de alumnos/pagos/cuotas, y entorno habilitado. El SQL original nunca se ejecuta en PostgreSQL.</p>
         <label>Fecha de corte del respaldo</label>
-        <InputDate @bind-Value="_corte" disabled="@(_trabajando || Ejecutor.Ocupado)" />
+        <input type="date" id="fecha-corte-migracion" class="form-control" @bind="_corte" @bind:format="yyyy-MM-dd" disabled="@(_trabajando || Ejecutor.Ocupado)" style="display:block;max-width:260px;width:100%;padding:11px 12px;border:1px solid #7899ac;border-radius:9px;background:var(--mud-palette-surface, #fff);color:var(--mud-palette-text-primary, #132b40);color-scheme:light;" />
         <div style="margin-top:12px">
             <button @onclick="Preparar" disabled="@(_analisis is null || _trabajando || Ejecutor.Ocupado)">Restaurar staging + simular (ROLLBACK)</button>
         </div>
