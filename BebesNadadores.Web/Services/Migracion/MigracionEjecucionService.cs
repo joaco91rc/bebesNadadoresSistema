@@ -127,6 +127,8 @@ public sealed class MigracionEjecucionService(
             await EjecutarMigradorAsync(_cortePreparado.Value, reportes, "--corregir-turnera-test", "--aplicar-turnera-test");
             Estado = "Conciliando finanzas V4.8 en TEST";
             await EjecutarMigradorAsync(_cortePreparado.Value, reportes, "--conciliar-finanzas-test", "--aplicar-finanzas-test");
+            // Publicar exclusivamente el reporte de una conciliación confirmada.
+            await PublicarIndicadoresVigentesAsync(reportes, _cortePreparado.Value);
             PruebaAplicada = true;
             Estado = "Migración TEST terminada. Producción sigue bloqueada.";
             Registrar(Estado);
@@ -172,6 +174,8 @@ public sealed class MigracionEjecucionService(
             Estado = "Conciliando finanzas verificadas en PRODUCCIÓN";
             await EjecutarMigradorAsync(_cortePreparado.Value, reportes,
                 "--conciliar-finanzas-test", "--aplicar-finanzas-test", "--autorizar-produccion");
+            // El reporte solo se actualiza después de la conciliación con COMMIT.
+            await PublicarIndicadoresVigentesAsync(reportes, _cortePreparado.Value);
             Estado = "COMMIT PRODUCTIVO FINALIZADO. Reportes pendientes para la administrativa.";
             Registrar(Estado);
         }
@@ -558,6 +562,67 @@ private async Task<string> EjecutarMysqlAsync(string? sql, string? archivo)
         Registrar(sal.Length > 2000 ? sal[^2000..] : sal);
         if (proc.ExitCode != 0)
             throw new InvalidOperationException("Migrador terminó con error. " + (err.Length > 900 ? err[^900..] : err));
+    }
+
+    // Reporte único y persistente: las pantallas siempre leen este archivo.
+    // Los reportes versionados del intento se conservan sin modificarse.
+    // El método solo se llama luego de que la conciliación confirmó su COMMIT.
+    private async Task PublicarIndicadoresVigentesAsync(string reportes, DateOnly corte)
+    {
+        const string nombre = "finanzas_446_estado_indicador_v48.csv";
+        var origen = Path.Combine(reportes, nombre);
+        if (!File.Exists(origen))
+            throw new InvalidOperationException(
+                "La conciliación terminó, pero falta el CSV de indicadores. " +
+                "No se publica un estado financiero desactualizado.");
+
+        // Se valida encabezado, GUID, fecha de corte y presencia de filas.
+        // No se publica un archivo parcialmente escrito o de otra ejecución.
+        var lineas = await File.ReadAllLinesAsync(origen);
+        if (lineas.Length < 2)
+            throw new InvalidOperationException("El reporte financiero no tiene alumnos.");
+        var cab = lineas[0].TrimStart('\uFEFF').Split(';');
+        var idIndex = Array.IndexOf(cab, "BEBE_GUID");
+        var corteIndex = Array.IndexOf(cab, "FECHA_CORTE");
+        var pendientesIndex = Array.IndexOf(cab, "MESES_VENCIDOS_SIN_CONCILIAR");
+        if (idIndex < 0 || corteIndex < 0 || pendientesIndex < 0)
+            throw new InvalidOperationException("El reporte financiero carece de columnas obligatorias.");
+
+        var ids = new HashSet<Guid>();
+        foreach (var linea in lineas.Skip(1))
+        {
+            if (string.IsNullOrWhiteSpace(linea)) continue;
+            var valores = linea.Split(';');
+            if (valores.Length <= Math.Max(idIndex, Math.Max(corteIndex, pendientesIndex)) ||
+                !Guid.TryParse(valores[idIndex], out var id) ||
+                !DateOnly.TryParseExact(valores[corteIndex], "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var fecha) ||
+                fecha != corte ||
+                !int.TryParse(valores[pendientesIndex], out var pendientes) || pendientes < 0 ||
+                !ids.Add(id))
+                throw new InvalidOperationException(
+                    "El reporte financiero contiene una fila inválida, repetida o de otra fecha de corte.");
+        }
+        if (ids.Count == 0)
+            throw new InvalidOperationException("El reporte financiero no incluye alumnos válidos.");
+
+        var carpeta = Path.Combine(environment.ContentRootPath,
+            "App_Data", "Migraciones", "conciliacion-vigente");
+        Directory.CreateDirectory(carpeta);
+        var destino = Path.Combine(carpeta, nombre);
+        var temporal = Path.Combine(carpeta, $".{Guid.NewGuid():N}.tmp");
+        try
+        {
+            File.Copy(origen, temporal);
+            File.Move(temporal, destino, overwrite: true); // reemplazo atómico en el mismo volumen
+        }
+        finally
+        {
+            if (File.Exists(temporal)) File.Delete(temporal);
+        }
+        Registrar($"Indicadores financieros publicados para {ids.Count} alumnos " +
+            $"(corte {corte:dd/MM/yyyy}) en {destino}.");
     }
 
     private void Registrar(string texto)

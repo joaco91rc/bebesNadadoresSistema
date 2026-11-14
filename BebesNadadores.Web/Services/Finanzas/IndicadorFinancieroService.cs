@@ -142,8 +142,9 @@ public sealed class IndicadorFinancieroService(
 
     private Dictionary<Guid, Snapshot> LeerSnapshot()
     {
-        var relativo = configuration["IndicadoresFinancieros:ArchivoConciliacion"]
-            ?? "Conciliacion/finanzas_446_estado_indicador_v48.csv";
+        // Ruta fija del reporte validado y publicado tras COMMIT financiero.
+        // No depender de la carpeta versionada ni de un CSV incluido en la imagen.
+        var relativo = "App_Data/Migraciones/conciliacion-vigente/finanzas_446_estado_indicador_v48.csv";
         var ruta = Path.IsPathRooted(relativo)
             ? relativo
             : Path.Combine(environment.ContentRootPath, relativo);
