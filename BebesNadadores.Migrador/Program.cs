@@ -36,6 +36,25 @@ if (args.Any(a => a.Equals("--corregir-turnera-test", StringComparison.OrdinalIg
     return;
 }
 
+// V4.9 TEST: completar solo períodos con pagos de CUOTA de alumnos históricos,
+// sin tocar los alumnos de turnera activa ni los reportes de conciliación V4.8.
+if (args.Any(a => a.Equals("--conciliar-historicos-test", StringComparison.OrdinalIgnoreCase)))
+{
+    var apply = args.Any(a => a.Equals("--aplicar-historicos-test", StringComparison.OrdinalIgnoreCase));
+    if (apply && opt.DryRun)
+        throw new ArgumentException("No combinar --aplicar-historicos-test con --dry-run.");
+    try
+    {
+        await FinanzasActivosTest.RunAsync(db, legacy, opt, apply, historicosSolo: true);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(ex);
+        Environment.ExitCode = 1;
+    }
+    return;
+}
+
 // V4.4: conciliacion conservadora de cuotas de alumnos activos YA migrados.
 if (args.Any(a => a.Equals("--conciliar-finanzas-test", StringComparison.OrdinalIgnoreCase)))
 {
