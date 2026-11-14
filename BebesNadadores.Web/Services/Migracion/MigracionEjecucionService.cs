@@ -127,6 +127,9 @@ public sealed class MigracionEjecucionService(
             await EjecutarMigradorAsync(_cortePreparado.Value, reportes, "--corregir-turnera-test", "--aplicar-turnera-test");
             Estado = "Conciliando finanzas V4.8 en TEST";
             await EjecutarMigradorAsync(_cortePreparado.Value, reportes, "--conciliar-finanzas-test", "--aplicar-finanzas-test");
+            Estado = "Conciliando históricos V4.9 en TEST";
+            await EjecutarMigradorAsync(_cortePreparado.Value, reportes,
+                "--conciliar-historicos-test", "--aplicar-historicos-test");
             // Publicar exclusivamente el reporte de una conciliación confirmada.
             await PublicarIndicadoresVigentesAsync(reportes, _cortePreparado.Value);
             PruebaAplicada = true;
@@ -174,6 +177,10 @@ public sealed class MigracionEjecucionService(
             Estado = "Conciliando finanzas verificadas en PRODUCCIÓN";
             await EjecutarMigradorAsync(_cortePreparado.Value, reportes,
                 "--conciliar-finanzas-test", "--aplicar-finanzas-test", "--autorizar-produccion");
+            Estado = "Conciliando históricos V4.9 en PRODUCCIÓN";
+            await EjecutarMigradorAsync(_cortePreparado.Value, reportes,
+                "--conciliar-historicos-test", "--aplicar-historicos-test",
+                "--autorizar-produccion");
             // El reporte solo se actualiza después de la conciliación con COMMIT.
             await PublicarIndicadoresVigentesAsync(reportes, _cortePreparado.Value);
             Estado = "COMMIT PRODUCTIVO FINALIZADO. Reportes pendientes para la administrativa.";
