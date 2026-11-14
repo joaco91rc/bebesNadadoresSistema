@@ -26,11 +26,15 @@ public static class FinanzasActivosTest
     public static async Task RunAsync(AppDbContext db, LegacyRepository legacy,
         MigrationOptions opt, bool aplicar, CancellationToken ct = default, bool historicosSolo = false)
     {
-        // La extensión para históricos SOLO se permite sobre la base TEST.
-        // No forma parte de la conciliación productiva hasta su homologación.
-        if (historicosSolo && !string.Equals(db.Database.GetDbConnection().Database,
-                "BebesNadadores_MigracionTest", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Conciliación histórica habilitada únicamente para BebesNadadores_MigracionTest.");
+        // V4.9: TEST habilitado; producción requiere autorización explícita.
+        // Se valida el nombre exacto mediante ProductionCommitGuard.
+        if (historicosSolo &&
+            !string.Equals(db.Database.GetDbConnection().Database,
+                "BebesNadadores_MigracionTest",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            ProductionCommitGuard.Check(db, opt.ConfirmProduction);
+        }
 
         // Los CSV de histórico se guardan aparte: no sobrescribir indicadores
         // ni conciliaciones de los alumnos actualmente activos.
