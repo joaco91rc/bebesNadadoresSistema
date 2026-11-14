@@ -141,11 +141,16 @@ public sealed class LegacyMigrationService(
 
         {
 
+            // Preparar los niveles oficiales antes de resolver niveles de alumnos o turnos.
+            // Se ejecuta DENTRO de la transacción: --dry-run también revierte estos maestros.
+            await EnsureOfficialLevelsAsync(ct);
+
             _levels = await db.Niveles.AsNoTracking().OrderBy(x=>x.Orden).ToListAsync(ct);
 
             _plans = await db.Planes.AsNoTracking().OrderBy(x=>x.VecesPorSemana).ToListAsync(ct);
 
-            if(_levels.Count==0 || _plans.Count==0) throw new InvalidOperationException("La base destino debe tener Niveles y Planes cargados.");
+            if (_levels.Count == 0 || _plans.Count == 0)
+                throw new InvalidOperationException("La base destino debe tener Niveles y Planes cargados.");
 
 
 
@@ -230,6 +235,69 @@ public sealed class LegacyMigrationService(
 
             throw;
         }
+    }
+
+
+    // Niveles oficiales de la grilla 2026. Se crean solo si faltan; no se reescriben
+    // configuraciones existentes. Los rangos de edad son propuestas operativas a
+    // confirmar con la administración antes del COMMIT productivo.
+    private async Task EnsureOfficialLevelsAsync(CancellationToken ct)
+    {
+        var niveles = await db.Niveles.ToListAsync(ct);
+
+        var viejo = niveles.FirstOrDefault(x =>
+            string.Equals(x.Nombre, "3 a 12 meses", StringComparison.OrdinalIgnoreCase));
+        var canonico = niveles.FirstOrDefault(x =>
+            string.Equals(x.Nombre, "Bebés 3 a 12 meses", StringComparison.OrdinalIgnoreCase));
+
+        if (viejo is not null && canonico is not null && viejo.Id != canonico.Id)
+            throw new InvalidOperationException(
+                "Existen dos niveles equivalentes de 3 a 12 meses; revisar antes de importar.");
+
+        if (viejo is not null && canonico is null)
+        {
+            viejo.Nombre = "Bebés 3 a 12 meses";
+            Console.WriteLine("Nivel maestro existente renombrado: Bebés 3 a 12 meses");
+        }
+
+        // Nombre, orden, edad mínima/máxima en meses, duración y cupo.
+        var oficiales = new (string Nombre, int Orden, int Min, int Max, int Duracion, int Cupo)[]
+        {
+            ("Bebés 3 a 12 meses", 1, 3, 12, 30, 10),
+            ("Bebés 12 a 24 meses", 2, 12, 24, 30, 10),
+            ("2 años", 3, 24, 35, 45, 10),
+            ("3 y 4 años", 4, 36, 59, 45, 12),
+            ("3 a 6 años", 5, 36, 83, 45, 12),
+            ("5 y 6 años", 6, 60, 83, 45, 12)
+        };
+
+        foreach (var nivel in oficiales)
+        {
+            if (niveles.Any(x => string.Equals(x.Nombre, nivel.Nombre,
+                    StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            var nuevo = new Nivel
+            {
+                Id = MigrationHelpers.StableGuid($"nivel-oficial:{nivel.Nombre}"),
+                Nombre = nivel.Nombre,
+                Orden = nivel.Orden,
+                EdadMinMeses = nivel.Min,
+                EdadMaxMeses = nivel.Max,
+                DuracionMinutos = nivel.Duracion,
+                CupoPredeterminado = nivel.Cupo,
+                ProfesoresMinimos = 1,
+                ProfesoresMaximos = 2,
+                Activo = true,
+                CreadoUtc = DateTimeOffset.UtcNow
+            };
+
+            db.Niveles.Add(nuevo);
+            niveles.Add(nuevo);
+            Console.WriteLine($"Nivel maestro creado: {nivel.Nombre}");
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
 
