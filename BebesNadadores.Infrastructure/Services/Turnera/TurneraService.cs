@@ -1129,13 +1129,18 @@ public sealed class TurneraService(
 
         await using var db = await factory.CreateDbContextAsync(ct);
 
+        var hoy = DateOnly.FromDateTime(DateTime.Today);
+
         var sesiones = await db
             .SesionesClase.AsNoTracking()
             .Include(x => x.Nivel)
             .Include(x => x.Turno)
             .Include(x => x.Profesores)
                 .ThenInclude(x => x.Profesor)
-            .Where(x => x.Fecha >= desde && x.Fecha <= hasta)
+            // Mostrar historial anterior, pero ocultar clases actuales/futuras
+            // pertenecientes a turnos dados de baja.
+            .Where(x => x.Fecha >= desde && x.Fecha <= hasta
+                && (x.Fecha < hoy || x.Turno.Estado != EstadoTurno.Baja))
             .OrderBy(x => x.Fecha)
             .ThenBy(x => x.HoraInicio)
             .ToListAsync(ct);
@@ -1441,6 +1446,7 @@ public sealed class TurneraService(
     )
     {
         var fecha = DateOnly.FromDateTime(fechaHora);
+        var hoy = DateOnly.FromDateTime(DateTime.Today);
 
         var hora = TimeOnly.FromDateTime(fechaHora);
 
@@ -1452,7 +1458,8 @@ public sealed class TurneraService(
             .Include(x => x.Turno)
                 .ThenInclude(x => x.Profesores)
                     .ThenInclude(x => x.Profesor)
-            .Where(x => x.Fecha == fecha && x.Estado == EstadoSesionClase.Programada)
+            .Where(x => x.Fecha == fecha && x.Estado == EstadoSesionClase.Programada
+                && (x.Fecha < hoy || x.Turno.Estado != EstadoTurno.Baja))
             .ToListAsync(ct);
 
         /*

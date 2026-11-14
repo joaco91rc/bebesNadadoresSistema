@@ -1004,7 +1004,7 @@ public async Task<IReadOnlyList<AsistenciaClaseDiaDto>>
         CancellationToken ct = default)
 {
     List<Guid> sesionesIds;
-
+    var hoy = DateOnly.FromDateTime(DateTime.Today);
 
     await using (
         var db =
@@ -1013,8 +1013,11 @@ public async Task<IReadOnlyList<AsistenciaClaseDiaDto>>
         sesionesIds =
             await db.SesionesClase
                 .AsNoTracking()
+                // Conservar clases historicas; no mostrar sesiones de turnos
+                // dados de baja para hoy o fechas futuras.
                 .Where(x =>
-                    x.Fecha == fecha)
+                    x.Fecha == fecha
+                    && (fecha < hoy || x.Turno.Estado != EstadoTurno.Baja))
                 .OrderBy(x =>
                     x.HoraInicio)
                 .Select(x =>
