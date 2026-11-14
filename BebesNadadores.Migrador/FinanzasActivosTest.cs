@@ -24,8 +24,20 @@ public static class FinanzasActivosTest
     private static string E(string s) => "\"" + s.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ") + "\"";
 
     public static async Task RunAsync(AppDbContext db, LegacyRepository legacy,
-        MigrationOptions opt, bool aplicar, CancellationToken ct = default)
+        MigrationOptions opt, bool aplicar, CancellationToken ct = default, bool historicosSolo = false)
     {
+        // La extensión para históricos SOLO se permite sobre la base TEST.
+        // No forma parte de la conciliación productiva hasta su homologación.
+        if (historicosSolo && !string.Equals(db.Database.GetDbConnection().Database,
+                "BebesNadadores_MigracionTest", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Conciliación histórica habilitada únicamente para BebesNadadores_MigracionTest.");
+
+        // Los CSV de histórico se guardan aparte: no sobrescribir indicadores
+        // ni conciliaciones de los alumnos actualmente activos.
+        var carpetaReportes = historicosSolo
+            ? Path.Combine(opt.ReportDirectory, "historicos_2026")
+            : opt.ReportDirectory;
+
         // Permiso productivo explícito, condicionado al destino exacto.
         if (!string.Equals(db.Database.GetDbConnection().Database,
             "BebesNadadores_MigracionTest", StringComparison.OrdinalIgnoreCase) && aplicar)
@@ -44,6 +56,16 @@ public static class FinanzasActivosTest
         var pagos = await legacy.PagosAsync(2026, corte, ct);
         var morosos = await legacy.MorososAsync(2026, ct);
         var activeIds = fuentes.Select(x => x.PersonaId).ToHashSet();
+        // En modo histórico solo examinamos personas SIN turno vigente y con
+        // cobros de CUOTA identificados por año/mes del origen. La fecha
+        // efectiva del pago NO define el período: se usa ANIOPAGO/IDMESPAGO.
+        // No crear cuotas de meses sin evidencia, ni morosidad solo inferida.
+        var personasObjetivo = historicosSolo
+            ? pagos.Where(x => x.TipoPagoId == 1 && x.AnioPago == 2026 &&
+                               x.Mes is >= 2 and <= 12 && x.Importe > 0m &&
+                               !activeIds.Contains(x.PersonaId))
+                .Select(x => x.PersonaId).ToHashSet()
+            : activeIds;
         var pagosBy = pagos.Where(x => x.TipoPagoId == 1 && x.AnioPago == 2026 && x.Mes is >= 2 and <= 12)
             .GroupBy(x => (x.PersonaId, x.Mes)).ToDictionary(g => g.Key, g => g.ToList());
         var debtBy = morosos.Where(x => (x.TipoPagoId is null or 1) && x.Mes is >= 2 and <= 12)
@@ -63,25 +85,31 @@ public static class FinanzasActivosTest
             .Select(x => x.Id).ToListAsync(ct)).ToHashSet();
         var liveSubs = turns.Where(x => oficialIds.Contains(x.TurnoId))
             .Select(x => x.InscripcionId).ToHashSet();
-        var validSubsByBebe = subs.Where(x => liveSubs.Contains(x.Id))
+        var validSubsByBebe = subs.Where(x => !historicosSolo || liveSubs.Contains(x.Id))
             .GroupBy(x => x.BebeId).ToDictionary(x => x.Key, x => x.ToList());
         var bebes = (await db.Bebes.AsNoTracking().Select(x => x.Id).ToListAsync(ct)).ToHashSet();
 
         var missing = new List<string>();
         var decisions = new List<Decision>();
         var monthMax = Math.Min(11, corte.Month);
-        foreach (var persona in activeIds.OrderBy(x => x))
+        foreach (var persona in personasObjetivo.OrderBy(x => x))
         {
             var bebeId = byLegacy.GetValueOrDefault(persona,
                 MigrationHelpers.StableGuid($"bebe:{persona}"));
             if (!bebes.Contains(bebeId) || !validSubsByBebe.TryGetValue(bebeId, out var candidates)
                 || candidates.Count != 1)
             {
-                missing.Add($"{persona};{bebeId};SIN_FICHA_O_INSCRIPCION_OFICIAL_UNICA");
+                missing.Add($"{persona};{bebeId};SIN_FICHA_O_INSCRIPCION_2026_UNICA");
                 continue;
             }
             var ins = candidates[0];
-            for (var month = 2; month <= monthMax; month++)
+            // Los alumnos históricos no generan deuda por meses sin actividad
+            // demostrada. Solo un cobro explícito de CUOTA habilita el análisis.
+            var meses = historicosSolo
+                ? pagosBy.Keys.Where(x => x.PersonaId == persona && x.Mes <= monthMax)
+                    .Select(x => x.Mes).Distinct().OrderBy(x => x)
+                : Enumerable.Range(2, monthMax - 1);
+            foreach (var month in meses)
             {
                 var key = (persona, month);
                 var mov = pagosBy.GetValueOrDefault(key) ?? [];
@@ -120,9 +148,9 @@ public static class FinanzasActivosTest
         // Mantener control de exhaustividad SIN exigir los números fijos del 02/11.
         var vinculados = decisions.Select(x => x.Persona).Distinct().Count();
         var pendientesUnicos = missing.Select(x => x.Split(';')[0]).Distinct().Count();
-        if (vinculados + pendientesUnicos != activeIds.Count ||
+        if (vinculados + pendientesUnicos != personasObjetivo.Count ||
             missing.Any(x => string.IsNullOrWhiteSpace(x)))
-            throw new InvalidOperationException($"Conciliación incompleta: origen {activeIds.Count}, " +
+            throw new InvalidOperationException($"Conciliación incompleta: origen {personasObjetivo.Count}, " +
                 $"vinculados {vinculados}, pendientes {missing.Count}. No se aplican cambios.");
 
         // Estado de confianza PARA EL CORTE del dump, no para la fecha actual.
@@ -153,27 +181,27 @@ public static class FinanzasActivosTest
             };
         }).ToList();
 
-        Directory.CreateDirectory(opt.ReportDirectory);
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_446_estado_indicador_v48.csv"),
+        Directory.CreateDirectory(carpetaReportes);
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_446_estado_indicador_v48.csv"),
             new[] { "IDPERSONA;BEBE_GUID;FECHA_CORTE;CUOTAS_VENCIDAS_CONFIRMADAS;MESES_VENCIDOS_SIN_CONCILIAR;MESES_NO_VENCIDOS_SIN_CONCILIAR;ESTADO_VALIDADO_AL_CORTE" }
             .Concat(estados.Select(x => $"{x.Persona};{x.Bebe};{corte:yyyy-MM-dd};{x.VencidasDocumentadas};{x.MesesSinConciliarVencidos};{x.MesesNoVencidosSinConciliar};{x.Estado}")), Encoding.UTF8);
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_446_periodos_pendientes_v48.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_446_periodos_pendientes_v48.csv"),
             new[] { "IDPERSONA;MES;PAGO_CUOTA;DEUDA_ORIGEN;ACCION;VENCIDA_AL_CORTE;MOTIVO" }
             .Concat(decisions.Where(x => x.Accion != "IMPORTAR_CUOTA" && x.Accion != "REVISAR_ALTA")
                 .Select(x => $"{x.Persona};{x.Mes};{F(x.TotalPagosCuota)};{F(x.Mora)};{x.Accion};" +
                     $"{(new DateOnly(2026, x.Mes, 15) < corte ? "SI" : "NO")};{E(x.Motivo)}")), Encoding.UTF8);
 
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_446_conciliacion.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_446_conciliacion.csv"),
             new[] { "IDPERSONA;ANIO;MES;PAGOS_CUOTA;DEUDA_ORIGEN;TARIFA_NETA_VERIFICADA;IMPORTE_CUOTA;SALDO_PENDIENTE;ACCION;MOVIMIENTOS_CERO;MOVIMIENTOS_NEGATIVOS;MOTIVO" }
             .Concat(decisions.Select(d => $"{d.Persona};2026;{d.Mes};{F(d.TotalPagosCuota)};{F(d.Mora)};" +
                 $"{(d.TarifaNeta.HasValue ? F(d.TarifaNeta.Value) : "")};{F(d.ImporteCuota)};{F(d.Saldo)};{d.Accion};{d.Pagos.Count(p => p.Importe == 0)};{d.Pagos.Count(p => p.Importe < 0)};{E(d.Motivo)}")), Encoding.UTF8);
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "cuotas_compatibles_descuentos_v47.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "cuotas_compatibles_descuentos_v47.csv"),
             new[] { "IDPERSONA;ANIO;MES;PAGOS;DEUDA;IMPORTE_CUOTA;CRITERIO" }
             .Concat(decisions.Where(x => x.Accion == "IMPORTAR_CUOTA" &&
                         x.Motivo.StartsWith("Cuota historica compatible"))
                 .Select(x => $"{x.Persona};2026;{x.Mes};{F(x.TotalPagosCuota)};{F(x.Mora)};{F(x.ImporteCuota)};" +
                     (x.TotalPagosCuota > 0m ? "PAGO_TOTAL_NETO" : "DEUDA_EXPLICITA_NETA"))), Encoding.UTF8);
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_446_sin_vinculo.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_446_sin_vinculo.csv"),
             new[] { "IDPERSONA;BEBE_GUID;MOTIVO" }.Concat(missing), Encoding.UTF8);
 
         var aptos = decisions.Where(x => x.Accion == "IMPORTAR_CUOTA").ToList();
@@ -181,16 +209,16 @@ public static class FinanzasActivosTest
         var totalCuotas = aptos.Sum(x => x.ImporteCuota);
         var totalPagos = aptos.Sum(x => x.TotalPagosCuota);
         var saldoExplicito = aptos.Sum(x => x.Saldo);
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_v47_resumen.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_v47_resumen.csv"),
             new[] { "CONCEPTO;VALOR", $"ALUMNOS_VINCULADOS;{decisions.Select(x => x.Persona).Distinct().Count()}",
                 $"PERIODOS_CON_TARIFA_CONFIRMADA;{decisions.Count(x => x.TarifaNeta.HasValue)}",
                 $"CUOTAS_COMPATIBLES_DESCUENTO_HISTORICO;{decisions.Count(x => x.Accion == "IMPORTAR_CUOTA" && x.Motivo.StartsWith("Cuota historica compatible"))}",
                 $"CUOTAS_IMPORTABLES;{aptos.Count}", $"PERIODOS_REVISION;{revisar}",
                 $"IMPORTE_CUOTAS_IMPORTABLES;{F(totalCuotas)}", $"PAGOS_CUOTAS_IMPORTABLES;{F(totalPagos)}",
                 $"SALDO_PENDIENTE_EXPLICITO;{F(saldoExplicito)}" }, Encoding.UTF8);
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_v48_resumen.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_v48_resumen.csv"),
             new[] { "CONCEPTO;VALOR",
-                $"ALUMNOS_ACTIVOS_CON_TURNO_OFICIAL;{estados.Count}",
+                $"ALUMNOS_OBJETIVO_DEL_MODO;{estados.Count}",
                 $"CUOTAS_IMPORTABLES;{aptos.Count}",
                 $"PERIODOS_ANTERIORES_AL_ALTA;{decisions.Count(x => x.Accion == "REVISAR_ALTA")}",
                 $"PERIODOS_SIN_EVIDENCIA;{decisions.Count(x => x.Accion == "REVISAR_SIN_EVIDENCIA")}",
@@ -204,7 +232,7 @@ public static class FinanzasActivosTest
                 $"PAGOS_IMPUTABLES;{F(totalPagos)}",
                 $"SALDO_DOCUMENTADO;{F(saldoExplicito)}"
             }, Encoding.UTF8);
-        Console.WriteLine($"Finanzas activos: {activeIds.Count} origen, {vinculados} vinculados, {missing.Count} pendientes. " +
+        Console.WriteLine($"Finanzas {(historicosSolo ? "históricos" : "activos")}: {personasObjetivo.Count} origen, {vinculados} vinculados, {missing.Count} pendientes. " +
             $"Meses con evidencia: {aptos.Count:N0}; meses para revisión: {revisar:N0}.");
         Console.WriteLine($"Tarifas confirmadas: {tarifas.Count} meses y {excepciones.Count} excepciones individuales; " +
             $"cuotas validadas {F(totalCuotas)}; cobros imputables {F(totalPagos)}; saldo documentado {F(saldoExplicito)}.");
@@ -219,7 +247,7 @@ public static class FinanzasActivosTest
             $"{estados.Count(x => x.Estado == "AL_DIA_AL_CORTE")} sin deuda vencida conocida y sin periodos vencidos inciertos.");
         Console.WriteLine("IMPORTANTE: el reporte de estados NO actualiza la UI. " +
             "Hasta adaptar Turnera/Asistencia, NO interpretar la ausencia de cuota como 'Al dia'.");
-        Console.WriteLine($"Reportes: {Path.GetFullPath(opt.ReportDirectory)}");
+        Console.WriteLine($"Reportes: {Path.GetFullPath(carpetaReportes)}");
         if (!aplicar)
         {
             Console.WriteLine("VISTA PREVIA: no se modificó PostgreSQL.");
@@ -243,7 +271,7 @@ public static class FinanzasActivosTest
             else if (found[0].Importe != p.Importe)
                 diferencias.Add($"{p.Id};{key};IMPORTE_DISTINTO");
         }
-        File.WriteAllLines(Path.Combine(opt.ReportDirectory, "finanzas_v48_preflight_pagos.csv"),
+        File.WriteAllLines(Path.Combine(carpetaReportes, "finanzas_v48_preflight_pagos.csv"),
             new[] { "IDPAGO;REFERENCIA;INCIDENCIA" }.Concat(diferencias), Encoding.UTF8);
         if (diferencias.Count > 0)
             throw new InvalidOperationException($"Hay {diferencias.Count} pagos inconsistentes en PostgreSQL. " +
