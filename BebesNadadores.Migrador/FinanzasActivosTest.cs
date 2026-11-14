@@ -85,7 +85,7 @@ public static class FinanzasActivosTest
             .Select(x => x.Id).ToListAsync(ct)).ToHashSet();
         var liveSubs = turns.Where(x => oficialIds.Contains(x.TurnoId))
             .Select(x => x.InscripcionId).ToHashSet();
-        var validSubsByBebe = subs.Where(x => !historicosSolo || liveSubs.Contains(x.Id))
+        var validSubsByBebe = subs.Where(x => historicosSolo || liveSubs.Contains(x.Id))
             .GroupBy(x => x.BebeId).ToDictionary(x => x.Key, x => x.ToList());
         var bebes = (await db.Bebes.AsNoTracking().Select(x => x.Id).ToListAsync(ct)).ToHashSet();
 
