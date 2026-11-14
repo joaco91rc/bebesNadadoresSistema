@@ -823,6 +823,159 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
 
                     </div>
                     }
+
+                    @if (_vistaCuenta == "cuenta")
+                    {
+                        <section class="workspace-card current-account-card">
+
+                            <div class="current-account-header">
+
+                                <div>
+
+                                    <span class="section-eyebrow">
+                                        ESTADO DE CUENTA
+                                    </span>
+
+                                    <h3>
+                                        Movimientos de cuenta corriente
+                                    </h3>
+
+                                    <p>
+                                        Cuotas generadas y pagos recibidos
+                                        ordenados cronológicamente.
+                                    </p>
+
+                                </div>
+
+
+                                <div class="current-balance">
+
+                                    <span>
+                                        Saldo total de cuotas
+                                    </span>
+
+                                    <strong class="@ObtenerClaseSaldoCuenta(
+                                        SaldoTotalCuenta)">
+
+                                        @ObtenerTextoSaldoCuenta(
+                                            SaldoTotalCuenta)
+
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            @if (MovimientosCuenta.Count == 0)
+                            {
+                                <div class="empty-section">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
+
+                                    <span>
+                                        Todavía no hay movimientos
+                                        en la cuenta corriente.
+                                    </span>
+
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="current-account-table">
+
+                                    <div class="current-account-row table-header">
+
+                                        <span>
+                                            Fecha
+                                        </span>
+
+                                        <span>
+                                            Concepto
+                                        </span>
+
+                                        <span class="amount-column">
+                                            Débito
+                                        </span>
+
+                                        <span class="amount-column">
+                                            Crédito
+                                        </span>
+
+                                        <span class="amount-column">
+                                            Saldo
+                                        </span>
+
+                                    </div>
+
+
+                                    @foreach (var movimiento in MovimientosCuenta)
+                                    {
+                                        <div class="current-account-row">
+
+                                            <div class="movement-date">
+
+                                                <strong>
+                                                    @movimiento.FechaTexto
+                                                </strong>
+
+                                                <small>
+                                                    @movimiento.Tipo
+                                                </small>
+
+                                            </div>
+
+
+                                            <div class="movement-concept">
+
+                                                <strong>
+                                                    @movimiento.Concepto
+                                                </strong>
+
+                                                @if (!string.IsNullOrWhiteSpace(
+                                                    movimiento.Detalle))
+                                                {
+                                                    <small>
+                                                        @movimiento.Detalle
+                                                    </small>
+                                                }
+
+                                            </div>
+
+
+                                            <div class="amount-column debit">
+
+                                                @(movimiento.Debito > 0
+                                                    ? FormatearMoneda(movimiento.Debito)
+                                                    : "—")
+
+                                            </div>
+
+
+                                            <div class="amount-column credit">
+
+                                                @(movimiento.Credito > 0
+                                                    ? FormatearMoneda(movimiento.Credito)
+                                                    : "—")
+
+                                            </div>
+
+
+                                            <div class="amount-column balance @ObtenerClaseSaldoCuenta(movimiento.Saldo)">
+
+                                                @ObtenerTextoSaldoCuenta(
+                                                    movimiento.Saldo)
+
+                                            </div>
+
+                                        </div>
+                                    }
+
+                                </div>
+                            }
+
+                        </section>
+                    }
                 }
 
             </main>
@@ -831,159 +984,6 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
     }
 
 </div>
-
-@if (_vistaCuenta == "cuenta")
-{
-    <section class="workspace-card current-account-card">
-
-        <div class="current-account-header">
-
-            <div>
-
-                <span class="section-eyebrow">
-                    ESTADO DE CUENTA
-                </span>
-
-                <h3>
-                    Movimientos de cuenta corriente
-                </h3>
-
-                <p>
-                    Cuotas generadas y pagos recibidos
-                    ordenados cronológicamente.
-                </p>
-
-            </div>
-
-
-            <div class="current-balance">
-
-                <span>
-                    Saldo total de cuotas
-                </span>
-
-                <strong class="@ObtenerClaseSaldoCuenta(
-                    SaldoTotalCuenta)">
-
-                    @ObtenerTextoSaldoCuenta(
-                        SaldoTotalCuenta)
-
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        @if (MovimientosCuenta.Count == 0)
-        {
-            <div class="empty-section">
-
-                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" />
-
-                <span>
-                    Todavía no hay movimientos
-                    en la cuenta corriente.
-                </span>
-
-            </div>
-        }
-        else
-        {
-            <div class="current-account-table">
-
-                <div class="current-account-row table-header">
-
-                    <span>
-                        Fecha
-                    </span>
-
-                    <span>
-                        Concepto
-                    </span>
-
-                    <span class="amount-column">
-                        Débito
-                    </span>
-
-                    <span class="amount-column">
-                        Crédito
-                    </span>
-
-                    <span class="amount-column">
-                        Saldo
-                    </span>
-
-                </div>
-
-
-                @foreach (var movimiento in MovimientosCuenta)
-                {
-                    <div class="current-account-row">
-
-                        <div class="movement-date">
-
-                            <strong>
-                                @movimiento.FechaTexto
-                            </strong>
-
-                            <small>
-                                @movimiento.Tipo
-                            </small>
-
-                        </div>
-
-
-                        <div class="movement-concept">
-
-                            <strong>
-                                @movimiento.Concepto
-                            </strong>
-
-                            @if (!string.IsNullOrWhiteSpace(
-                                movimiento.Detalle))
-                            {
-                                <small>
-                                    @movimiento.Detalle
-                                </small>
-                            }
-
-                        </div>
-
-
-                        <div class="amount-column debit">
-
-                            @(movimiento.Debito > 0
-                                ? FormatearMoneda(movimiento.Debito)
-                                : "—")
-
-                        </div>
-
-
-                        <div class="amount-column credit">
-
-                            @(movimiento.Credito > 0
-                                ? FormatearMoneda(movimiento.Credito)
-                                : "—")
-
-                        </div>
-
-
-                        <div class="amount-column balance @ObtenerClaseSaldoCuenta(movimiento.Saldo)">
-
-                            @ObtenerTextoSaldoCuenta(
-                                movimiento.Saldo)
-
-                        </div>
-
-                    </div>
-                }
-
-            </div>
-        }
-
-    </section>
-}
 
 @* =============================================================
    MODAL REGISTRAR PAGO
