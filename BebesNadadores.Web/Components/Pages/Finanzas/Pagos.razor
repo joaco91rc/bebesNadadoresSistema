@@ -295,7 +295,7 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                         </strong>
 
                                         <small>
-                                            deuda
+                                            deuda vencida
                                         </small>
                                     }
                                     else if (bebe.SaldoAFavor > 0)
@@ -311,7 +311,7 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                     else
                                     {
                                         <strong class="ok">
-                                            Al día
+                                            Sin mora registrada
                                         </strong>
                                     }
 
@@ -422,59 +422,53 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                        KPIs
                        ========================================= *@
 
-                    <section class="account-kpis">
+                    <section class="account-kpis account-kpis--four" aria-label="Resumen financiero">
 
-                        <article class="debt">
-
-                            <span>
-                                Deuda actual
-                            </span>
-
-                            <strong>
-                                @FormatearMoneda(_cuenta.Deuda)
-                            </strong>
-
-                            <small>
-                                Saldo pendiente de cuotas
-                            </small>
-
+                        <article class="debt @(_cuenta.Deuda > 0 ? "has-overdue" : "no-overdue")">
+                            <div class="account-kpi-label">
+                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                                <span>Deuda vencida</span>
+                            </div>
+                            <strong>@FormatearMoneda(_cuenta.Deuda)</strong>
+                            <small>@(_cuenta.Deuda > 0
+                                ? "Cuotas impagas fuera de término"
+                                : "Sin cuotas vencidas con saldo registrado")</small>
                         </article>
 
-
-                        <article>
-
-                            <span>
-                                Total pagado
-                            </span>
-
-                            <strong>
-                                @FormatearMoneda(_cuenta.TotalPagado)
-                            </strong>
-
-                            <small>
-                                Pagos registrados
-                            </small>
-
+                        <article class="upcoming">
+                            <div class="account-kpi-label">
+                                <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small" />
+                                <span>Pendiente por vencer</span>
+                            </div>
+                            <strong>@FormatearMoneda(CuotasPorVencer)</strong>
+                            <small>@TextoProximoVencimiento</small>
                         </article>
 
+                        <article class="paid">
+                            <div class="account-kpi-label">
+                                <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Small" />
+                                <span>Total pagado</span>
+                            </div>
+                            <strong>@FormatearMoneda(_cuenta.TotalPagado)</strong>
+                            <small>Pagos registrados</small>
+                        </article>
 
                         <article class="credit">
-
-                            <span>
-                                Saldo a favor
-                            </span>
-
-                            <strong>
-                                @FormatearMoneda(_cuenta.SaldoAFavor)
-                            </strong>
-
-                            <small>
-                                Dinero aún no imputado
-                            </small>
-
+                            <div class="account-kpi-label">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" />
+                                <span>Saldo a favor</span>
+                            </div>
+                            <strong>@FormatearMoneda(_cuenta.SaldoAFavor)</strong>
+                            <small>Dinero aún no imputado</small>
                         </article>
 
                     </section>
+
+                    <p class="account-kpis-note">
+                        <MudIcon Icon="@Icons.Material.Filled.InfoOutline" Size="Size.Small" />
+                        La deuda vencida comienza al día siguiente del vencimiento. Los períodos históricos
+                        pendientes de conciliación se revisan por separado.
+                    </p>
 
                     <div class="account-tabs">
 
@@ -865,14 +859,14 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
             <div class="current-balance">
 
                 <span>
-                    Saldo actual
+                    Saldo total de cuotas
                 </span>
 
                 <strong class="@ObtenerClaseSaldoCuenta(
-                    _cuenta.Deuda - _cuenta.SaldoAFavor)">
+                    SaldoTotalCuenta)">
 
                     @ObtenerTextoSaldoCuenta(
-                        _cuenta.Deuda - _cuenta.SaldoAFavor)
+                        SaldoTotalCuenta)
 
                 </strong>
 
@@ -1038,7 +1032,7 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                     </h2>
 
                     <p>
-                        Deuda actual:
+                        Deuda vencida:
                         <strong>
                             @FormatearMoneda(_cuenta.Deuda)
                         </strong>
@@ -1507,3 +1501,100 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
 
     </div>
 }
+
+@code {
+    // La deuda vencida proviene de PagoService (FechaVencimiento < hoy).
+    // Las cuotas por vencer se calculan para visualización, sin alterar imputaciones.
+    private static DateOnly FechaHoyArgentina()
+    {
+        try
+        {
+            var zona = TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
+            return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zona).DateTime);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return DateOnly.FromDateTime(DateTime.UtcNow.AddHours(-3));
+        }
+    }
+
+    private decimal CuotasPorVencer => _cuenta?.Cuotas
+        .Where(x => x.Estado != EstadoCuota.Anulada && x.Saldo > 0m && x.FechaVencimiento >= FechaHoyArgentina())
+        .Sum(x => x.Saldo) ?? 0m;
+
+    private string TextoProximoVencimiento
+    {
+        get
+        {
+            var proximo = _cuenta?.Cuotas
+                .Where(x => x.Estado != EstadoCuota.Anulada && x.Saldo > 0m && x.FechaVencimiento >= FechaHoyArgentina())
+                .OrderBy(x => x.FechaVencimiento)
+                .FirstOrDefault();
+            return proximo is null ? "Sin cuotas próximas pendientes" : $"Próximo vencimiento: {proximo.FechaVencimiento:dd/MM/yyyy}";
+        }
+    }
+
+    // Saldo de todas las cuotas, hayan vencido o no. No confundir con mora.
+    private decimal SaldoTotalCuenta => (_cuenta?.Cuotas
+        .Where(x => x.Estado != EstadoCuota.Anulada)
+        .Sum(x => x.Saldo) ?? 0m) - (_cuenta?.SaldoAFavor ?? 0m);
+}
+
+<style>
+.payments-page .account-kpis.account-kpis--four {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+    }
+    .payments-page .account-kpis--four > article {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+        border: 1px solid var(--mud-palette-divider);
+        border-radius: 14px;
+        background: var(--mud-palette-surface);
+    }
+    .payments-page .account-kpis--four .account-kpi-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--mud-palette-text-secondary);
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    .payments-page .account-kpis--four > article > strong {
+        font-size: clamp(18px, 1.65vw, 25px);
+        font-weight: 800;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+        color: var(--mud-palette-text-primary);
+    }
+    .payments-page .account-kpis--four > article > small {
+        font-size: 11px;
+        color: var(--mud-palette-text-secondary);
+        line-height: 1.45;
+    }
+    .payments-page .account-kpis--four .has-overdue > strong { color: #f16f81; }
+    .payments-page .account-kpis--four .no-overdue > strong { color: #47d6a7; }
+    .payments-page .account-kpis--four .upcoming > strong { color: #e9b45c; }
+    .payments-page .account-kpis--four .credit > strong { color: #47d6a7; }
+    .payments-page .account-kpis-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        margin: 8px 0 14px;
+        font-size: 11px;
+        color: var(--mud-palette-text-secondary);
+        line-height: 1.45;
+    }
+    .payments-page .account-kpis-note .mud-icon-root { flex-shrink: 0; }
+    @@media (max-width: 1250px) {
+        .payments-page .account-kpis.account-kpis--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @@media (max-width: 550px) {
+        .payments-page .account-kpis.account-kpis--four { grid-template-columns: minmax(0, 1fr); }
+    }
+</style>

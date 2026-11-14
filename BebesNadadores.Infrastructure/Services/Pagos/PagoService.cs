@@ -258,21 +258,13 @@ var periodoActual =
                     .ToList();
 
 
-            var deuda =
+           var hoyArgentina = ObtenerFechaArgentina();
 
-                cuotasBebe
-
-                    .Sum(x =>
-
-                        Math.Max(
-
-                            0,
-
-                            x.Importe -
-
-                            x.Imputaciones.Sum(i =>
-
-                                i.Importe)));
+var deuda = cuotasBebe
+    .Where(x => x.FechaVencimiento < hoyArgentina)
+    .Sum(x => Math.Max(
+        0m,
+        x.Importe - x.Imputaciones.Sum(i => i.Importe)));
 
 
             var saldoFavor =
@@ -654,16 +646,11 @@ var totalFacturado =
             x.Importe);
 
 
-var deuda =
-    cuotasDto
-        .Where(x =>
-            x.Estado !=
-                EstadoCuota.Anulada
-            &&
-            x.Periodo <=
-                periodoActual)
-        .Sum(x =>
-            x.Saldo);
+var deuda = cuotasDto
+    .Where(x =>
+        x.Estado != EstadoCuota.Anulada &&
+        x.FechaVencimiento < hoy)
+    .Sum(x => x.Saldo);
 
         var totalPagado =
             pagosDto
