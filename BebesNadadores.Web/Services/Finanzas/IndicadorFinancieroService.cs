@@ -1,4 +1,3 @@
-using System.Globalization;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -27,18 +26,13 @@ public interface IIndicadorFinancieroService
 }
 
 /// <summary>
-/// Indicadores solo informativos. El archivo de conciliación V4.8 se encuentra
-/// fuera de wwwroot y debe reemplazarse por el del último dump antes de producción.
-/// Si falta un alumno o el reporte no está disponible, NO se muestra "Al día".
+/// Indicadores informativos basados en deuda actual de PostgreSQL y la evidencia
+/// de incertidumbre histórica persistida al finalizar la migración.
+/// Si falta la conciliación validada, NO se muestra "Al día".
 /// </summary>
 public sealed class IndicadorFinancieroService(
-    IDbContextFactory<AppDbContext> factory,
-    IWebHostEnvironment environment,
-    IConfiguration configuration,
-    ILogger<IndicadorFinancieroService> logger) : IIndicadorFinancieroService
+    IDbContextFactory<AppDbContext> factory) : IIndicadorFinancieroService
 {
-    private sealed record Snapshot(DateOnly Corte, int MesesVencidosInciertos);
-
     private static DateOnly HoyArgentina()
     {
         try
@@ -60,9 +54,11 @@ public sealed class IndicadorFinancieroService(
         if (ids.Length == 0) return new Dictionary<Guid, IndicadorFinancieroDto>();
 
         var hoy = HoyArgentina();
-        var snapshots = LeerSnapshot();
-
         await using var db = await factory.CreateDbContextAsync(ct);
+        var snapshots = await db.ConciliacionesFinancierasBebes
+            .AsNoTracking()
+            .Where(x => ids.Contains(x.BebeId))
+            .ToDictionaryAsync(x => x.BebeId, ct);
         var cuotas = await db.Cuotas.AsNoTracking()
             .Where(c => ids.Contains(c.Inscripcion.BebeId) && c.Estado != EstadoCuota.Anulada)
             .Select(c => new
@@ -98,15 +94,15 @@ public sealed class IndicadorFinancieroService(
 
             // La conciliación V4.8 no incorpora períodos sin evidencia. Si alguno
             // ya era incierto al corte, nunca deducimos "Al día" de las cuotas faltantes.
-            bool requiereRevision = snapshot.MesesVencidosInciertos > 0;
+            bool requiereRevision = snapshot.MesesVencidosSinConciliar > 0;
 
             // Luego del corte también pueden vencer meses sin cuota registrada.
             // Solo se revisan meses posteriores al corte, sin inventar saldos.
-            var periodo = new DateOnly(snapshot.Corte.Year, snapshot.Corte.Month, 1);
+            var periodo = new DateOnly(snapshot.FechaCorte.Year, snapshot.FechaCorte.Month, 1);
             while (periodo <= new DateOnly(hoy.Year, hoy.Month, 1))
             {
                 var vence = new DateOnly(periodo.Year, periodo.Month, Math.Min(15, DateTime.DaysInMonth(periodo.Year, periodo.Month)));
-                if (vence > snapshot.Corte && vence < hoy &&
+                if (vence > snapshot.FechaCorte && vence < hoy &&
                     !filas.Any(x => x.Periodo == periodo))
                 {
                     requiereRevision = true;
@@ -140,43 +136,4 @@ public sealed class IndicadorFinancieroService(
         return resultado;
     }
 
-    private Dictionary<Guid, Snapshot> LeerSnapshot()
-    {
-        // Ruta fija del reporte validado y publicado tras COMMIT financiero.
-        // No depender de la carpeta versionada ni de un CSV incluido en la imagen.
-        var relativo = "App_Data/Migraciones/conciliacion-vigente/finanzas_446_estado_indicador_v48.csv";
-        var ruta = Path.IsPathRooted(relativo)
-            ? relativo
-            : Path.Combine(environment.ContentRootPath, relativo);
-        var resultado = new Dictionary<Guid, Snapshot>();
-
-        if (!File.Exists(ruta))
-        {
-            logger.LogWarning("Falta el reporte de conciliación financiera en {Ruta}. Todos los alumnos mostrarán Revisar.", ruta);
-            return resultado;
-        }
-        var lines = File.ReadLines(ruta).ToArray();
-        if (lines.Length < 2) return resultado;
-        var encabezados = lines[0].TrimStart('\uFEFF').Split(';');
-        int idxId = Array.IndexOf(encabezados, "BEBE_GUID");
-        int idxCorte = Array.IndexOf(encabezados, "FECHA_CORTE");
-        int idxPend = Array.IndexOf(encabezados, "MESES_VENCIDOS_SIN_CONCILIAR");
-        if (idxId < 0 || idxCorte < 0 || idxPend < 0)
-        {
-            logger.LogWarning("El CSV de indicadores no tiene las columnas V4.8 esperadas.");
-            return resultado;
-        }
-        foreach (var line in lines.Skip(1))
-        {
-            var c = line.Split(';');
-            if (c.Length <= Math.Max(idxId, Math.Max(idxCorte, idxPend))) continue;
-            if (Guid.TryParse(c[idxId], out var id) &&
-                DateOnly.TryParseExact(c[idxCorte], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var corte) &&
-                int.TryParse(c[idxPend], NumberStyles.Integer, CultureInfo.InvariantCulture, out int pendientes))
-            {
-                resultado[id] = new Snapshot(corte, pendientes);
-            }
-        }
-        return resultado;
-    }
 }

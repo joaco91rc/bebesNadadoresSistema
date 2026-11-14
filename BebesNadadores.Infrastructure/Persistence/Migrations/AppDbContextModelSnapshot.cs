@@ -607,6 +607,21 @@ namespace BebesNadadores.Infrastructure.Persistence.Migrations
                     b.ToTable("CuentasBancarias", (string)null);
                 });
 
+            modelBuilder.Entity("BebesNadadores.Domain.Entities.ConciliacionFinancieraBebe", b =>
+                {
+                    b.Property<Guid>("BebeId").HasColumnType("uuid");
+                    b.Property<string>("CodigoMigracion").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                    b.Property<DateOnly>("FechaCorte").HasColumnType("date");
+                    b.Property<DateTimeOffset>("ImportadaUtc").HasColumnType("timestamp with time zone");
+                    b.Property<int>("MesesVencidosSinConciliar").HasColumnType("integer");
+                    b.HasKey("BebeId");
+                    b.HasIndex("CodigoMigracion");
+                    b.ToTable("ConciliacionesFinancierasBebes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConciliacionesFinancierasBebes_MesesNoNegativos", "\"MesesVencidosSinConciliar\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("BebesNadadores.Domain.Entities.Cuota", b =>
                 {
                     b.Property<Guid>("Id")

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using BebesNadadores.Domain.Entities;
 using System.Text;
 using System.Text.RegularExpressions;
 using BebesNadadores.Infrastructure.Persistence;
@@ -595,7 +596,13 @@ private async Task<string> EjecutarMysqlAsync(string? sql, string? archivo)
         if (idIndex < 0 || corteIndex < 0 || pendientesIndex < 0)
             throw new InvalidOperationException("El reporte financiero carece de columnas obligatorias.");
 
+        var nombreReporte = Path.GetFileName(Path.TrimEndingDirectorySeparator(reportes));
+        if (!nombreReporte.StartsWith("reportes-", StringComparison.Ordinal))
+            throw new InvalidOperationException("Carpeta de reportes de migración inválida.");
+        var codigoMigracion = CodigoSeguro(nombreReporte["reportes-".Length..]);
         var ids = new HashSet<Guid>();
+        var conciliaciones = new List<ConciliacionFinancieraBebe>();
+        var importadaUtc = DateTimeOffset.UtcNow;
         foreach (var linea in lineas.Skip(1))
         {
             if (string.IsNullOrWhiteSpace(linea)) continue;
@@ -610,9 +617,40 @@ private async Task<string> EjecutarMysqlAsync(string? sql, string? archivo)
                 !ids.Add(id))
                 throw new InvalidOperationException(
                     "El reporte financiero contiene una fila inválida, repetida o de otra fecha de corte.");
+            conciliaciones.Add(new ConciliacionFinancieraBebe
+            {
+                BebeId = id,
+                FechaCorte = fecha,
+                MesesVencidosSinConciliar = pendientes,
+                CodigoMigracion = codigoMigracion,
+                ImportadaUtc = importadaUtc
+            });
         }
         if (ids.Count == 0)
             throw new InvalidOperationException("El reporte financiero no incluye alumnos válidos.");
+
+        // Las cuotas y pagos ya fueron confirmados por el migrador. Validamos la
+        // integridad de las referencias ANTES de reemplazar cualquier snapshot.
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            await using var db = await dbFactory.CreateDbContextAsync();
+            var bebesEncontrados = await db.Bebes.AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => x.Id)
+                .ToListAsync();
+            if (bebesEncontrados.Count != ids.Count)
+                throw new InvalidOperationException(
+                    $"El reporte contiene {ids.Count - bebesEncontrados.Count} bebés inexistentes en PostgreSQL.");
+
+            await using var tx = await db.Database.BeginTransactionAsync();
+            // Importación idempotente. No tocar las cuotas ni imputaciones.
+            await db.ConciliacionesFinancierasBebes.ExecuteDeleteAsync();
+            db.ConciliacionesFinancierasBebes.AddRange(conciliaciones);
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        Registrar($"Conciliación financiera persistida en PostgreSQL para {ids.Count} alumnos.");
 
         var carpeta = Path.Combine(environment.ContentRootPath,
             "App_Data", "Migraciones", "conciliacion-vigente");

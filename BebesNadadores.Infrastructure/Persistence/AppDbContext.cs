@@ -37,6 +37,7 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
 
     public DbSet<AptoMedico> AptosMedicos => Set<AptoMedico>();
 
+    public DbSet<ConciliacionFinancieraBebe> ConciliacionesFinancierasBebes => Set<ConciliacionFinancieraBebe>();
     public DbSet<Cuota> Cuotas => Set<Cuota>();
     public DbSet<Pago> Pagos => Set<Pago>();
     public DbSet<ImputacionPago> ImputacionesPago => Set<ImputacionPago>();
