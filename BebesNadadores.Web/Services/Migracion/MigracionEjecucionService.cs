@@ -362,41 +362,121 @@ if (string.IsNullOrWhiteSpace(hostPermitido) ||
         await File.WriteAllBytesAsync(destination, Encoding.Latin1.GetBytes(bloque));
     }
 
-    private async Task<string> EjecutarMysqlAsync(string? sql, string? archivo)
+   
+private async Task<string> EjecutarMysqlAsync(string? sql, string? archivo)
+{
+    var host = configuration["Migracion:MySqlHost"] ?? "127.0.0.1";
+    var hostPermitido = configuration["Migracion:MySqlHostPermitido"];
+
+    if (host != "127.0.0.1" && host != "localhost" &&
+        !string.Equals(host, hostPermitido, StringComparison.Ordinal))
+        throw new InvalidOperationException(
+            "Host MySQL no autorizado.");
+
+    var bd = configuration["Migracion:MySqlBaseTemporal"]
+        ?? "bbn_migracion_web";
+
+    if (!Regex.IsMatch(bd, "^bbn_migracion_[a-z0-9_]+$"))
+        throw new InvalidOperationException(
+            "Base MySQL temporal no autorizada.");
+
+    var user = configuration["Migracion:MySqlUsuario"];
+    var password = configuration["Migracion:MySqlPassword"];
+
+    if (string.IsNullOrWhiteSpace(user) ||
+        string.IsNullOrWhiteSpace(password))
+        throw new InvalidOperationException(
+            "Faltan credenciales MySQL del staging.");
+
+    var cli = configuration["Migracion:MySqlCli"] ?? "mysql";
+
+    var psi = new ProcessStartInfo(cli)
     {
-        var host = configuration["Migracion:MySqlHost"] ?? "127.0.0.1";
-        var hostPermitido = configuration["Migracion:MySqlHostPermitido"];
-        if (host != "127.0.0.1" && host != "localhost" &&
-            !string.Equals(host, hostPermitido, StringComparison.Ordinal))
-            throw new InvalidOperationException("Host MySQL no autorizado: indicar el host privado exacto en Migracion:MySqlHostPermitido.");
-        var bd = configuration["Migracion:MySqlBaseTemporal"] ?? "bbn_migracion_web";
-        if (!Regex.IsMatch(bd, "^bbn_migracion_[a-z0-9_]+$"))
-            throw new InvalidOperationException("La base MySQL temporal debe comenzar por bbn_migracion_.");
-        var user = configuration["Migracion:MySqlUsuario"];
-        var password = configuration["Migracion:MySqlPassword"];
-        if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
-            throw new InvalidOperationException("Configurá el usuario MySQL restringido para staging en User Secrets.");
-        var cli = configuration["Migracion:MySqlCli"] ?? "mysql";
-        var args = new[] { "--protocol=tcp", "--host=" + host, "--port=" + (configuration["Migracion:MySqlPuerto"] ?? "3306"), "--user=" + user, "--default-character-set=utf8", "--database=" + bd, "--batch", "--skip-column-names" };
-        var psi = new ProcessStartInfo(cli) { RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
-        foreach (var arg in args) psi.ArgumentList.Add(arg);
-        psi.Environment["MYSQL_PWD"] = password;
-        using var p = Process.Start(psi) ?? throw new InvalidOperationException("No se pudo ejecutar mysql.exe. Configurá Migracion:MySqlCli.");
-        var stdOut = p.StandardOutput.ReadToEndAsync();
-        var stdErr = p.StandardError.ReadToEndAsync();
+        RedirectStandardInput = true,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false,
+        CreateNoWindow = true
+    };
+
+    foreach (var arg in new[]
+    {
+        "--protocol=tcp",
+        "--host=" + host,
+        "--port=" + (configuration["Migracion:MySqlPuerto"] ?? "3306"),
+        "--user=" + user,
+        "--default-character-set=utf8",
+        "--database=" + bd,
+        "--batch",
+        "--skip-column-names"
+    })
+        psi.ArgumentList.Add(arg);
+
+    psi.Environment["MYSQL_PWD"] = password;
+
+    using var proceso = Process.Start(psi)
+        ?? throw new InvalidOperationException(
+            "No se pudo iniciar el cliente MySQL.");
+
+    var salidaTask = proceso.StandardOutput.ReadToEndAsync();
+    var erroresTask = proceso.StandardError.ReadToEndAsync();
+
+    Exception? errorEscritura = null;
+
+    try
+    {
         if (archivo is not null)
         {
             await using var input = File.OpenRead(archivo);
-            await input.CopyToAsync(p.StandardInput.BaseStream);
+            await input.CopyToAsync(proceso.StandardInput.BaseStream);
         }
-        else await p.StandardInput.WriteAsync(sql ?? "");
-        p.StandardInput.Close();
-        await p.WaitForExitAsync();
-        var salida = await stdOut;
-        var error = await stdErr;
-        if (p.ExitCode != 0) throw new InvalidOperationException("mysql.exe finalizó con error: " + error[..Math.Min(error.Length, 800)]);
-        return salida;
+        else
+        {
+            await proceso.StandardInput.WriteAsync(sql ?? "");
+        }
+
+        await proceso.StandardInput.FlushAsync();
     }
+    catch (IOException ex)
+    {
+        // MySQL pudo terminar antes de recibir todo el SQL.
+        // Conservamos el error para mostrar también stderr.
+        errorEscritura = ex;
+    }
+    finally
+    {
+        try
+        {
+            proceso.StandardInput.Close();
+        }
+        catch (IOException)
+        {
+            // El proceso ya cerró el pipe.
+        }
+    }
+
+    await proceso.WaitForExitAsync();
+
+    var salida = await salidaTask;
+    var errores = await erroresTask;
+
+    if (proceso.ExitCode != 0 || errorEscritura is not null)
+    {
+        var detalle = string.IsNullOrWhiteSpace(errores)
+            ? errorEscritura?.Message ?? "Sin detalle en stderr."
+            : errores;
+
+        if (detalle.Length > 2000)
+            detalle = detalle[^2000..];
+
+        throw new InvalidOperationException(
+            $"Error al restaurar MySQL staging. " +
+            $"Código de salida: {proceso.ExitCode}. " +
+            $"Detalle: {detalle}");
+    }
+
+    return salida;
+}
 
     private async Task EjecutarMigradorAsync(DateOnly corte, string reportes, params string[] acciones)
     {
