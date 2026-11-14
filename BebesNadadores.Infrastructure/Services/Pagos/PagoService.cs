@@ -217,9 +217,7 @@ public sealed class PagoService(
             new List<BebePagoResumenDto>();
 
 
-            var hoy =
-    DateOnly.FromDateTime(
-        DateTime.Today);
+            var hoy = ObtenerFechaArgentina();
 
 var periodoActual =
     new DateOnly(
@@ -258,13 +256,12 @@ var periodoActual =
                     .ToList();
 
 
-           var hoyArgentina = ObtenerFechaArgentina();
-
-var deuda = cuotasBebe
-    .Where(x => x.FechaVencimiento < hoyArgentina)
-    .Sum(x => Math.Max(
-        0m,
-        x.Importe - x.Imputaciones.Sum(i => i.Importe)));
+            var deuda =
+                cuotasBebe
+                    .Where(x => x.FechaVencimiento < hoy)
+                    .Sum(x => Math.Max(
+                        0m,
+                        x.Importe - x.Imputaciones.Sum(i => i.Importe)));
 
 
             var saldoFavor =
@@ -646,11 +643,12 @@ var totalFacturado =
             x.Importe);
 
 
-var deuda = cuotasDto
-    .Where(x =>
-        x.Estado != EstadoCuota.Anulada &&
-        x.FechaVencimiento < hoy)
-    .Sum(x => x.Saldo);
+var deuda =
+    cuotasDto
+        .Where(x =>
+            x.Estado != EstadoCuota.Anulada &&
+            x.FechaVencimiento < hoy)
+        .Sum(x => x.Saldo);
 
         var totalPagado =
             pagosDto
