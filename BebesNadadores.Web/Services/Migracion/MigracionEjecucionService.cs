@@ -30,6 +30,8 @@ public sealed class MigracionEjecucionService(
     public async Task PrepararAsync(string codigo, DateOnly corte)
     {
         if (!await _mutex.WaitAsync(0)) throw new InvalidOperationException("Hay otra migración ejecutándose.");
+        bool limpiarStagingTest = false;
+        bool stagingIntervenido = false;
         try
         {
             Ocupado = true;
@@ -38,11 +40,27 @@ public sealed class MigracionEjecucionService(
             PruebaAplicada = false;
             CodigoPreparado = null;
             _log.Clear();
+            limpiarStagingTest = environment.IsDevelopment() &&
+                configuration.GetValue("Migracion:PermitirEjecucionTest", false) &&
+                string.Equals(configuration["Migracion:MySqlBaseTemporal"],
+                    "bbn_migracion_test", StringComparison.Ordinal);
+
             await VerificarDestinoVacioAsync(produccion: EsDestinoProduccion());
             var source = RutaArchivo(codigo);
             var cleaned = Path.Combine(Path.GetDirectoryName(source)!, codigo + "-staging.sql");
             Estado = "Aislando el esquema bbn2 del respaldo";
             await ExtraerSoloBbn2Async(source, cleaned);
+            var omitidos = await MigracionStagingTestSeguro.OmitirTriggersLegadosAsync(cleaned);
+            Registrar($"Triggers heredados omitidos del staging: {omitidos}.");
+
+            if (limpiarStagingTest)
+            {
+                Estado = "Limpiando staging MySQL exclusivo de TEST";
+                stagingIntervenido = true;
+                await MigracionStagingTestSeguro.LimpiarAsync(configuration, environment);
+                Registrar("Staging MySQL TEST vacío y listo para restaurar.");
+            }
+
             Estado = "Comprobando base MySQL de staging";
             var tablas = await EjecutarMysqlAsync("SHOW TABLES;", null);
             if (!string.IsNullOrWhiteSpace(tablas))
@@ -68,6 +86,19 @@ public sealed class MigracionEjecucionService(
         }
         catch (Exception ex)
         {
+            if (limpiarStagingTest && stagingIntervenido)
+            {
+                try
+                {
+                    await MigracionStagingTestSeguro.LimpiarAsync(configuration, environment);
+                    Registrar("Staging MySQL TEST limpiado luego del error.");
+                }
+                catch (Exception limpiezaEx)
+                {
+                    Registrar("AVISO: No se pudo limpiar staging TEST: " + limpiezaEx.Message);
+                    logger.LogError(limpiezaEx, "Falló limpieza de staging MySQL TEST");
+                }
+            }
             Estado = "Falló la preparación: " + ex.Message;
             Registrar(Estado);
             logger.LogError(ex, "Falló la preparación de migración en TEST");
