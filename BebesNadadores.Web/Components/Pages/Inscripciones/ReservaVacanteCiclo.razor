@@ -20,142 +20,6 @@
 @if(!string.IsNullOrEmpty(_error)){<p class="rv-error">@_error</p>}
 @if(!string.IsNullOrEmpty(_mensaje)){<p class="rv-ok">@_mensaje</p>}
 
-<section class="rv-card rv-disponibilidad" aria-labelledby="rv-dispo-titulo">
-    <div class="rv-dispo-head">
-        <div>
-            <span class="rv-kicker">GRILLA DEL CICLO LECTIVO</span>
-            <h2 id="rv-dispo-titulo">Disponibilidad de vacantes</h2>
-            <p>Consultá cuántos lugares quedan libres antes de reservar. Las reservas pendientes
-               y las inscripciones asociadas ocupan un solo cupo por alumno.</p>
-        </div>
-        <button type="button" class="rv-btn" disabled="@(_cargando || _cargandoDisponibilidad || _guardando)"
-                @onclick="ActualizarDisponibilidadAsync">Actualizar cupos</button>
-    </div>
-    @if (_ciclos.Count == 0)
-    {
-        <p class="rv-note">Todavía no hay un ciclo futuro disponible. Configurá primero su grilla semanal.</p>
-    }
-    else
-    {
-        <div class="rv-dispo-filters">
-            <label>Ciclo lectivo
-                <select value="@_cicloId" @onchange="CambiarCicloReservaAsync">
-                    @foreach (var ciclo in _ciclos)
-                    {
-                        <option value="@ciclo.Id">@ciclo.Anio · desde @ciclo.Desde.ToString("dd/MM/yyyy")</option>
-                    }
-                </select>
-            </label>
-            <label>Nivel
-                <select @bind="_filtroNivelId">
-                    <option value="">Todos los niveles</option>
-                    @foreach (var nivel in _disponibilidad
-                        .GroupBy(x => new { x.NivelId, x.Nivel, x.NivelOrden })
-                        .Select(x => x.Key).OrderBy(x => x.NivelOrden))
-                    {
-                        <option value="@nivel.NivelId">@nivel.Nivel</option>
-                    }
-                </select>
-            </label>
-            <label>Día
-                <select @bind="_filtroDia">
-                    <option value="">Todos los días</option>
-                    @foreach (var dia in Enum.GetValues<DiaSemana>())
-                    {
-                        <option value="@dia">@TextoDia(dia)</option>
-                    }
-                </select>
-            </label>
-            <label class="rv-dispo-check">
-                <input type="checkbox" @bind="_soloLibres" />
-                Solo con vacantes
-            </label>
-        </div>
-        @if (_cargandoDisponibilidad)
-        {
-            <p class="rv-note" role="status">Consultando cupos del ciclo...</p>
-        }
-        else if (_disponibilidad.Count == 0)
-        {
-            <p class="rv-note">Este ciclo todavía no tiene turnos activos vigentes al inicio del ciclo.</p>
-        }
-        else
-        {
-            var visibles = DisponibilidadFiltrada;
-            <div class="rv-kpis" aria-live="polite">
-                <div><strong>@visibles.Count</strong><span>Turnos</span></div>
-                <div><strong>@visibles.Sum(x => x.CupoTotal)</strong><span>Cupos totales</span></div>
-                <div><strong>@visibles.Sum(x => x.Ocupados)</strong><span>Ocupados</span></div>
-                <div class="rv-kpi-free"><strong>@visibles.Sum(x => x.Disponibles)</strong><span>Libres</span></div>
-            </div>
-            <div class="rv-legend" aria-label="Referencia de ocupación">
-                <span><i class="rv-dot direct"></i>Inscripciones directas</span>
-                <span><i class="rv-dot associated"></i>Reservas ya asociadas</span>
-                <span><i class="rv-dot pending"></i>Reservas pendientes</span>
-                <span><i class="rv-dot free"></i>Lugares libres</span>
-            </div>
-            @if (visibles.Count == 0)
-            {
-                <p class="rv-note">No hay turnos que coincidan con los filtros seleccionados.</p>
-            }
-            else
-            {
-                <div class="rv-dispo-levels">
-                    @foreach (var grupo in visibles.GroupBy(x => new { x.NivelId, x.Nivel, x.NivelOrden })
-                        .OrderBy(x => x.Key.NivelOrden))
-                    {
-                        <div class="rv-level">
-                            <div class="rv-level-head">
-                                <h3>@grupo.Key.Nivel</h3>
-                                <span>@grupo.Sum(x => x.Disponibles) libres de @grupo.Sum(x => x.CupoTotal)</span>
-                            </div>
-                            <div class="rv-dispo-turnos">
-                                @foreach (var item in grupo.OrderBy(x => x.Dia).ThenBy(x => x.Hora))
-                                {
-                                    <div class="rv-turno-card @(item.Disponibles == 0 ? "rv-turno-full" : "")" @key="item.TurnoId">
-                                        <div class="rv-turno-top">
-                                            <div>
-                                                <strong>@TextoDia(item.Dia) · @item.Hora.ToString("HH:mm")</strong>
-                                                <small>@item.Turno</small>
-                                            </div>
-                                            <span class="rv-slot @(item.Disponibles == 0 ? "full" : "free")">
-                                                @(item.Disponibles == 0 ? "Completo" : $"{item.Disponibles} libres")
-                                            </span>
-                                        </div>
-                                        <div class="rv-capacity-bar" role="img"
-                                             aria-label="@($"{item.Ocupados} ocupados de {item.CupoTotal}, {item.Disponibles} libres")">
-                                            <span class="direct" style="@AnchoBarra(item.InscripcionesDirectas, item.CupoTotal)"></span>
-                                            <span class="associated" style="@AnchoBarra(item.InscripcionesAsociadas, item.CupoTotal)"></span>
-                                            <span class="pending" style="@AnchoBarra(item.ReservasPendientes, item.CupoTotal)"></span>
-                                        </div>
-                                        <div class="rv-breakdown">
-                                            <span>Directas: @item.InscripcionesDirectas</span>
-                                            <span>Asociadas: @item.InscripcionesAsociadas</span>
-                                            <span>Pendientes: @item.ReservasPendientes</span>
-                                        </div>
-                                        <div class="rv-turno-bottom">
-                                            <span>@item.Ocupados de @item.CupoTotal ocupados</span>
-                                            @if (item.Ocupados > item.CupoTotal)
-                                            {
-                                                <strong class="rv-overbooked">Excedido por @(item.Ocupados - item.CupoTotal)</strong>
-                                            }
-                                            else if (item.Disponibles > 0)
-                                            {
-                                                <a href="#nueva-reserva" class="rv-select-turno"
-                                                   @onclick="() => ElegirTurno(item.TurnoId)">Elegir horario</a>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-        }
-    }
-</section>
-
 <div class="rv-cols">
 <section class="rv-card" id="nueva-reserva"><h2>Nueva reserva</h2>
     @if(_ciclos.Count==0){<p>No hay ciclos futuros configurados. Primero creá el ciclo y su grilla semanal.</p>}
@@ -195,6 +59,7 @@
                 </option>
             }
         </select>
+        <a class="rv-dispo-shortcut" href="#disponibilidad-vacantes">Ver disponibilidad completa de vacantes</a>
         @if (Guid.TryParse(_turnoId, out _))
         {
             <p class="rv-selected">Horario seleccionado. Revisá el alumno y el medio de pago.</p>
@@ -325,8 +190,146 @@
         }
     }
 </section>
+
+<section class="rv-card rv-disponibilidad" id="disponibilidad-vacantes" aria-labelledby="rv-dispo-titulo">
+    <div class="rv-dispo-head">
+        <div>
+            <span class="rv-kicker">GRILLA DEL CICLO LECTIVO</span>
+            <h2 id="rv-dispo-titulo">Disponibilidad de vacantes</h2>
+            <p>Consultá el detalle de los lugares libres de cada horario. Las reservas pendientes
+               y las inscripciones asociadas ocupan un solo cupo por alumno.</p>
+        </div>
+        <button type="button" class="rv-btn" disabled="@(_cargando || _cargandoDisponibilidad || _guardando)"
+                @onclick="ActualizarDisponibilidadAsync">Actualizar cupos</button>
+    </div>
+    @if (_ciclos.Count == 0)
+    {
+        <p class="rv-note">Todavía no hay un ciclo futuro disponible. Configurá primero su grilla semanal.</p>
+    }
+    else
+    {
+        <div class="rv-dispo-filters">
+            <label>Ciclo lectivo
+                <select value="@_cicloId" @onchange="CambiarCicloReservaAsync">
+                    @foreach (var ciclo in _ciclos)
+                    {
+                        <option value="@ciclo.Id">@ciclo.Anio · desde @ciclo.Desde.ToString("dd/MM/yyyy")</option>
+                    }
+                </select>
+            </label>
+            <label>Nivel
+                <select @bind="_filtroNivelId">
+                    <option value="">Todos los niveles</option>
+                    @foreach (var nivel in _disponibilidad
+                        .GroupBy(x => new { x.NivelId, x.Nivel, x.NivelOrden })
+                        .Select(x => x.Key).OrderBy(x => x.NivelOrden))
+                    {
+                        <option value="@nivel.NivelId">@nivel.Nivel</option>
+                    }
+                </select>
+            </label>
+            <label>Día
+                <select @bind="_filtroDia">
+                    <option value="">Todos los días</option>
+                    @foreach (var dia in Enum.GetValues<DiaSemana>())
+                    {
+                        <option value="@dia">@TextoDia(dia)</option>
+                    }
+                </select>
+            </label>
+            <label class="rv-dispo-check">
+                <input type="checkbox" @bind="_soloLibres" />
+                Solo con vacantes
+            </label>
+        </div>
+        @if (_cargandoDisponibilidad)
+        {
+            <p class="rv-note" role="status">Consultando cupos del ciclo...</p>
+        }
+        else if (_disponibilidad.Count == 0)
+        {
+            <p class="rv-note">Este ciclo todavía no tiene turnos activos vigentes al inicio del ciclo.</p>
+        }
+        else
+        {
+            var visibles = DisponibilidadFiltrada;
+            <div class="rv-kpis" aria-live="polite">
+                <div><strong>@visibles.Count</strong><span>Turnos</span></div>
+                <div><strong>@visibles.Sum(x => x.CupoTotal)</strong><span>Cupos totales</span></div>
+                <div><strong>@visibles.Sum(x => x.Ocupados)</strong><span>Ocupados</span></div>
+                <div class="rv-kpi-free"><strong>@visibles.Sum(x => x.Disponibles)</strong><span>Libres</span></div>
+            </div>
+            <div class="rv-legend" aria-label="Referencia de ocupación">
+                <span><i class="rv-dot direct"></i>Inscripciones directas</span>
+                <span><i class="rv-dot associated"></i>Reservas ya asociadas</span>
+                <span><i class="rv-dot pending"></i>Reservas pendientes</span>
+                <span><i class="rv-dot free"></i>Lugares libres</span>
+            </div>
+            @if (visibles.Count == 0)
+            {
+                <p class="rv-note">No hay turnos que coincidan con los filtros seleccionados.</p>
+            }
+            else
+            {
+                <div class="rv-dispo-levels">
+                    @foreach (var grupo in visibles.GroupBy(x => new { x.NivelId, x.Nivel, x.NivelOrden })
+                        .OrderBy(x => x.Key.NivelOrden))
+                    {
+                        <div class="rv-level">
+                            <div class="rv-level-head">
+                                <h3>@grupo.Key.Nivel</h3>
+                                <span>@grupo.Sum(x => x.Disponibles) libres de @grupo.Sum(x => x.CupoTotal)</span>
+                            </div>
+                            <div class="rv-dispo-turnos">
+                                @foreach (var item in grupo.OrderBy(x => x.Dia).ThenBy(x => x.Hora))
+                                {
+                                    <div class="rv-turno-card @(item.Disponibles == 0 ? "rv-turno-full" : "")" @key="item.TurnoId">
+                                        <div class="rv-turno-top">
+                                            <div>
+                                                <strong>@TextoDia(item.Dia) · @item.Hora.ToString("HH:mm")</strong>
+                                                <small>@item.Turno</small>
+                                            </div>
+                                            <span class="rv-slot @(item.Disponibles == 0 ? "full" : "free")">
+                                                @(item.Disponibles == 0 ? "Completo" : $"{item.Disponibles} libres")
+                                            </span>
+                                        </div>
+                                        <div class="rv-capacity-bar" role="img"
+                                             aria-label="@($"{item.Ocupados} ocupados de {item.CupoTotal}, {item.Disponibles} libres")">
+                                            <span class="direct" style="@AnchoBarra(item.InscripcionesDirectas, item.CupoTotal)"></span>
+                                            <span class="associated" style="@AnchoBarra(item.InscripcionesAsociadas, item.CupoTotal)"></span>
+                                            <span class="pending" style="@AnchoBarra(item.ReservasPendientes, item.CupoTotal)"></span>
+                                        </div>
+                                        <div class="rv-breakdown">
+                                            <span>Directas: @item.InscripcionesDirectas</span>
+                                            <span>Asociadas: @item.InscripcionesAsociadas</span>
+                                            <span>Pendientes: @item.ReservasPendientes</span>
+                                        </div>
+                                        <div class="rv-turno-bottom">
+                                            <span>@item.Ocupados de @item.CupoTotal ocupados</span>
+                                            @if (item.Ocupados > item.CupoTotal)
+                                            {
+                                                <strong class="rv-overbooked">Excedido por @(item.Ocupados - item.CupoTotal)</strong>
+                                            }
+                                            else if (item.Disponibles > 0)
+                                            {
+                                                <a href="#nueva-reserva" class="rv-select-turno"
+                                                   @onclick="() => ElegirTurno(item.TurnoId)">Elegir horario</a>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    }
+</section>
 </div>
 <style>
+.rv-dispo-shortcut{display:inline-block;margin:10px 0 12px;color:#2475a3;font-size:.9rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.rv-dispo-shortcut:hover{color:#125b85}
 .rv-formalizacion{margin-top:24px}
 .rv-kicker{font-size:11px;letter-spacing:.12em;color:#4889ac;font-weight:800}
 .rv-formal-actions,.rv-confirm{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
