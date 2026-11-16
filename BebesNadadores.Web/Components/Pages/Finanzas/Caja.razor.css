@@ -2446,3 +2446,16 @@
 .movement-row.is-voided .movement-value {
     text-decoration: line-through;
 }
+
+/* Intervalo de fechas para consultar el histórico de Caja. */
+.history-date-filters {
+  display: flex; align-items: end; flex-wrap: wrap; gap: 12px;
+  padding: 14px 12px; margin: 0 0 14px;
+  border: 1px solid var(--mud-palette-divider); border-radius: 12px;
+}
+.history-date-filters label { display: flex; flex-direction: column; gap: 5px;
+  color: var(--mud-palette-text-secondary); font-size: 12px; font-weight: 700; }
+.history-date-filters input { min-width: 155px; min-height: 38px; border-radius: 9px;
+  border: 1px solid var(--mud-palette-divider); background: var(--mud-palette-surface);
+  color: var(--mud-palette-text-primary); padding: 5px 10px; }
+.history-date-filters button { min-height: 38px; }

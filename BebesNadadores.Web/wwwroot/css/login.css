@@ -754,3 +754,20 @@ body {
         animation: none;
     }
 }
+/* Ojo de contraseña: sólo modifica el formulario, conserva la foto y el glass. */
+.input-wrapper:has(.password-toggle) input { padding-right: 58px; }
+.password-toggle {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border: 1px solid transparent;
+    border-radius: 10px; background: transparent; color: #b9eaff;
+    cursor: pointer; z-index: 2;
+}
+.password-toggle:hover, .password-toggle:focus-visible {
+    background: rgba(77, 213, 255, .14); border-color: rgba(77, 213, 255, .30);
+    outline: none;
+}
+.password-toggle svg { width: 21px; height: 21px; }
+.password-toggle .eye-closed { display: none; }
+.password-toggle.is-visible .eye-open { display: none; }
+.password-toggle.is-visible .eye-closed { display: block; }

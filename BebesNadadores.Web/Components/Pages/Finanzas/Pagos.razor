@@ -18,6 +18,7 @@
 @inject ICajaService CajaService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <PageTitle>Pagos | Bebés Nadadores</PageTitle>
 
@@ -794,6 +795,24 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                                 @FormatearMoneda(pago.Importe)
                                             </strong>
 
+
+                                            @if (!pago.Anulado)
+                                            {
+                                                <div class="payment-receipt-actions">
+                                                    <a class="receipt-download"
+                                                       href="@($"/pagos/comprobante/{pago.Id:D}")"
+                                                       title="Descargar comprobante PDF del pago recibido">
+                                                        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small" />
+                                                        Comprobante
+                                                    </a>
+                                                    <button type="button" class="receipt-share"
+                                                            title="Compartir el PDF. En celular podés elegir WhatsApp; en PC se descargará para adjuntarlo en WhatsApp Web."
+                                                            @onclick="() => CompartirComprobanteAsync(pago)">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
+                                                        WhatsApp
+                                                    </button>
+                                                </div>
+                                            }
 
                                             @if (pago.Anulado)
                                             {

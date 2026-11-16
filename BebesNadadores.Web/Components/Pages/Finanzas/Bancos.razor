@@ -474,6 +474,16 @@
                             </div>
 
 
+                            <div class="account-payments-counter @(PagosDelMes(cuenta.Id) >= UmbralPagosMensuales ? "is-at-limit" : "")"
+                                 title="Contador informativo de cobros de familias no anulados en el mes. No bloquea pagos.">
+                                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" />
+                                <span>@PagosDelMes(cuenta.Id) / @UmbralPagosMensuales pagos · @MesPagosTexto</span>
+                                @if (PagosDelMes(cuenta.Id) >= UmbralPagosMensuales)
+                                {
+                                    <strong>Revisar límite</strong>
+                                }
+                            </div>
+
                             <div class="account-details">
 
                                 <div>

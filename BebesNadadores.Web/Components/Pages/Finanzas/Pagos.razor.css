@@ -4586,3 +4586,21 @@
         justify-self: end;
     }
 }
+
+/* Descarga y opción de envío del comprobante por WhatsApp (hoja de compartir). */
+.payment-receipt-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.payment-receipt-actions a,
+.payment-receipt-actions button {
+  display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px;
+  border: 1px solid rgba(40, 175, 226, .34); border-radius: 8px;
+  background: rgba(40, 175, 226, .08); color: var(--mud-palette-text-primary);
+  font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none;
+}
+.payment-receipt-actions a:hover, .payment-receipt-actions button:hover {
+  background: rgba(40, 175, 226, .19); border-color: #28afe2;
+}
+.payment-item { flex-wrap: wrap; }
+.payment-receipt-actions { margin-left: auto; }
+@media (max-width: 700px) {
+  .payment-receipt-actions { flex-basis: 100%; justify-content: flex-end; }
+}

@@ -19,6 +19,27 @@ public partial class Bancos : ComponentBase
     protected Dictionary<Guid, decimal> _saldos =
         [];
 
+    protected IReadOnlyDictionary<Guid, int> _pagosMesPorCuenta =
+        new Dictionary<Guid, int>();
+
+    protected const int UmbralPagosMensuales = 45;
+
+    protected int PagosDelMes(Guid cuentaId) =>
+        _pagosMesPorCuenta.TryGetValue(cuentaId, out var cantidad) ? cantidad : 0;
+
+    protected string MesPagosTexto =>
+        _mesPagos.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("es-AR"));
+
+    private readonly DateOnly _mesPagos = DateOnly.FromDateTime(
+        TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow,
+            ObtenerZonaHorariaArgentina()).DateTime);
+
+    private static TimeZoneInfo ObtenerZonaHorariaArgentina()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires"); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.FindSystemTimeZoneById("Argentina Standard Time"); }
+    }
+
     protected List<MovimientoBancarioDto> _movimientos =
         [];
 
@@ -234,6 +255,9 @@ public partial class Bancos : ComponentBase
                 saldos.ToDictionary(
                     x => x.Id,
                     x => x.Saldo);
+
+            _pagosMesPorCuenta = await MovimientoBancarioService
+                .ContarPagosMensualesPorCuentaAsync(_mesPagos);
         }
         catch (Exception ex)
         {

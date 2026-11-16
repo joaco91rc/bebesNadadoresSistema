@@ -11,6 +11,7 @@ using BebesNadadores.Domain.Enums;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
+using Microsoft.JSInterop;
 
 namespace BebesNadadores.Web.Components.Pages.Finanzas;
 
@@ -71,6 +72,34 @@ public partial class Pagos : ComponentBase
 
     protected string _vistaCuenta =
     "resumen";
+
+    // Compartir un comprobante ya registrado. Web Share permite adjuntar PDF
+    // en móviles; en escritorio se descarga para adjuntarlo manualmente.
+    protected async Task CompartirComprobanteAsync(PagoCuentaCorrienteDto pago)
+    {
+        if (pago.Anulado) return;
+        try
+        {
+            await using var modulo = await JS.InvokeAsync<Microsoft.JSInterop.IJSObjectReference>(
+                "import", "/js/comprobantes-pagos.js");
+            var estado = await modulo.InvokeAsync<string>(
+                "compartirComprobante", new object?[]
+                {
+                    $"/pagos/comprobante/{pago.Id:D}",
+                    $"BebesNadadores_Recibo_{pago.Id:N}.pdf"
+                });
+            if (estado == "descargado")
+                _mensaje = "Comprobante descargado. Adjuntalo en tu conversación de WhatsApp Web.";
+        }
+        catch (Microsoft.JSInterop.JSException)
+        {
+            _error = "No se pudo compartir el comprobante. Podés descargarlo desde el botón Comprobante.";
+        }
+        catch (InvalidOperationException)
+        {
+            _error = "No se pudo abrir el diálogo para compartir. Descargá el comprobante PDF.";
+        }
+    }
 
 
 private CancellationTokenSource? _busquedaCts;

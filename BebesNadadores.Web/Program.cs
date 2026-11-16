@@ -3,6 +3,7 @@ using BebesNadadores.Infrastructure.Identity;
 using BebesNadadores.Web.Authorization;
 using BebesNadadores.Web.Components;
 using BebesNadadores.Web.Services.Finanzas;
+using BebesNadadores.Web.Services.Comprobantes;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using MudBlazor;
@@ -40,6 +41,7 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddScoped<IIndicadorFinancieroService, IndicadorFinancieroService>();
+    builder.Services.AddScoped<ComprobantePagoService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Recuperos.RegularizacionHistoricaService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Migracion.MigracionCargaService>();
     builder.Services.AddSingleton<BebesNadadores.Web.Services.Migracion.MigracionEjecucionService>();
@@ -152,6 +154,19 @@ try
                 archivo.NombreArchivo);
         })
         .RequireAuthorization(PoliticasSistema.ConsultaGeneral);
+
+    // Recibos individuales: requerir acceso a Caja. Impedir caché de datos personales.
+    app.MapGet(
+        "/pagos/comprobante/{pagoId:guid}",
+        async (Guid pagoId, HttpContext http, ComprobantePagoService comprobantes, CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "private, no-store, no-cache";
+            var archivo = await comprobantes.GenerarAsync(pagoId, ct);
+            return archivo is null
+                ? Results.NotFound()
+                : Results.File(archivo.Value.Contenido, "application/pdf", archivo.Value.NombreArchivo);
+        })
+        .RequireAuthorization(PoliticasSistema.GestionCaja);
 
     app.MapRazorComponents<App>()
         .AddInteractiveServerRenderMode();

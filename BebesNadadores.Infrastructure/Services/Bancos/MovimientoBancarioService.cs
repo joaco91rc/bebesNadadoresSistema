@@ -10,6 +10,28 @@ public sealed class MovimientoBancarioService(
     IDbContextFactory<AppDbContext> factory)
     : IMovimientoBancarioService
 {
+    // No confundir cantidad de pagos con cantidad de movimientos bancarios:
+    // una transferencia interna o un contraasiento no es un cobro de familia.
+    public async Task<IReadOnlyDictionary<Guid, int>> ContarPagosMensualesPorCuentaAsync(
+        DateOnly mes,
+        CancellationToken ct = default)
+    {
+        var primerDia = new DateOnly(mes.Year, mes.Month, 1);
+        var desdeUtc = ObtenerInicioDiaUtc(primerDia);
+        var hastaUtc = ObtenerInicioDiaUtc(primerDia.AddMonths(1));
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var registros = await db.Pagos.AsNoTracking()
+            .Where(p => p.CuentaBancariaId.HasValue
+                        && p.AnuladoUtc == null
+                        && p.FechaUtc >= desdeUtc
+                        && p.FechaUtc < hastaUtc)
+            .GroupBy(p => p.CuentaBancariaId!.Value)
+            .Select(g => new { CuentaId = g.Key, Cantidad = g.Count() })
+            .ToListAsync(ct);
+        return registros.ToDictionary(x => x.CuentaId, x => x.Cantidad);
+    }
+
     // =========================================================
     // LISTADO SIMPLE
     // =========================================================

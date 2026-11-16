@@ -642,6 +642,19 @@
             </div>
 
 
+            <div class="history-date-filters" aria-label="Filtrar cajas por fecha">
+                <label>Desde
+                    <input type="date" @bind="_historicoDesde" max="@(_historicoHasta.ToString("yyyy-MM-dd"))" />
+                </label>
+                <label>Hasta
+                    <input type="date" @bind="_historicoHasta" min="@(_historicoDesde.ToString("yyyy-MM-dd"))" />
+                </label>
+                <button type="button" class="secondary-action" @onclick="CargarHistoricoAsync">
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
+                    Buscar cierres
+                </button>
+            </div>
+
             @if (_historico.Count == 0)
             {
                 <div class="empty-history">

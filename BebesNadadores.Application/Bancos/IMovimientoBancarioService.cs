@@ -27,6 +27,11 @@ public interface IMovimientoBancarioService
             CancellationToken ct = default);
 
 
+    // Cobros de familias no anulados por cuenta durante el mes local (Argentina).
+    Task<IReadOnlyDictionary<Guid, int>> ContarPagosMensualesPorCuentaAsync(
+        DateOnly mes,
+        CancellationToken ct = default);
+
     // Lo conservamos, aunque no lo usemos como KPI principal.
     Task<decimal> ObtenerSaldoAsync(
         Guid cuentaBancariaId,

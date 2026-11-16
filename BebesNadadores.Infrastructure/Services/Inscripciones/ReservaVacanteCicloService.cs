@@ -14,6 +14,83 @@ public sealed class ReservaVacanteCicloService(
 {
     private const decimal ImporteReserva = 40000m;
 
+    /// <summary>
+    /// Consulta de sólo lectura para el panel de vacantes del ciclo seleccionado.
+    /// Se cuenta por BebeId, nunca se suman una reserva y su inscripción como dos lugares.
+    /// El cálculo se hace para el día de inicio del ciclo, igual que la validación al reservar.
+    /// </summary>
+    public async Task<IReadOnlyList<DisponibilidadTurnoCicloDto>> ObtenerDisponibilidadAsync(
+        Guid cicloLectivoId, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var ciclo = await db.CiclosLectivos.AsNoTracking()
+            .Where(x => x.Id == cicloLectivoId)
+            .Select(x => new { x.Id, x.FechaInicio })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new InvalidOperationException("El ciclo lectivo seleccionado no existe.");
+
+        var turnos = await db.Turnos.AsNoTracking()
+            .Where(x => x.CicloLectivoId == ciclo.Id
+                && x.Estado == EstadoTurno.Activo
+                && x.VigenteDesde <= ciclo.FechaInicio
+                && (!x.VigenteHasta.HasValue || x.VigenteHasta.Value >= ciclo.FechaInicio))
+            .Select(x => new
+            {
+                x.Id, x.NivelId, Nivel = x.Nivel.Nombre, NivelOrden = x.Nivel.Orden,
+                x.Nombre, x.DiaSemana, x.HoraInicio, x.Cupo
+            })
+            .OrderBy(x => x.NivelOrden).ThenBy(x => x.DiaSemana).ThenBy(x => x.HoraInicio)
+            .ToListAsync(ct);
+        if (turnos.Count == 0) return [];
+        var idsTurnos = turnos.Select(x => x.Id).ToList();
+
+        var inscripciones = await db.InscripcionesTurnos.AsNoTracking()
+            .Where(x => idsTurnos.Contains(x.TurnoId)
+                && x.Inscripcion.Estado == EstadoInscripcion.Activa
+                && x.Inscripcion.FechaInicio <= ciclo.FechaInicio
+                && (!x.Inscripcion.FechaFin.HasValue
+                    || x.Inscripcion.FechaFin.Value >= ciclo.FechaInicio))
+            .Select(x => new { x.TurnoId, x.Inscripcion.BebeId })
+            .Distinct().ToListAsync(ct);
+
+        var reservas = await db.ReservasVacantesCiclo.AsNoTracking()
+            .Where(x => x.CicloLectivoId == ciclo.Id
+                && idsTurnos.Contains(x.TurnoId)
+                && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+            .Select(x => new { x.TurnoId, x.BebeId, x.InscripcionId })
+            .ToListAsync(ct);
+
+        var inscripcionesPorTurno = inscripciones.ToLookup(x => x.TurnoId);
+        var reservasPorTurno = reservas.ToLookup(x => x.TurnoId);
+        var salida = new List<DisponibilidadTurnoCicloDto>(turnos.Count);
+        foreach (var turno in turnos)
+        {
+            var idsInscritos = inscripcionesPorTurno[turno.Id]
+                .Select(x => x.BebeId).ToHashSet();
+            var reservasTurno = reservasPorTurno[turno.Id].ToList();
+            var idsAsociados = reservasTurno.Where(x => x.InscripcionId.HasValue)
+                .Select(x => x.BebeId).ToHashSet();
+            var idsPendientes = reservasTurno.Where(x => !x.InscripcionId.HasValue)
+                .Select(x => x.BebeId).ToHashSet();
+            var idsOcupantes = idsInscritos.ToHashSet();
+            idsOcupantes.UnionWith(idsAsociados);
+            idsOcupantes.UnionWith(idsPendientes);
+
+            // Clasificación disjunta: asociados > pendientes > inscripciones directas.
+            // Así la barra y los subtotales coinciden con el total de personas reales.
+            var asociados = idsOcupantes.Count(idsAsociados.Contains);
+            var pendientes = idsOcupantes.Count(id => !idsAsociados.Contains(id) && idsPendientes.Contains(id));
+            var directos = idsOcupantes.Count - asociados - pendientes;
+            var libres = Math.Max(0, turno.Cupo - idsOcupantes.Count);
+            salida.Add(new DisponibilidadTurnoCicloDto(
+                turno.Id, turno.NivelId, turno.Nivel, turno.NivelOrden,
+                turno.Nombre, turno.DiaSemana, turno.HoraInicio,
+                turno.Cupo, directos, asociados, pendientes,
+                idsOcupantes.Count, libres));
+        }
+        return salida;
+    }
+
     public async Task<Guid> RegistrarAsync(RegistrarReservaVacanteDto datos, CancellationToken ct = default)
     {
         if (datos.UsuarioId == Guid.Empty) throw new InvalidOperationException("No se identificó el usuario del cobro.");
@@ -27,8 +104,10 @@ public sealed class ReservaVacanteCicloService(
             throw new InvalidOperationException("Las reservas sólo pueden registrarse para un ciclo FUTURO.");
         var turno = await db.Turnos.FirstOrDefaultAsync(x => x.Id == datos.TurnoId, ct)
             ?? throw new InvalidOperationException("El horario del ciclo no existe.");
-        if (turno.CicloLectivoId != ciclo.Id || turno.Estado != EstadoTurno.Activo)
-            throw new InvalidOperationException("Seleccioná un turno activo de ese ciclo futuro.");
+        if (turno.CicloLectivoId != ciclo.Id || turno.Estado != EstadoTurno.Activo
+            || turno.VigenteDesde > ciclo.FechaInicio
+            || (turno.VigenteHasta.HasValue && turno.VigenteHasta.Value < ciclo.FechaInicio))
+            throw new InvalidOperationException("Seleccioná un turno vigente al inicio de ese ciclo futuro.");
         var bebe = await db.Bebes.Include(x => x.Responsables).FirstOrDefaultAsync(x => x.Id == datos.BebeId, ct)
             ?? throw new InvalidOperationException("El alumno no existe.");
         if (bebe.Estado != EstadoBebe.Activo)

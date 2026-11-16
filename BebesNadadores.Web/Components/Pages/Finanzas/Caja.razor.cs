@@ -5,7 +5,6 @@ using BebesNadadores.Domain.Enums;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using BebesNadadores.Domain.Common;
-using System.Security.Claims;
 namespace BebesNadadores.Web.Components.Pages.Finanzas;
 
 public partial class Caja : ComponentBase
@@ -86,6 +85,9 @@ protected string? _errorConceptoModal;
 
     protected DateOnly _hoy;
 
+    protected DateOnly _historicoDesde;
+    protected DateOnly _historicoHasta;
+
 
     // =========================================================
     // CALCULADOS
@@ -165,6 +167,9 @@ protected IReadOnlyList<ConceptoCajaDto>
         _hoy =
             ObtenerFechaArgentina();
 
+        _historicoDesde = _hoy.AddMonths(-2);
+        _historicoHasta = _hoy;
+
 
         await CargarTodoAsync();
     }
@@ -230,7 +235,9 @@ protected IReadOnlyList<ConceptoCajaDto>
             var datos =
                 await CajaService
                     .ListarHistoricoAsync(
-                        cantidad: 60);
+                        desde: _historicoDesde,
+                        hasta: _historicoHasta,
+                        cantidad: 365);
 
 
             _historico =

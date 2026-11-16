@@ -173,23 +173,12 @@
 
 
                 <AuthorizeView Policy="@PoliticasSistema.GestionCaja">
-    <Authorized Context="reservaCajaAuth">
-        <NavLink href="/reservas-vacantes"
-                 class="menu-link"
-                 ActiveClass="active">
-            <span class="menu-icon">
-                <MudIcon Icon="@Icons.Material.Filled.Payments" />
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Reservas de vacantes
-                </span>
-            }
-        </NavLink>
-    </Authorized>
-</AuthorizeView>
+                    <Authorized Context="reservaCajaAuth">
+                    <NavLink href="/reservas-vacantes" class="menu-link" ActiveClass="active">
+                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Payments" /></span>
+                        @if (!Collapsed) { <span class="menu-text">Reservas de vacantes</span> }
+                    </NavLink>
+                </Authorized></AuthorizeView>
 
                 <NavLink href="/inscripciones/primeras-clases" class="menu-link" ActiveClass="active">
                     <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" /></span>

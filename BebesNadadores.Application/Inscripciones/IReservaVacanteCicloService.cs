@@ -20,8 +20,20 @@ public sealed record ReservaFormalizacionItemDto(
 public sealed record FormalizacionCicloResultadoDto(
     int Asociadas, int YaAsociadas, int Omitidas, IReadOnlyList<string> Advertencias);
 
+/// <summary>
+/// Disponibilidad real de cada turno al inicio del ciclo indicado.
+/// Cada alumno ocupa exactamente un lugar aunque tenga reserva e inscripción vinculadas.
+/// </summary>
+public sealed record DisponibilidadTurnoCicloDto(
+    Guid TurnoId, Guid NivelId, string Nivel, int NivelOrden,
+    string Turno, DiaSemana Dia, TimeOnly Hora,
+    int CupoTotal, int InscripcionesDirectas, int InscripcionesAsociadas,
+    int ReservasPendientes, int Ocupados, int Disponibles);
+
 public interface IReservaVacanteCicloService
 {
+    Task<IReadOnlyList<DisponibilidadTurnoCicloDto>> ObtenerDisponibilidadAsync(
+        Guid cicloLectivoId, CancellationToken ct = default);
     Task<Guid> RegistrarAsync(RegistrarReservaVacanteDto datos, CancellationToken ct = default);
     Task<IReadOnlyList<ReservaVacanteItemDto>> ListarAsync(CancellationToken ct = default);
     Task<IReadOnlyList<ReservaFormalizacionItemDto>> PrevisualizarFormalizacionAsync(

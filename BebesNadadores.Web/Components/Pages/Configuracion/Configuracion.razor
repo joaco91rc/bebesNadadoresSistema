@@ -1114,19 +1114,33 @@
 
                     @if (UsuarioEsNuevo)
                     {
-                        <label class="form-field">
+                        <div class="form-field">
                             <span>Contraseña *</span>
-                            <input type="password"
-                                   autocomplete="new-password"
-                                   @bind="_usuarioForm.Password" />
-                        </label>
+                            <div class="settings-password-wrap">
+                                <input type="@(_verPasswordUsuario ? "text" : "password")"
+                                       autocomplete="new-password"
+                                       @bind="_usuarioForm.Password" />
+                                <button type="button" class="settings-password-eye"
+                                        aria-label="@(_verPasswordUsuario ? "Ocultar contraseña" : "Mostrar contraseña")"
+                                        @onclick="() => _verPasswordUsuario = !_verPasswordUsuario">
+                                    <MudIcon Icon="@(_verPasswordUsuario ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Size="Size.Small" />
+                                </button>
+                            </div>
+                        </div>
 
-                        <label class="form-field">
+                        <div class="form-field">
                             <span>Confirmar contraseña *</span>
-                            <input type="password"
-                                   autocomplete="new-password"
-                                   @bind="_confirmacionPassword" />
-                        </label>
+                            <div class="settings-password-wrap">
+                                <input type="@(_verPasswordUsuario ? "text" : "password")"
+                                       autocomplete="new-password"
+                                       @bind="_confirmacionPassword" />
+                                <button type="button" class="settings-password-eye"
+                                        aria-label="@(_verPasswordUsuario ? "Ocultar contraseña" : "Mostrar contraseña")"
+                                        @onclick="() => _verPasswordUsuario = !_verPasswordUsuario">
+                                    <MudIcon Icon="@(_verPasswordUsuario ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Size="Size.Small" />
+                                </button>
+                            </div>
+                        </div>
 
                         <div class="password-help full">
                             Mínimo 8 caracteres, una mayúscula, una minúscula y un número.
@@ -1190,19 +1204,33 @@
             <div class="modal-body">
                 <div class="form-grid one-column">
 
-                    <label class="form-field">
+                    <div class="form-field">
                         <span>Nueva contraseña *</span>
-                        <input type="password"
-                               autocomplete="new-password"
-                               @bind="_nuevaPassword" />
-                    </label>
+                        <div class="settings-password-wrap">
+                            <input type="@(_verPasswordReset ? "text" : "password")"
+                                   autocomplete="new-password"
+                                   @bind="_nuevaPassword" />
+                            <button type="button" class="settings-password-eye"
+                                    aria-label="@(_verPasswordReset ? "Ocultar contraseña" : "Mostrar contraseña")"
+                                    @onclick="() => _verPasswordReset = !_verPasswordReset">
+                                <MudIcon Icon="@(_verPasswordReset ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Size="Size.Small" />
+                            </button>
+                        </div>
+                    </div>
 
-                    <label class="form-field">
+                    <div class="form-field">
                         <span>Confirmar nueva contraseña *</span>
-                        <input type="password"
-                               autocomplete="new-password"
-                               @bind="_confirmacionNuevaPassword" />
-                    </label>
+                        <div class="settings-password-wrap">
+                            <input type="@(_verPasswordReset ? "text" : "password")"
+                                   autocomplete="new-password"
+                                   @bind="_confirmacionNuevaPassword" />
+                            <button type="button" class="settings-password-eye"
+                                    aria-label="@(_verPasswordReset ? "Ocultar contraseña" : "Mostrar contraseña")"
+                                    @onclick="() => _verPasswordReset = !_verPasswordReset">
+                                <MudIcon Icon="@(_verPasswordReset ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)" Size="Size.Small" />
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="password-help">
                         Mínimo 8 caracteres, una mayúscula, una minúscula y un número.

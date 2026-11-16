@@ -54,6 +54,9 @@ public partial class Configuracion : ComponentBase
     protected GuardarUsuarioSistemaDto _usuarioForm = new();
     protected string _confirmacionPassword = string.Empty;
 
+    protected bool _verPasswordUsuario;
+    protected bool _verPasswordReset;
+
     protected bool _mostrarPasswordModal;
     protected UsuarioSistemaDto? _usuarioPassword;
     protected string _nuevaPassword = string.Empty;
@@ -255,6 +258,7 @@ public partial class Configuracion : ComponentBase
 
         _confirmacionPassword =
             string.Empty;
+        _verPasswordUsuario = false;
 
         _mostrarUsuarioModal =
             true;
@@ -279,6 +283,7 @@ public partial class Configuracion : ComponentBase
 
         _confirmacionPassword =
             string.Empty;
+        _verPasswordUsuario = false;
 
         _mostrarUsuarioModal =
             true;
@@ -356,6 +361,7 @@ public partial class Configuracion : ComponentBase
         _usuarioPassword = usuario;
         _nuevaPassword = string.Empty;
         _confirmacionNuevaPassword = string.Empty;
+        _verPasswordReset = false;
         _mostrarPasswordModal = true;
     }
 
