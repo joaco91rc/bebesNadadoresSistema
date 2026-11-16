@@ -93,7 +93,7 @@ public sealed class ReservaVacanteCicloService(
 
     public async Task<Guid> RegistrarAsync(RegistrarReservaVacanteDto datos, CancellationToken ct = default)
     {
-        if (datos.UsuarioId == Guid.Empty) throw new InvalidOperationException("No se identificó el usuario del cobro.");
+        if (datos.UsuarioId == Guid.Empty) throw new InvalidOperationException("No se identificó el usuario que registra la reserva.");
         await using var db = await factory.CreateDbContextAsync(ct);
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
 
@@ -112,7 +112,13 @@ public sealed class ReservaVacanteCicloService(
             ?? throw new InvalidOperationException("El alumno no existe.");
         if (bebe.Estado != EstadoBebe.Activo)
             throw new InvalidOperationException("El alumno está inactivo.");
-        if (await db.ReservasVacantesCiclo.AnyAsync(x => x.BebeId == bebe.Id && x.CicloLectivoId == ciclo.Id, ct))
+        // La restricción única sigue vigente. Una reserva impaga cancelada se puede
+        // reactivar SIN insertar una segunda fila (y sin perder trazabilidad de auditoría).
+        var anterior = await db.ReservasVacantesCiclo
+            .FirstOrDefaultAsync(x => x.BebeId == bebe.Id && x.CicloLectivoId == ciclo.Id, ct);
+        if (anterior is not null &&
+            (anterior.Estado != EstadoReservaVacanteCiclo.Cancelada ||
+             anterior.PagoId.HasValue || anterior.InscripcionId.HasValue))
             throw new InvalidOperationException("Ya existe una reserva para este alumno y ciclo.");
 
         var idsFijos = await db.InscripcionesTurnos.AsNoTracking()
@@ -126,37 +132,140 @@ public sealed class ReservaVacanteCicloService(
         if (idsFijos.Concat(idsReservados).Distinct().Count() >= turno.Cupo)
             throw new InvalidOperationException("El turno elegido ya no tiene cupos disponibles.");
 
-        var responsableId = bebe.Responsables.OrderByDescending(x => x.EsContactoPrincipal)
-            .Select(x => (Guid?)x.ResponsableId).FirstOrDefault();
-        var detalle = $"Reserva de vacante · Ciclo {ciclo.Anio} · {turno.Nombre}";
-        var cobro = await cobrador.RegistrarAsync(db,
-            new NuevoCobro(bebe, responsableId, ImporteReserva, datos.MedioPago,
-                datos.CuentaBancariaId, null,
-                $"Reserva vacante ciclo {ciclo.Anio} — anticipo para primera cuota",
-                Array.Empty<Cuota>(), detalle, datos.UsuarioId, EsReservaVacante: true), ct);
-        var reserva = new ReservaVacanteCiclo {
+        Guid? pagoId = null;
+        if (datos.CobrarAhora)
+        {
+            // Sólo aquí se registra dinero real y se afecta Caja/Banco.
+            var responsableId = bebe.Responsables.OrderByDescending(x => x.EsContactoPrincipal)
+                .Select(x => (Guid?)x.ResponsableId).FirstOrDefault();
+            var detalle = $"Reserva de vacante · Ciclo {ciclo.Anio} · {turno.Nombre}";
+            var cobro = await cobrador.RegistrarAsync(db,
+                new NuevoCobro(bebe, responsableId, ImporteReserva, datos.MedioPago,
+                    datos.CuentaBancariaId, null,
+                    $"Reserva vacante ciclo {ciclo.Anio} — anticipo para primera cuota",
+                    Array.Empty<Cuota>(), detalle, datos.UsuarioId, EsReservaVacante: true), ct);
+            pagoId = cobro.Pago.Id;
+        }
+
+        var reserva = anterior ?? new ReservaVacanteCiclo
+        {
             Id = Guid.NewGuid(), BebeId = bebe.Id, CicloLectivoId = ciclo.Id,
-            TurnoId = turno.Id, PagoId = cobro.Pago.Id, Importe = ImporteReserva,
-            Estado = EstadoReservaVacanteCiclo.Confirmada, FechaReservaUtc = DateTimeOffset.UtcNow,
             CreadoPorUsuarioId = datos.UsuarioId
         };
-        db.ReservasVacantesCiclo.Add(reserva);
+        reserva.TurnoId = turno.Id;
+        reserva.PagoId = pagoId;
+        reserva.Importe = ImporteReserva;
+        reserva.Estado = EstadoReservaVacanteCiclo.Confirmada;
+        reserva.FechaReservaUtc = DateTimeOffset.UtcNow;
+        if (anterior is null)
+            db.ReservasVacantesCiclo.Add(reserva);
+        else
+        {
+            reserva.ModificadoUtc = DateTimeOffset.UtcNow;
+            reserva.ModificadoPorUsuarioId = datos.UsuarioId;
+        }
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return reserva.Id;
+    }
+
+    /// <summary>
+    /// Cobro posterior: mantiene el mismo Id de reserva y el mismo turno.
+    /// Usa el registrador habitual dentro de una única transacción serializable.
+    /// </summary>
+    public async Task<Guid> CobrarPendienteAsync(
+        Guid reservaId, MedioPago medioPago, Guid? cuentaBancariaId, Guid usuarioId,
+        CancellationToken ct = default)
+    {
+        if (usuarioId == Guid.Empty)
+            throw new InvalidOperationException("No se identificó al usuario que registra el cobro.");
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+        var reserva = await db.ReservasVacantesCiclo
+            .Include(x => x.CicloLectivo)
+            .Include(x => x.Turno)
+            .Include(x => x.Bebe).ThenInclude(x => x.Responsables)
+            .FirstOrDefaultAsync(x => x.Id == reservaId, ct)
+            ?? throw new InvalidOperationException("La reserva indicada no existe.");
+
+        if (reserva.Estado == EstadoReservaVacanteCiclo.Cancelada)
+            throw new InvalidOperationException("No se puede cobrar una reserva cancelada.");
+        if (reserva.PagoId.HasValue)
+            throw new InvalidOperationException("La reserva ya está pagada. No se registró otro cobro.");
+        if (reserva.InscripcionId.HasValue)
+            throw new InvalidOperationException("La reserva ya tiene inscripción asociada; revisá el estado manualmente.");
+        if (reserva.Bebe.Estado != EstadoBebe.Activo)
+            throw new InvalidOperationException("El alumno está inactivo.");
+        if (reserva.CicloLectivo.Estado == EstadoCicloLectivo.Cerrado ||
+            BebesNadadores.Domain.Common.FechaArgentina.Hoy >= reserva.CicloLectivo.FechaInicio)
+            throw new InvalidOperationException("El ciclo ya comenzó o está cerrado. Revisá el cobro manualmente.");
+        if (reserva.Turno.CicloLectivoId != reserva.CicloLectivoId ||
+            reserva.Turno.Estado != EstadoTurno.Activo ||
+            reserva.Turno.VigenteDesde > reserva.CicloLectivo.FechaInicio ||
+            (reserva.Turno.VigenteHasta.HasValue &&
+             reserva.Turno.VigenteHasta.Value < reserva.CicloLectivo.FechaInicio))
+            throw new InvalidOperationException("El turno de la reserva ya no está vigente.");
+
+        var responsableId = reserva.Bebe.Responsables
+            .OrderByDescending(x => x.EsContactoPrincipal)
+            .Select(x => (Guid?)x.ResponsableId).FirstOrDefault();
+        var detalle = $"Reserva de vacante · Ciclo {reserva.CicloLectivo.Anio} · {reserva.Turno.Nombre}";
+        var cobro = await cobrador.RegistrarAsync(db,
+            new NuevoCobro(reserva.Bebe, responsableId, reserva.Importe,
+                medioPago, cuentaBancariaId, null,
+                $"Reserva vacante ciclo {reserva.CicloLectivo.Anio} — anticipo para primera cuota",
+                Array.Empty<Cuota>(), detalle, usuarioId, EsReservaVacante: true), ct);
+
+        reserva.PagoId = cobro.Pago.Id;
+        reserva.ModificadoUtc = DateTimeOffset.UtcNow;
+        reserva.ModificadoPorUsuarioId = usuarioId;
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return cobro.Pago.Id;
+    }
+
+    /// <summary>
+    /// Únicamente reservas impagas y no formalizadas. Liberar el cupo no toca Caja,
+    /// los pagos, ni las inscripciones de ciclos anteriores.
+    /// </summary>
+    public async Task CancelarPendienteAsync(
+        Guid reservaId, Guid usuarioId, CancellationToken ct = default)
+    {
+        if (usuarioId == Guid.Empty)
+            throw new InvalidOperationException("No se identificó al usuario.");
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        var reserva = await db.ReservasVacantesCiclo.Include(x => x.CicloLectivo)
+            .FirstOrDefaultAsync(x => x.Id == reservaId, ct)
+            ?? throw new InvalidOperationException("La reserva no existe.");
+        if (reserva.Estado == EstadoReservaVacanteCiclo.Cancelada)
+            throw new InvalidOperationException("La reserva ya está cancelada.");
+        if (reserva.PagoId.HasValue || reserva.InscripcionId.HasValue)
+            throw new InvalidOperationException("Sólo se puede liberar una reserva sin pago ni inscripción asociada.");
+        if (BebesNadadores.Domain.Common.FechaArgentina.Hoy >= reserva.CicloLectivo.FechaInicio)
+            throw new InvalidOperationException("El ciclo ya comenzó. No se puede liberar desde este formulario.");
+
+        reserva.Estado = EstadoReservaVacanteCiclo.Cancelada;
+        reserva.ModificadoUtc = DateTimeOffset.UtcNow;
+        reserva.ModificadoPorUsuarioId = usuarioId;
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
     }
 
     public async Task<IReadOnlyList<ReservaVacanteItemDto>> ListarAsync(CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var reservas = await db.ReservasVacantesCiclo.AsNoTracking().Include(x => x.Bebe)
-            .Include(x => x.CicloLectivo).Include(x => x.Turno)
+            .Include(x => x.CicloLectivo).Include(x => x.Turno).Include(x => x.Pago)
             .OrderByDescending(x => x.CicloLectivo.Anio).ThenBy(x => x.Bebe.Apellido)
             .ToListAsync(ct);
         return reservas.Select(x => new ReservaVacanteItemDto(x.Id, x.BebeId,
             $"{x.Bebe.Nombre} {x.Bebe.Apellido}".Trim(), x.CicloLectivo.Anio,
             x.TurnoId, x.Turno.Nombre, x.Importe, x.Estado, x.FechaReservaUtc, x.PagoId,
-            x.InscripcionId, x.FechaFormalizacionUtc)).ToList();
+            x.InscripcionId, x.FechaFormalizacionUtc, x.Pago?.FechaUtc)).ToList();
     }
 
 
@@ -237,7 +346,7 @@ public sealed class ReservaVacanteCicloService(
                 FechaFin = datos.Ciclo.FechaFin,
                 Estado = EstadoInscripcion.Activa,
                 MedioPagoPreferido = anteriores.OrderByDescending(x => x.FechaInicio)
-                    .FirstOrDefault()?.MedioPagoPreferido ?? reserva.Pago.MedioPago,
+                    .FirstOrDefault()?.MedioPagoPreferido ?? reserva.Pago!.MedioPago,
                 Observaciones = $"Ciclo {datos.Ciclo.Anio}. Asociada desde reserva de vacante {reserva.Id}.",
                 CreadoPorUsuarioId = usuarioId
             };
@@ -404,6 +513,8 @@ public sealed class ReservaVacanteCicloService(
                 error = "Reserva cancelada";
             else if (reserva.Bebe.Estado != EstadoBebe.Activo)
                 error = "Alumno inactivo";
+            else if (!reserva.PagoId.HasValue || reserva.Pago is null)
+                error = "Reserva pendiente de pago: cobrar antes de asociar la inscripción";
             else if (reserva.Pago.AnuladoUtc.HasValue)
                 error = "El pago de reserva está anulado";
             else if (reserva.Turno.CicloLectivoId != cicloId

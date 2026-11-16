@@ -4,8 +4,10 @@ using BebesNadadores.Domain.Enums;
 namespace BebesNadadores.Domain.Entities;
 
 /// <summary>
-/// Anticipo exclusivo para la primera cuota de un ciclo futuro.
-/// Es un pago real, pero jamás debe imputarse a cuotas del ciclo anterior.
+/// Lugar apartado para un ciclo futuro. La reserva puede existir antes del pago.
+/// Si PagoId es null, se ocupa el cupo, pero NO hay anticipo cobrado.
+/// Estado = Confirmada/Aplicada/Cancelada conserva el significado original;
+/// el estado de cobro se obtiene de PagoId.
 /// </summary>
 public sealed class ReservaVacanteCiclo : EntidadAuditable
 {
@@ -15,13 +17,18 @@ public sealed class ReservaVacanteCiclo : EntidadAuditable
     public CicloLectivo CicloLectivo { get; set; } = null!;
     public Guid TurnoId { get; set; }
     public Turno Turno { get; set; } = null!;
+
     // Se completa al asociar la reserva con una inscripción del ciclo.
-    // No confundir con Estado=Aplicada: ese estado se refiere al ANTICIPO.
+    // Estado = Aplicada se refiere al anticipo, no a esta asociación.
     public Guid? InscripcionId { get; set; }
     public Inscripcion? Inscripcion { get; set; }
     public DateTimeOffset? FechaFormalizacionUtc { get; set; }
-    public Guid PagoId { get; set; }
-    public Pago Pago { get; set; } = null!;
+
+    // Puede no haberse cobrado todavía.
+    public Guid? PagoId { get; set; }
+    public Pago? Pago { get; set; }
+
+    // Es el importe a cobrar por la reserva, NO dinero ingresado hasta que PagoId tenga valor.
     public decimal Importe { get; set; } = 40000m;
     public EstadoReservaVacanteCiclo Estado { get; set; } = EstadoReservaVacanteCiclo.Confirmada;
     public DateTimeOffset FechaReservaUtc { get; set; } = DateTimeOffset.UtcNow;
