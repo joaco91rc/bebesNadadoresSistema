@@ -1,0 +1,319 @@
+@page "/reservas-vacantes"
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
+@using BebesNadadores.Application.Inscripciones
+@using BebesNadadores.Infrastructure.Persistence
+@using BebesNadadores.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@inject IReservaVacanteCicloService ReservaService
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Reserva de vacantes | Bebés Nadadores</PageTitle>
+<div class="rv-page">
+<header class="rv-head"><div><span>INSCRIPCIONES · PRÓXIMO CICLO</span>
+    <h1>Reserva de vacantes</h1>
+    <p>Reservá un cupo fijo del próximo ciclo y registrá el anticipo de $40.000.
+       Ese pago queda reservado para la primera cuota del año siguiente.</p></div>
+    <button class="rv-btn" @onclick="CargarAsync">Actualizar</button></header>
+@if(!string.IsNullOrEmpty(_error)){<p class="rv-error">@_error</p>}
+@if(!string.IsNullOrEmpty(_mensaje)){<p class="rv-ok">@_mensaje</p>}
+<div class="rv-cols">
+<section class="rv-card"><h2>Nueva reserva</h2>
+    @if(_ciclos.Count==0){<p>No hay ciclos futuros configurados. Primero creá el ciclo y su grilla semanal.</p>}
+    else {
+        <label>Ciclo lectivo futuro</label>
+        <select @bind="_cicloId"><option value="">Elegí año</option>
+            @foreach(var ciclo in _ciclos){<option value="@ciclo.Id">@ciclo.Anio · desde @ciclo.Desde.ToString("dd/MM/yyyy")</option>}
+        </select>
+        <label>Alumno</label>
+        <input @bind="_buscarBebe" @bind:event="oninput" placeholder="Filtrar bebé..." />
+        <select @bind="_bebeId"><option value="">Elegí un alumno</option>
+        @foreach(var bebe in _bebes.Where(x=>string.IsNullOrWhiteSpace(_buscarBebe)
+            || x.Nombre.Contains(_buscarBebe,StringComparison.OrdinalIgnoreCase)).Take(150)){
+            <option value="@bebe.Id">@bebe.Nombre</option>
+        }
+        </select>
+        <label>Turno del ciclo a reservar</label>
+        <select @bind="_turnoId"><option value="">Elegí horario</option>
+            @foreach(var turno in _turnos.Where(t=>t.CicloId.ToString()==_cicloId)){
+                <option value="@turno.Id">@turno.Nombre · @turno.Dia · @turno.Hora.ToString("HH:mm") (cupo @turno.Cupo)</option>
+            }
+        </select>
+        <label>Medio de pago</label>
+        <select @bind="_medioPago">
+            @foreach(var medio in Enum.GetValues<MedioPago>()){
+                <option value="@medio">@medio</option>
+            }
+        </select>
+        @if(_medioPago.RequiereCuentaBancaria()){
+            <label>Cuenta bancaria que recibió el dinero</label>
+            <select @bind="_cuentaId"><option value="">Seleccioná cuenta</option>
+                @foreach(var cuenta in _cuentas){
+                    <option value="@cuenta.Id">@cuenta.Nombre</option>
+                }
+            </select>
+        }
+        <div class="rv-total">Importe de reserva <strong>$40.000,00</strong></div>
+        <p class="rv-note">En efectivo se requiere caja abierta. El anticipo figura como
+        «Reserva vacante» en Pagos y se imputará solamente a la primera cuota del ciclo.</p>
+        <button class="rv-btn primary" disabled="@_guardando" @onclick="RegistrarAsync">
+            @(_guardando ? "Registrando..." : "Registrar reserva y pago")
+        </button>
+    }
+</section>
+<section class="rv-card"><h2>Reservas registradas (@_reservas.Count)</h2>
+    @if (_cargando){<p>Cargando reservas...</p>}
+    else if(_reservas.Count==0){<p>Todavía no hay reservas de vacantes.</p>}
+    else {
+        @foreach(var reserva in _reservas){
+            <article class="rv-row"><div><strong>@reserva.Bebe</strong>
+                <small>Ciclo @reserva.Anio · @reserva.Turno</small>
+                <small>@reserva.FechaReservaUtc.ToOffset(TimeSpan.FromHours(-3)).ToString("dd/MM/yyyy") · @reserva.Estado</small>
+            </div><div class="rv-actions">
+                <strong>@reserva.Importe.ToString("C",System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</strong>
+                <span class="rv-state @(reserva.InscripcionId.HasValue ? "associated" : "pending")">
+                    @(reserva.InscripcionId.HasValue ? "Inscripción asociada" : "Pendiente de asociar")
+                </span>
+                <a href="@($"/pagos?bebeId={reserva.BebeId}")">Ver pagos</a>
+                @if(reserva.Estado != EstadoReservaVacanteCiclo.Cancelada &&
+                    _ciclosAsociar.Any(c => c.Anio == reserva.Anio && c.Desde > BebesNadadores.Domain.Common.FechaArgentina.Hoy)){
+                    <button type="button" class="rv-btn ghost" disabled="@_guardando"
+                        @onclick="() => AbrirCambioTurno(reserva)">Cambiar horario</button>
+                }
+            </div>
+            @if(_cambiandoReservaId == reserva.Id){
+                <div class="rv-change">
+                    <label>Nuevo turno disponible del mismo ciclo</label>
+                    <select @bind="_turnoDestinoId">
+                        <option value="">Elegí un turno</option>
+                        @foreach(var destino in _turnos.Where(t =>
+                            _ciclosAsociar.Any(c => c.Id == t.CicloId && c.Anio == reserva.Anio))){
+                            <option value="@destino.Id">@destino.Nombre · @destino.Dia · @destino.Hora.ToString("HH:mm")</option>
+                        }
+                    </select>
+                    <button type="button" class="rv-btn primary" disabled="@_guardando"
+                        @onclick="() => GuardarCambioTurnoAsync(reserva.Id)">Confirmar cambio</button>
+                    <button type="button" class="rv-btn ghost"
+                        @onclick="() => _cambiandoReservaId = null">Cancelar</button>
+                    <p class="rv-note">No se vuelve a cobrar la reserva; se libera el turno anterior.</p>
+                </div>
+            }</article>
+        }
+    }
+</section></div>
+
+<section class="rv-card rv-formalizacion">
+    <span class="rv-kicker">PASO 2 · PRÓXIMO CICLO</span>
+    <h2>Asociar inscripciones al ciclo lectivo</h2>
+    <p>La reserva aparta el cupo y registra el anticipo. <strong>Asociar</strong> crea la inscripción real
+       del alumno en ese ciclo, con una clase semanal y el horario fijo reservado.
+       La cuota del nuevo año se calculará con la tarifa vigente cuando corresponda.
+       No se vuelve a cobrar $40.000.</p>
+    <label>Ciclo a asociar</label>
+    <select value="@_cicloFormalizacionId" @onchange="CambiarCicloFormalizacion">
+        <option value="">Seleccionar ciclo</option>
+        @foreach(var ciclo in _ciclosAsociar){
+            <option value="@ciclo.Id">@ciclo.Anio · inicio @ciclo.Desde.ToString("dd/MM/yyyy")</option>
+        }
+    </select>
+    <div class="rv-formal-actions">
+        <button type="button" class="rv-btn" disabled="@(_guardando || string.IsNullOrWhiteSpace(_cicloFormalizacionId))"
+            @onclick="PrevisualizarAsync">Revisar reservas antes de asociar</button>
+    </div>
+    @if(_vistaPrevia is not null){
+        <div class="rv-summary">
+            <span>Listas <strong>@(_vistaPrevia.Count(x=>x.PuedeAsociarse))</strong></span>
+            <span>Ya asociadas <strong>@(_vistaPrevia.Count(x=>x.YaAsociada))</strong></span>
+            <span>Para revisar <strong>@(_vistaPrevia.Count(x=>!x.YaAsociada && !x.PuedeAsociarse))</strong></span>
+        </div>
+        @if(_vistaPrevia.Count == 0){<p>No hay reservas registradas para ese ciclo.</p>}
+        else{
+            <div class="rv-preview-list">
+                @foreach(var item in _vistaPrevia){
+                    <div class="rv-preview-row">
+                        <div><strong>@item.Bebe</strong><small>@item.Turno</small></div>
+                        <span class="@(item.PuedeAsociarse ? "rv-ready" : "rv-note-state")">@item.Observacion</span>
+                    </div>
+                }
+            </div>
+        }
+        @if(_vistaPrevia.Any(x=>x.PuedeAsociarse)){
+            @if(!_confirmarFormalizacion){
+                <button type="button" class="rv-btn primary" disabled="@_guardando"
+                    @onclick="() => _confirmarFormalizacion = true">
+                    Asociar @(_vistaPrevia.Count(x=>x.PuedeAsociarse)) inscripciones al ciclo
+                </button>
+            }
+            else{
+                <div class="rv-confirm">
+                    <strong>Confirmación</strong>
+                    <p>Se crearán las inscripciones futuras con los turnos seleccionados.
+                       No se crean cuotas ni pagos en este paso. Los casos con errores quedan pendientes.</p>
+                    <button type="button" class="rv-btn primary" disabled="@_guardando"
+                        @onclick="FormalizarAsync">Sí, asociar inscripciones</button>
+                    <button type="button" class="rv-btn ghost" disabled="@_guardando"
+                        @onclick="() => _confirmarFormalizacion = false">Volver</button>
+                </div>
+            }
+        }
+    }
+</section>
+</div>
+<style>
+.rv-formalizacion{margin-top:24px}
+.rv-kicker{font-size:11px;letter-spacing:.12em;color:#4889ac;font-weight:800}
+.rv-formal-actions,.rv-confirm{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.rv-summary{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+.rv-summary span{background:rgba(80,155,203,.1);padding:10px 14px;border-radius:12px}
+.rv-summary strong{display:inline-block;margin-left:6px}
+.rv-preview-list{max-height:420px;overflow:auto;margin:16px 0;border:1px solid rgba(125,151,170,.25);border-radius:12px}
+.rv-preview-row{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(125,151,170,.17)}
+.rv-preview-row:last-child{border-bottom:0}
+.rv-preview-row small{display:block;opacity:.75}
+.rv-ready{color:#198754;font-weight:700}
+.rv-note-state{color:#a06715;font-size:.9em}
+.rv-actions{display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.rv-state{font-size:.8em;border-radius:9px;padding:3px 7px}
+.rv-state.associated{background:#e4f4ed;color:#17613e}
+.rv-state.pending{background:#fff2d9;color:#8a6319}
+.rv-change{width:100%;flex-basis:100%;padding:12px;border-radius:10px;background:rgba(85,149,184,.08);margin-top:10px}
+.rv-confirm{border:1px solid #9abbce;border-radius:12px;padding:14px}
+.rv-btn.ghost{background:transparent;border:1px solid #adcbdc;color:inherit}
+</style>
+@code {
+    private sealed record CicloItem(Guid Id,int Anio,DateOnly Desde);
+    private sealed record BebeItem(Guid Id,string Nombre);
+    private sealed record TurnoItem(Guid Id,Guid CicloId,string Nombre,DiaSemana Dia,TimeOnly Hora,int Cupo);
+    private sealed record CuentaItem(Guid Id,string Nombre);
+    private List<CicloItem> _ciclos=[];
+    private List<CicloItem> _ciclosAsociar=[];
+    private List<ReservaFormalizacionItemDto>? _vistaPrevia;
+    private string _cicloFormalizacionId="", _turnoDestinoId="";
+    private Guid? _cambiandoReservaId;
+    private bool _confirmarFormalizacion;
+    private List<BebeItem> _bebes=[];
+    private List<TurnoItem> _turnos=[];
+    private List<CuentaItem> _cuentas=[];
+    private List<ReservaVacanteItemDto> _reservas=[];
+    private string _cicloId="",_bebeId="",_turnoId="",_cuentaId="",_buscarBebe="";
+    private MedioPago _medioPago=MedioPago.Transferencia;
+    private bool _cargando=true,_guardando;
+    private string? _mensaje,_error;
+
+    protected override async Task OnInitializedAsync()=>await CargarAsync();
+    private async Task CargarAsync(){
+        _cargando=true;_error=null;
+        try{
+            await using var db=await DbFactory.CreateDbContextAsync();
+            var hoy=BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+            _ciclos=await db.CiclosLectivos.AsNoTracking()
+                .Where(x=>x.Anio>hoy.Year && x.FechaInicio>hoy && x.Estado!=EstadoCicloLectivo.Cerrado)
+                .OrderBy(x=>x.Anio).Select(x=>new CicloItem(x.Id,x.Anio,x.FechaInicio)).ToListAsync();
+            _ciclosAsociar=await db.CiclosLectivos.AsNoTracking()
+                .Where(x=>x.FechaFin>=hoy && x.Estado!=EstadoCicloLectivo.Cerrado)
+                .OrderBy(x=>x.Anio).Select(x=>new CicloItem(x.Id,x.Anio,x.FechaInicio)).ToListAsync();
+            _bebes=await db.Bebes.AsNoTracking().Where(x=>x.Estado==EstadoBebe.Activo)
+                .OrderBy(x=>x.Apellido).ThenBy(x=>x.Nombre)
+                .Select(x=>new BebeItem(x.Id,x.Nombre+" "+x.Apellido)).ToListAsync();
+            var ciclosIds=_ciclosAsociar.Select(x=>x.Id).ToList();
+            _turnos=await db.Turnos.AsNoTracking()
+                .Where(x=>x.CicloLectivoId.HasValue && ciclosIds.Contains(x.CicloLectivoId.Value)
+                    && x.Estado==EstadoTurno.Activo)
+                .OrderBy(x=>x.DiaSemana).ThenBy(x=>x.HoraInicio)
+                .Select(x=>new TurnoItem(x.Id,x.CicloLectivoId!.Value,x.Nombre,x.DiaSemana,x.HoraInicio,x.Cupo)).ToListAsync();
+            _cuentas=await db.CuentasBancarias.AsNoTracking().Include(x=>x.Banco)
+                .Where(x=>x.Activa && x.Banco.Activo)
+                .Select(x=>new CuentaItem(x.Id,x.Nombre)).ToListAsync();
+            _reservas=(await ReservaService.ListarAsync()).ToList();
+        }catch(Exception ex){_error=ex.Message;}
+        finally{_cargando=false;}
+    }
+    private async Task RegistrarAsync(){
+        _guardando=true;_mensaje=null;_error=null;
+        try{
+            if(!Guid.TryParse(_cicloId,out var ciclo)) throw new InvalidOperationException("Elegí un ciclo futuro.");
+            if(!Guid.TryParse(_bebeId,out var bebe)) throw new InvalidOperationException("Elegí un alumno.");
+            if(!Guid.TryParse(_turnoId,out var turno)) throw new InvalidOperationException("Elegí un turno.");
+            var auth=await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if(!Guid.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier),out var usuario))
+                throw new InvalidOperationException("No se identificó el usuario que registra el cobro.");
+            var cuenta=Guid.TryParse(_cuentaId,out var cuentaId)?cuentaId:(Guid?)null;
+            await ReservaService.RegistrarAsync(new RegistrarReservaVacanteDto(bebe,ciclo,turno,_medioPago,cuenta,usuario));
+            _mensaje="Reserva de vacante y anticipo registrados correctamente.";
+            _bebeId="";_turnoId="";_cuentaId="";
+            await CargarAsync();
+        }catch(Exception ex){_error=ex.Message;}
+        finally{_guardando=false;}
+    }
+
+
+    private void CambiarCicloFormalizacion(ChangeEventArgs args)
+    {
+        _cicloFormalizacionId=args.Value?.ToString() ?? "";
+        _vistaPrevia=null;
+        _confirmarFormalizacion=false;
+        _mensaje=null;
+    }
+
+    private async Task PrevisualizarAsync()
+    {
+        _error=null;_mensaje=null;_confirmarFormalizacion=false;
+        try {
+            if(!Guid.TryParse(_cicloFormalizacionId,out var ciclo))
+                throw new InvalidOperationException("Elegí el ciclo lectivo.");
+            _vistaPrevia=(await ReservaService.PrevisualizarFormalizacionAsync(ciclo)).ToList();
+        } catch(Exception ex){_error=ex.Message;_vistaPrevia=null;}
+    }
+
+    private async Task FormalizarAsync()
+    {
+        if(!_confirmarFormalizacion) return;
+        _guardando=true;_error=null;_mensaje=null;
+        try {
+            if(!Guid.TryParse(_cicloFormalizacionId,out var ciclo))
+                throw new InvalidOperationException("Elegí el ciclo lectivo.");
+            var usuario=await ObtenerUsuarioAsync();
+            var resultado=await ReservaService.FormalizarInscripcionesAsync(ciclo,usuario);
+            _mensaje=$"Inscripciones asociadas: {resultado.Asociadas}. " +
+                     $"Ya existentes: {resultado.YaAsociadas}. Pendientes para revisar: {resultado.Omitidas}.";
+            if(resultado.Advertencias.Count>0)
+                _mensaje+=" Revisá los casos señalados en la vista previa.";
+            _confirmarFormalizacion=false;
+            await CargarAsync();
+            _vistaPrevia=(await ReservaService.PrevisualizarFormalizacionAsync(ciclo)).ToList();
+        }catch(Exception ex){_error=ex.Message;_confirmarFormalizacion=false;}
+        finally{_guardando=false;}
+    }
+
+    private void AbrirCambioTurno(ReservaVacanteItemDto reserva)
+    {
+        _cambiandoReservaId=reserva.Id;
+        _turnoDestinoId="";
+        _error=null;_mensaje=null;
+    }
+
+    private async Task GuardarCambioTurnoAsync(Guid reservaId)
+    {
+        _guardando=true;_error=null;_mensaje=null;
+        try {
+            if(!Guid.TryParse(_turnoDestinoId,out var destino))
+                throw new InvalidOperationException("Elegí un nuevo turno.");
+            var usuario=await ObtenerUsuarioAsync();
+            await ReservaService.CambiarTurnoAsync(reservaId,destino,usuario);
+            _cambiandoReservaId=null;_turnoDestinoId="";
+            _mensaje="Horario de reserva cambiado. El pago original se conserva.";
+            _vistaPrevia=null;_confirmarFormalizacion=false;
+            await CargarAsync();
+        }catch(Exception ex){_error=ex.Message;}
+        finally{_guardando=false;}
+    }
+
+    private async Task<Guid> ObtenerUsuarioAsync()
+    {
+        var auth=await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if(!Guid.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier),out var id))
+            throw new InvalidOperationException("No se identificó el usuario.");
+        return id;
+    }
+}

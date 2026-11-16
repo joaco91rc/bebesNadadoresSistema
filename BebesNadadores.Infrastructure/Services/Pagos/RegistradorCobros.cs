@@ -164,8 +164,8 @@ public sealed class RegistradorCobros
         if (caja is not null)
         {
             var conceptoCuota =
-                await ObtenerConceptoCuotaAsync(
-                    db,
+                await ObtenerConceptoCobroAsync(
+                    db, cobro.EsReservaVacante,
                     ct);
 
             db.MovimientosCaja.Add(
@@ -228,14 +228,21 @@ public sealed class RegistradorCobros
      * nadie entró a Caja) se crea; si quedó inactivo se reactiva.
      * Mismo criterio que PagoProveedorService con "Pago a proveedor".
      */
-    private static async Task<ConceptoCaja> ObtenerConceptoCuotaAsync(
+    private static async Task<ConceptoCaja> ObtenerConceptoCobroAsync(
         AppDbContext db,
+        bool esReservaVacante,
         CancellationToken ct)
     {
+        var conceptoId = esReservaVacante
+            ? ConceptosCajaSistema.ReservaVacanteId
+            : ConceptosCajaSistema.CuotaNatatorioMensualId;
+        var nombre = esReservaVacante
+            ? ConceptosCajaSistema.ReservaVacante
+            : ConceptosCajaSistema.CuotaNatatorioMensual;
         var concepto =
             await db.ConceptosCaja
                 .FirstOrDefaultAsync(
-                    x => x.Id == ConceptosCajaSistema.CuotaNatatorioMensualId,
+                    x => x.Id == conceptoId,
                     ct);
 
         if (concepto is null)
@@ -243,8 +250,8 @@ public sealed class RegistradorCobros
             concepto =
                 new ConceptoCaja
                 {
-                    Id = ConceptosCajaSistema.CuotaNatatorioMensualId,
-                    Nombre = ConceptosCajaSistema.CuotaNatatorioMensual,
+                    Id = conceptoId,
+                    Nombre = nombre,
                     Tipo = TipoMovimientoCaja.Ingreso,
                     Activo = true,
                     Orden = 0
@@ -452,7 +459,8 @@ public sealed record NuevoCobro(
     string? Observaciones,
     IReadOnlyList<Cuota> CuotasAImputar,
     string DetalleMovimiento,
-    Guid? UsuarioId);
+    Guid? UsuarioId,
+    bool EsReservaVacante = false);
 
 
 public sealed record CobroRegistrado(

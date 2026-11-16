@@ -110,6 +110,16 @@ public static class CalculadoraCupoSesion
                 .Select(x => new { SesionId = x.SesionUsoId!.Value, x.BebeId })
                 .ToListAsync(ct);
 
+        // Reservas pagadas del ciclo futuro ocupan cupos FIJOS:
+        // no se deben ofrecer como vacantes para altas ni recuperos.
+        var reservasCiclo = await db.ReservasVacantesCiclo.AsNoTracking()
+            .Include(x => x.CicloLectivo)
+            .Where(x => turnoIds.Contains(x.TurnoId)
+                && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+            .Select(x => new { x.TurnoId, x.BebeId,
+                x.CicloLectivo.FechaInicio, x.CicloLectivo.FechaFin })
+            .ToListAsync(ct);
+
         var ausencias =
             await db.Asistencias
                 .AsNoTracking()
@@ -145,6 +155,12 @@ public static class CalculadoraCupoSesion
                     .Select(x => x.BebeId)
                     .ToHashSet();
 
+            var reservadosCiclo = reservasCiclo
+                .Where(x => x.TurnoId == sesion.TurnoId
+                    && x.FechaInicio <= sesion.Fecha && x.FechaFin >= sesion.Fecha
+                    && !regulares.Contains(x.BebeId) && !claseInicial.Contains(x.BebeId))
+                .Select(x => x.BebeId).Distinct().ToHashSet();
+
             var deRecupero =
                 recuperos
                     .Where(x =>
@@ -171,7 +187,8 @@ public static class CalculadoraCupoSesion
                     regulares.Count,
                     claseInicial.Count,
                     deRecupero.Count,
-                    ausentesConAviso);
+                    ausentesConAviso,
+                    reservadosCiclo.Count);
         }
 
         return resultado;
@@ -222,14 +239,15 @@ public sealed record OcupacionSesion(
     int Regulares,
     int ClaseInicial,
     int Recuperos,
-    int AusentesConAviso)
+    int AusentesConAviso,
+    int ReservasCiclo = 0)
 {
     /*
      * Bebés que figuran en la clase (incluye a los que avisaron
      * que faltan). Es lo que se muestra como "inscriptos".
      */
     public int Esperados =>
-        Regulares + ClaseInicial + Recuperos;
+        Regulares + ClaseInicial + Recuperos + ReservasCiclo;
 
 
     /*
@@ -237,7 +255,7 @@ public sealed record OcupacionSesion(
      * inicial). Son vacantes de inscripción.
      */
     public int VacantesFijas =>
-        Math.Max(0, Cupo - Regulares - ClaseInicial);
+        Math.Max(0, Cupo - Regulares - ClaseInicial - ReservasCiclo);
 
 
     /*

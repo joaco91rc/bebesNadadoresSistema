@@ -108,6 +108,10 @@
             </Authorized>
         </AuthorizeView>
 
+        <a href="/lista-espera" class="secondary-action" style="text-decoration:none;align-self:center">
+            Lista para recuperos
+        </a>
+
         <div class="header-actions">
 
 
@@ -779,26 +783,18 @@
                             BUSCAR CLASES PARA
                         </label>
 
-                        <select value="@(_recuperacionSeleccionadaId?.ToString() ?? "")"
+                        <select value="@(_bebeSeleccionadoId?.ToString() ?? "")"
                                 @onchange="SeleccionarRecuperoAsync">
-
-                            <option value="">
-                                Cualquier recupero
-                            </option>
-
-                            @foreach (var recupero in
-                                _panel.Recuperos
-                                    .Where(x =>
-                                        x.Estado ==
-                                            EstadoRecuperacion.Disponible)
-                                    .OrderBy(x =>
-                                        x.Bebe))
+                            <option value="">Cualquier alumno</option>
+                            @foreach (var alumno in _panel.Recuperos
+                                .Where(x => x.Estado == EstadoRecuperacion.Disponible)
+                                .GroupBy(x => x.BebeId)
+                                .OrderBy(x => x.First().Bebe))
                             {
-                                <option value="@recupero.RecuperacionId">
-                                    @recupero.Bebe · @recupero.NivelOrigen
+                                <option value="@alumno.Key">
+                                    @alumno.First().Bebe (@alumno.Count() recuperos)
                                 </option>
                             }
-
                         </select>
 
                     </div>
@@ -810,6 +806,24 @@
                 {
                     var recuperoSeleccionado =
                         RecuperoSeleccionado;
+
+                    @if (RecuperosDelBebe.Count > 0)
+                    {
+                        <div class="recovery-credits-panel" style="margin:10px 0;padding:14px;border:1px solid var(--mud-palette-lines-default);border-radius:12px">
+                            <strong>Recuperos disponibles de @recuperoSeleccionado.Bebe (@RecuperosDelBebe.Count)</strong>
+                            <p>Elegí el recupero que querés asignar. Se indica la fecha de la ausencia informada.</p>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                @foreach (var credito in RecuperosDelBebe)
+                                {
+                                    <button type="button" class="@(_recuperacionSeleccionadaId == credito.RecuperacionId ? "primary-action" : "secondary-action")"
+                                            @onclick="() => ElegirRecuperoAsync(credito.RecuperacionId)">
+                                        Ausencia: @credito.FechaOrigen.ToString("dd/MM/yyyy")
+                                        · @ObtenerTextoVencimiento(credito)
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
 
                     <div class="selected-recovery">
 
@@ -1664,7 +1678,7 @@
 
                                     <span>
 
-                                        ORIGEN
+                                        AUSENCIA CON AVISO / ORIGEN
 
                                     </span>
 

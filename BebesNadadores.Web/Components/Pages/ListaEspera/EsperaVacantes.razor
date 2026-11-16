@@ -1,0 +1,178 @@
+@page "/espera-vacantes"
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
+@using BebesNadadores.Infrastructure.Persistence
+@using BebesNadadores.Domain.Entities
+@using BebesNadadores.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<PageTitle>Lista de espera de vacantes | Bebés Nadadores</PageTitle>
+<div class="ev-page">
+<header class="ev-header"><div><span class="ev-eyebrow">VACANTES Y CAMBIOS DE TURNO</span>
+    <h1>Lista de espera</h1>
+    <p>Solicitudes de familias nuevas y alumnos regulares que quieren cambiar de horario.</p></div>
+    <a href="/alertas-vacantes" class="ev-btn">Ver alertas de cupos</a></header>
+@if (!string.IsNullOrWhiteSpace(_error)) { <p class="ev-error">@_error</p> }
+@if (!string.IsNullOrWhiteSpace(_mensaje)) { <p class="ev-ok">@_mensaje</p> }
+<div class="ev-cols">
+<section class="ev-card"><h2>Nueva solicitud</h2>
+    <label>Tipo de solicitud</label>
+    <select @bind="_tipo"><option value="Nuevo">Nueva inscripción</option>
+        <option value="Cambio">Cambio de turno de alumno regular</option></select>
+    @if (_tipo == "Cambio") {
+        <label>Alumno regular</label>
+        <input placeholder="Filtrar alumno..." @bind="_buscarAlumno" @bind:event="oninput" />
+        <select @bind="_bebeId"><option value="">Seleccioná un alumno</option>
+            @foreach(var bebe in _bebes.Where(x => string.IsNullOrWhiteSpace(_buscarAlumno) || x.Nombre.Contains(_buscarAlumno, StringComparison.OrdinalIgnoreCase)).Take(100)) {
+                <option value="@bebe.Id">@bebe.Nombre</option>
+            }
+        </select>
+    } else {
+        <label>Nombre y apellido del bebé</label><input @bind="_nombreBebe" />
+        <label>Responsable</label><input @bind="_nombreResponsable" />
+        <label>WhatsApp / contacto</label><input @bind="_telefono" />
+    }
+    <label>Nivel solicitado</label>
+    <select @bind="_nivelId"><option value="">Seleccioná nivel</option>
+        @foreach(var nivel in _niveles) { <option value="@nivel.Id">@nivel.Nombre</option> }
+    </select>
+    <label>Horario solicitado (opcional para nuevas inscripciones)</label>
+    <select @bind="_turnoId"><option value="">Cualquier turno compatible</option>
+        @foreach(var turno in _turnos.Where(t => !Guid.TryParse(_nivelId, out var nivel) || t.NivelId == nivel)) {
+            <option value="@turno.Id">@turno.Nombre · @turno.Dia · @turno.Hora</option>
+        }
+    </select>
+    <label>Día preferido (opcional)</label>
+    <select @bind="_diaPreferido"><option value="">Cualquier día</option>
+        @foreach (var dia in Enum.GetValues<DiaSemana>()) { <option value="@((int)dia)">@dia</option> }
+    </select>
+    <label>Observaciones</label><textarea rows="3" @bind="_observaciones"></textarea>
+    <button class="ev-btn primary" disabled="@_guardando" @onclick="GuardarAsync">Guardar solicitud</button>
+</section>
+<section class="ev-card"><div class="ev-top"><h2>Solicitudes registradas (@_items.Count)</h2>
+    <button class="ev-btn" @onclick="CargarAsync">Actualizar</button></div>
+    <input placeholder="Buscar familia o alumno" @bind="_busqueda" @bind:event="oninput" />
+    @if (_cargando) { <p>Cargando lista...</p> }
+    else if (_items.Count == 0) { <p>La lista de espera está vacía.</p> }
+    else {
+        @foreach(var item in _items.Where(x => string.IsNullOrWhiteSpace(_busqueda)
+            || x.NombreBebe.Contains(_busqueda, StringComparison.OrdinalIgnoreCase)
+            || x.NombreResponsable.Contains(_busqueda, StringComparison.OrdinalIgnoreCase))) {
+            <div class="ev-row">
+                <div><strong>@item.NombreBebe</strong>
+                    <small>@(item.BebeInscriptoId.HasValue ? "Cambio de turno" : "Nueva inscripción")
+                        · @item.Nivel?.Nombre</small>
+                    <small>@(item.Turno?.Nombre ?? "Cualquier turno")
+                        · Alta @item.FechaAltaUtc.ToOffset(TimeSpan.FromHours(-3)).ToString("dd/MM/yyyy")</small>
+                    @if (!string.IsNullOrEmpty(item.Observaciones)) { <small>@item.Observaciones</small> }
+                </div>
+                <div><span class="ev-state">@item.Estado</span>
+                    @if (item.Estado == EstadoListaEspera.Activa || item.Estado == EstadoListaEspera.Notificada) {
+                        <button class="ev-btn" @onclick="() => CancelarAsync(item.Id)">Cancelar</button>
+                    }</div>
+            </div>
+        }
+    }
+</section></div>
+</div>
+@code {
+    private sealed record BebeItem(Guid Id, string Nombre, Guid? NivelId);
+    private sealed record NivelItem(Guid Id, string Nombre);
+    private sealed record TurnoItem(Guid Id, Guid NivelId, string Nombre, DiaSemana Dia, TimeOnly Hora);
+    private List<BebeItem> _bebes=[];
+    private List<NivelItem> _niveles=[];
+    private List<TurnoItem> _turnos=[];
+    private List<EsperaInscripcion> _items=[];
+    private bool _cargando=true,_guardando;
+    private string _tipo="Nuevo",_bebeId="",_nivelId="",_turnoId="",_diaPreferido="";
+    private string _buscarAlumno="",_nombreBebe="",_nombreResponsable="",_telefono="",_busqueda="";
+    private string? _observaciones,_error,_mensaje;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+    private async Task CargarAsync() {
+        _cargando=true;_error=null;
+        try {
+            await using var db=await DbFactory.CreateDbContextAsync();
+            _items=await db.Set<EsperaInscripcion>().AsNoTracking().Include(x=>x.Nivel)
+                .Include(x=>x.Turno).OrderByDescending(x=>x.FechaAltaUtc).Take(400).ToListAsync();
+            _bebes=await db.Bebes.AsNoTracking().Where(x=>x.Estado==EstadoBebe.Activo)
+                .OrderBy(x=>x.Apellido).ThenBy(x=>x.Nombre)
+                .Select(x=>new BebeItem(x.Id,x.Nombre+" "+x.Apellido,x.NivelActualId)).ToListAsync();
+            _niveles=await db.Niveles.AsNoTracking().Where(x=>x.Activo)
+                .OrderBy(x=>x.Orden).Select(x=>new NivelItem(x.Id,x.Nombre)).ToListAsync();
+            var hoy=BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+            _turnos=await db.Turnos.AsNoTracking().Where(x=>x.Estado==EstadoTurno.Activo
+                && (!x.VigenteHasta.HasValue || x.VigenteHasta>=hoy))
+                .OrderBy(x=>x.DiaSemana).ThenBy(x=>x.HoraInicio)
+                .Select(x=>new TurnoItem(x.Id,x.NivelId,x.Nombre,x.DiaSemana,x.HoraInicio)).ToListAsync();
+        } catch(Exception ex) {_error=ex.Message;}
+        finally {_cargando=false;}
+    }
+    private async Task GuardarAsync() {
+        _error=null;_mensaje=null;_guardando=true;
+        try {
+            await using var db=await DbFactory.CreateDbContextAsync();
+            Guid? bebeId=null;
+            if(_tipo=="Cambio") {
+                if(!Guid.TryParse(_bebeId,out var id)) throw new InvalidOperationException("Seleccioná un alumno regular.");
+                bebeId=id;
+                if(!Guid.TryParse(_turnoId,out var turnoDestino)) throw new InvalidOperationException("Seleccioná el turno al que quiere cambiar.");
+                var hoy=BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+                var turnosActuales=await db.InscripcionesTurnos.AsNoTracking()
+                    .Where(x=>x.Inscripcion.BebeId==id
+                        && x.Inscripcion.Estado==EstadoInscripcion.Activa
+                        && x.Inscripcion.FechaInicio<=hoy
+                        && (!x.Inscripcion.FechaFin.HasValue || x.Inscripcion.FechaFin>=hoy))
+                    .Select(x=>x.TurnoId).ToListAsync();
+                if(turnosActuales.Count==0)
+                    throw new InvalidOperationException("El alumno seleccionado no tiene una inscripción regular vigente.");
+                if(turnosActuales.Contains(turnoDestino))
+                    throw new InvalidOperationException("El alumno ya tiene asignado ese horario.");
+                var bebe=await db.Bebes.Include(x=>x.Responsables).ThenInclude(x=>x.Responsable)
+                    .FirstOrDefaultAsync(x=>x.Id==id && x.Estado==EstadoBebe.Activo)
+                    ?? throw new InvalidOperationException("El alumno no existe o está inactivo.");
+                _nombreBebe=$"{bebe.Nombre} {bebe.Apellido}".Trim();
+                var responsable=bebe.Responsables.OrderByDescending(x=>x.EsContactoPrincipal)
+                    .Select(x=>x.Responsable).FirstOrDefault();
+                _nombreResponsable=responsable is null ? "No informado" : $"{responsable.Nombre} {responsable.Apellido}".Trim();
+                _telefono=responsable?.WhatsApp ?? responsable?.Telefono ?? "No informado";
+                _nivelId=(bebe.NivelActualId?.ToString()) ?? _nivelId;
+            }
+            if(!Guid.TryParse(_nivelId,out var nivelId)) throw new InvalidOperationException("Seleccioná un nivel.");
+            if(string.IsNullOrWhiteSpace(_nombreBebe) || string.IsNullOrWhiteSpace(_nombreResponsable))
+                throw new InvalidOperationException("Completá nombre del alumno y responsable.");
+            if(string.IsNullOrWhiteSpace(_telefono)) throw new InvalidOperationException("Completá un contacto.");
+            Guid? turnoId=Guid.TryParse(_turnoId,out var t) ? t : null;
+            if(turnoId.HasValue && !await db.Turnos.AnyAsync(x=>x.Id==turnoId.Value && x.NivelId==nivelId))
+                throw new InvalidOperationException("El turno debe corresponder al nivel seleccionado.");
+            DiaSemana? dia=int.TryParse(_diaPreferido,out var d) && Enum.IsDefined(typeof(DiaSemana),d)
+                ? (DiaSemana)d : null;
+            if(bebeId.HasValue && await db.Set<EsperaInscripcion>().AnyAsync(x=>x.BebeInscriptoId==bebeId.Value
+                && x.TurnoId==turnoId && (x.Estado==EstadoListaEspera.Activa || x.Estado==EstadoListaEspera.Notificada)))
+                throw new InvalidOperationException("Este alumno ya pidió ese cambio de turno.");
+            var solicitud=new EsperaInscripcion { Id=Guid.NewGuid(), BebeInscriptoId=bebeId,
+                NombreBebe=_nombreBebe.Trim(),NombreResponsable=_nombreResponsable.Trim(),
+                Telefono=_telefono.Trim(), NivelId=nivelId, TurnoId=turnoId,
+                DiaPreferido=dia, FranjaHoraria=FranjaHoraria.Indistinta,
+                Observaciones=string.IsNullOrWhiteSpace(_observaciones)?null:_observaciones.Trim(),
+                FechaAltaUtc=DateTimeOffset.UtcNow, Estado=EstadoListaEspera.Activa };
+            db.Set<EsperaInscripcion>().Add(solicitud);
+            await db.SaveChangesAsync();
+            _mensaje="Solicitud de vacante guardada correctamente.";
+            _nombreBebe="";_nombreResponsable="";_telefono="";_observaciones=null;
+            _bebeId="";_turnoId="";_diaPreferido="";
+            await CargarAsync();
+        } catch(Exception ex){_error=ex.Message;}
+        finally{_guardando=false;}
+    }
+    private async Task CancelarAsync(Guid id) {
+        try {
+            await using var db=await DbFactory.CreateDbContextAsync();
+            var item=await db.Set<EsperaInscripcion>().FirstOrDefaultAsync(x=>x.Id==id);
+            if(item is null) return;
+            item.Estado=EstadoListaEspera.Cancelada;
+            await db.SaveChangesAsync();
+            _mensaje="Solicitud cancelada.";await CargarAsync();
+        } catch(Exception ex){_error=ex.Message;}
+    }
+}

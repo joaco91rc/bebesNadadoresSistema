@@ -48,6 +48,18 @@ public sealed class GuardarBebeDto
 
     public string Apellido { get; set; } = string.Empty;
 
+    // Campo único en la interfaz; se mantiene el esquema Nombre/Apellido.
+    public string NombreYApellido
+    {
+        get => string.Join(" ", new[] { Nombre, Apellido }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        set
+        {
+            var partes = (value ?? string.Empty).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            Nombre = partes.Length > 1 ? string.Join(" ", partes[..^1]) : (partes.Length == 1 ? partes[0] : string.Empty);
+            Apellido = partes.Length > 1 ? partes[^1] : string.Empty;
+        }
+    }
+
     public DateOnly FechaNacimiento { get; set; }
 
     public Sexo Sexo { get; set; } = Sexo.NoInformado;
@@ -96,6 +108,18 @@ public sealed class GuardarResponsableBebeDto
     public string Nombre { get; set; } = string.Empty;
 
     public string Apellido { get; set; } = string.Empty;
+
+    // Campo único en la interfaz; se mantiene el esquema Nombre/Apellido.
+    public string NombreYApellido
+    {
+        get => string.Join(" ", new[] { Nombre, Apellido }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        set
+        {
+            var partes = (value ?? string.Empty).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            Nombre = partes.Length > 1 ? string.Join(" ", partes[..^1]) : (partes.Length == 1 ? partes[0] : string.Empty);
+            Apellido = partes.Length > 1 ? partes[^1] : string.Empty;
+        }
+    }
 
     public string? Dni { get; set; }
 

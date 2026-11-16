@@ -48,6 +48,7 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>
     public DbSet<CuotaReactivacion> CuotasReactivaciones => Set<CuotaReactivacion>();
 
     public DbSet<CicloLectivo> CiclosLectivos => Set<CicloLectivo>();
+    public DbSet<ReservaVacanteCiclo> ReservasVacantesCiclo => Set<ReservaVacanteCiclo>();
 
     public DbSet<SesionClaseProfesor> SesionesClaseProfesores => Set<SesionClaseProfesor>();
 

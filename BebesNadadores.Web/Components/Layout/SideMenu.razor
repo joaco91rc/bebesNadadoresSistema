@@ -172,7 +172,36 @@
                 </NavLink>
 
 
-                <NavLink href="/lista-espera"
+                <AuthorizeView Policy="@PoliticasSistema.GestionCaja">
+    <Authorized Context="reservaCajaAuth">
+        <NavLink href="/reservas-vacantes"
+                 class="menu-link"
+                 ActiveClass="active">
+            <span class="menu-icon">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" />
+            </span>
+
+            @if (!Collapsed)
+            {
+                <span class="menu-text">
+                    Reservas de vacantes
+                </span>
+            }
+        </NavLink>
+    </Authorized>
+</AuthorizeView>
+
+                <NavLink href="/inscripciones/primeras-clases" class="menu-link" ActiveClass="active">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Primeras clases</span> }
+                </NavLink>
+
+                <NavLink href="/alertas-vacantes" class="menu-link" ActiveClass="active">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.NotificationsActive" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Alertas de cupos</span> }
+                </NavLink>
+
+                <NavLink href="/espera-vacantes"
                          class="menu-link"
                          ActiveClass="active">
 
@@ -447,7 +476,7 @@
            REPORTES
            ----------------------------------------------------- *@
 
-        <AuthorizeView Policy="@PoliticasSistema.ConsultaGeneral">
+        <AuthorizeView Policy="@PoliticasSistema.ConsultarReportes">
 
             <Authorized>
 

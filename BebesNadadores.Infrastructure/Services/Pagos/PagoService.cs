@@ -212,6 +212,10 @@ public sealed class PagoService(
                 .ToListAsync(ct);
 
 
+        var pagosReservaIds = (await db.ReservasVacantesCiclo.AsNoTracking()
+            .Where(x => bebeIds.Contains(x.BebeId) && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+            .Select(x => x.PagoId).ToListAsync(ct)).ToHashSet();
+
         var resultado =
 
             new List<BebePagoResumenDto>();
@@ -264,9 +268,10 @@ var periodoActual =
                         x.Importe - x.Imputaciones.Sum(i => i.Importe)));
 
 
+            // El anticipo de un ciclo FUTURO no es saldo libre para pagar 2026.
             var saldoFavor =
 
-                pagosBebe
+                pagosBebe.Where(x => !pagosReservaIds.Contains(x.Id))
 
                     .Sum(x =>
 
@@ -561,6 +566,10 @@ var periodoActual =
                         ct);
 
 
+        var pagosReservaIdsBebe = (await db.ReservasVacantesCiclo.AsNoTracking()
+            .Where(x => x.BebeId == bebeId && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+            .Select(x => x.PagoId).ToListAsync(ct)).ToHashSet();
+
         var pagosDto =
 
             pagos
@@ -658,11 +667,11 @@ var deuda =
                     x.Importe);
 
 
-        var saldoFavor =
-
-            pagosDto.Sum(x =>
-
-                x.SaldoNoImputado);
+         // Crédito reservado para el próximo ciclo: visible en los pagos,
+         // pero NO disponible para otras cuotas.
+         var saldoFavor =
+            pagosDto.Where(x => !pagosReservaIdsBebe.Contains(x.Id))
+                .Sum(x => x.SaldoNoImputado);
 
 
         var responsables =
@@ -1219,7 +1228,53 @@ var deuda =
                 ct);
 
 
-        foreach (var pago in pagos)
+        // Los anticipos de reserva nunca participan de la imputación genérica.
+        // Sólo pueden cubrir la PRIMERA cuota del ciclo correspondiente.
+        var reservasCiclo = await db.ReservasVacantesCiclo
+            .Include(x => x.CicloLectivo)
+            .Where(x => x.BebeId == bebeId && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+            .ToListAsync(ct);
+        var pagosReservaIds = reservasCiclo.Select(x => x.PagoId).ToHashSet();
+        var hoyArgentina = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+
+        foreach (var reserva in reservasCiclo)
+        {
+            // El anticipo no debe aplicarse a una inscripción anterior.
+            if (!reserva.InscripcionId.HasValue || hoyArgentina < reserva.CicloLectivo.FechaInicio)
+                continue;
+            var primerPeriodo = new DateOnly(reserva.CicloLectivo.FechaInicio.Year,
+                reserva.CicloLectivo.FechaInicio.Month, 1);
+            var primeraCuota = cuotas.FirstOrDefault(x =>
+                x.InscripcionId == reserva.InscripcionId.Value && x.Periodo == primerPeriodo);
+            var pagoReserva = pagos.FirstOrDefault(x => x.Id == reserva.PagoId);
+            if (primeraCuota is null || pagoReserva is null) continue;
+
+            var pendiente = pagoReserva.Importe - pagoReserva.Imputaciones.Sum(x => x.Importe);
+            var saldo = ObtenerSaldoCuota(primeraCuota);
+            if (pendiente <= 0 || saldo <= 0) continue;
+            var aplicar = Math.Min(pendiente, saldo);
+            var anterior = pagoReserva.Imputaciones.FirstOrDefault(x => x.CuotaId == primeraCuota.Id);
+            if (anterior is not null)
+            {
+                anterior.Importe += aplicar;
+            }
+            else
+            {
+                var imputacion = new ImputacionPago {
+                    PagoId = pagoReserva.Id, Pago = pagoReserva,
+                    CuotaId = primeraCuota.Id, Cuota = primeraCuota,
+                    Importe = aplicar
+                };
+                db.ImputacionesPago.Add(imputacion);
+                AgregarSiFalta(pagoReserva.Imputaciones, imputacion);
+                AgregarSiFalta(primeraCuota.Imputaciones, imputacion);
+            }
+            ActualizarEstadoCuota(primeraCuota);
+            if (pendiente - aplicar <= 0)
+                reserva.Estado = EstadoReservaVacanteCiclo.Aplicada;
+        }
+
+        foreach (var pago in pagos.Where(x => !pagosReservaIds.Contains(x.Id)))
 
         {
 

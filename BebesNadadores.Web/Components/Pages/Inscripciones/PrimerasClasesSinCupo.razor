@@ -1,0 +1,101 @@
+@page "/inscripciones/primeras-clases"
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
+@using BebesNadadores.Infrastructure.Persistence
+@using BebesNadadores.Domain.Enums
+@using BebesNadadores.Application.Asistencia
+@using BebesNadadores.Application.Asistencia.Dtos
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IAsistenciaService AsistenciaService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Primeras clases sin cupo fijo | Bebés Nadadores</PageTitle>
+<div class="bn-first">
+    <header class="bn-first-head">
+        <div><span class="bn-eyebrow">INSCRIPCIONES · SEGUIMIENTO</span>
+            <h1>Primera clase sin cupo fijo</h1>
+            <p>Alumnos que reservaron una primera clase pero todavía no tienen un horario habitual.
+               La asistencia se consulta directamente de las clases registradas.</p></div>
+        <button class="bn-btn" @onclick="CargarAsync">Actualizar</button>
+    </header>
+    @if (!string.IsNullOrWhiteSpace(_error)) { <p class="bn-error">@_error</p> }
+    @if (!string.IsNullOrWhiteSpace(_mensaje)) { <p class="bn-ok">@_mensaje</p> }
+    <section class="bn-summary"><strong>@_filas.Count</strong> inscripciones sin cupo fijo
+        <span>@_filas.Count(x => x.Estado == EstadoAsistencia.Presente) se presentaron a su primera clase</span>
+    </section>
+    @if (_cargando) { <p>Cargando primeras clases...</p> }
+    else if (_filas.Count == 0) { <p>No hay alumnos con primera clase reservada y sin turno fijo.</p> }
+    else {
+        <div class="bn-table-scroll"><table class="bn-table"><thead><tr>
+            <th>Alumno</th><th>Primera clase</th><th>Horario</th><th>Estado de asistencia</th><th>Acciones</th>
+        </tr></thead><tbody>
+        @foreach (var fila in _filas) {
+            <tr><td><strong>@fila.Bebe</strong></td><td>@fila.Fecha.ToString("dd/MM/yyyy")</td>
+                <td>@fila.Hora.ToString("HH:mm") · @fila.Turno</td>
+                <td><span class="bn-status @(fila.Estado == EstadoAsistencia.Presente ? "present" : "pending")">
+                    @(fila.Estado switch {
+                        EstadoAsistencia.Presente => "Ya se presentó",
+                        EstadoAsistencia.AusenteConAviso => "Ausente con aviso",
+                        EstadoAsistencia.Ausente => "Ausente",
+                        _ => fila.Fecha < Hoy ? "Sin registrar" : "Pendiente de primera clase"
+                    })</span></td>
+                <td><a href="@($"/asistencia?sesionId={fila.SesionId}")">Ver clase</a>
+                    @if (fila.Fecha <= Hoy && fila.Estado != EstadoAsistencia.Presente && !_guardando) {
+                        <button class="bn-btn" @onclick="() => RegistrarPresenteAsync(fila)">Se presentó</button>
+                    }
+                </td></tr>
+        }
+        </tbody></table></div>
+    }
+</div>
+@code {
+    private sealed record Fila(Guid BebeId, Guid SesionId, string Bebe, DateOnly Fecha,
+        TimeOnly Hora, string Turno, EstadoAsistencia Estado);
+    private List<Fila> _filas = [];
+    private bool _cargando = true, _guardando;
+    private string? _error, _mensaje;
+    private DateOnly Hoy => BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync() {
+        _cargando = true; _error = null;
+        try {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var asignados = await db.InscripcionesTurnos.AsNoTracking()
+                .Select(x => x.InscripcionId).Distinct().ToListAsync();
+            var reservas = await db.ReservasSesionesClase.AsNoTracking()
+                .Include(x => x.Bebe).Include(x => x.SesionClase).ThenInclude(x => x.Turno)
+                .Where(x => x.Tipo == TipoReservaSesion.InscripcionInicial
+                    && x.Estado == EstadoReservaSesion.Activa)
+                .OrderBy(x => x.SesionClase.Fecha).ToListAsync();
+            var sinFijo = reservas.Where(x => !asignados.Contains(x.InscripcionId)).ToList();
+            var sesiones = sinFijo.Select(x => x.SesionClaseId).Distinct().ToList();
+            var asistencias = await db.Asistencias.AsNoTracking()
+                .Where(x => sesiones.Contains(x.SesionClaseId)).ToListAsync();
+            _filas = sinFijo.Select(x => new Fila(x.BebeId, x.SesionClaseId,
+                $"{x.Bebe.Nombre} {x.Bebe.Apellido}".Trim(),
+                x.SesionClase.Fecha, x.SesionClase.HoraInicio, x.SesionClase.Turno.Nombre,
+                asistencias.FirstOrDefault(a => a.SesionClaseId == x.SesionClaseId
+                    && a.BebeId == x.BebeId)?.Estado ?? EstadoAsistencia.Pendiente)).ToList();
+        } catch (Exception ex) { _error = ex.Message; }
+        finally { _cargando = false; }
+    }
+
+    private async Task RegistrarPresenteAsync(Fila fila) {
+        _guardando = true; _error = null; _mensaje = null;
+        try {
+            var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            Guid? id = Guid.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier), out var actual) ? actual : null;
+            await AsistenciaService.MarcarAsync(new RegistrarAsistenciaDto {
+                SesionClaseId = fila.SesionId, BebeId = fila.BebeId,
+                Estado = EstadoAsistencia.Presente, UsuarioId = id
+            });
+            _mensaje = $"Se registró la primera asistencia de {fila.Bebe}.";
+            await CargarAsync();
+        } catch (Exception ex) { _error = ex.Message; }
+        finally { _guardando = false; }
+    }
+}

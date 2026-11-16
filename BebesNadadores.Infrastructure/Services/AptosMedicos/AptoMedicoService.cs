@@ -139,7 +139,8 @@ var configuracion =
     public async Task<IReadOnlyList<FranjaMedicaDto>> ObtenerAgendaMedicaAsync(
         DateOnly fecha,
         TimeOnly horaActual,
-        CancellationToken ct = default
+        CancellationToken ct = default,
+        bool mostrarDiaCompleto = false
     )
     {
 
@@ -255,6 +256,10 @@ var configuracion =
             }
         }
 
+        // La médica puede alternar entre las tres franjas cercanas y el día completo.
+        if (mostrarDiaCompleto)
+            indicesSeleccionados = Enumerable.Range(0, grupos.Count).ToList();
+
         indicesSeleccionados = indicesSeleccionados
             .Distinct()
             .Where(x => x >= 0 && x < grupos.Count)
@@ -351,7 +356,7 @@ var configuracion =
 
                         ultimoAptoPorBebe.TryGetValue(bebe.Id, out var apto);
 
-                        MapearBebe(
+                        bebesClase.Add(MapearBebe(
     bebe.Id,
     $"{bebe.Nombre} {bebe.Apellido}".Trim(),
     bebe.FechaNacimiento,
@@ -359,7 +364,7 @@ var configuracion =
     sesion.Nivel,
     apto,
     hoy,
-    configuracion.DiasAlertaApto);
+    configuracion.DiasAlertaApto));
                     }
                 }
 

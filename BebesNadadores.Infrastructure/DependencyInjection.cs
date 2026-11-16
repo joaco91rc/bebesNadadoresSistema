@@ -178,6 +178,8 @@ public static class DependencyInjection
         services.AddScoped<ICuentaBancariaService, CuentaBancariaService>();
         services.AddScoped<IMovimientoBancarioService, MovimientoBancarioService>();
         services.AddScoped<RegistradorCobros>();
+        services.AddScoped<BebesNadadores.Application.Inscripciones.IReservaVacanteCicloService,
+            BebesNadadores.Infrastructure.Services.Inscripciones.ReservaVacanteCicloService>();
         services.AddScoped<IAnulacionService, AnulacionService>();
         services.AddScoped<IPagoService, PagoService>();
         services.AddScoped<ICajaService, CajaService>();

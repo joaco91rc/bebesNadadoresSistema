@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @implements IDisposable
@@ -97,17 +97,6 @@
             </div>
         </article>
 
-        @if (_puedeCaja)
-        {
-            <article class="kpi-card">
-                <div class="kpi-icon warning"><MudIcon Icon="@Icons.Material.Filled.Payments" /></div>
-                <div class="kpi-body">
-                    <span>Cuotas pendientes</span>
-                    <strong>@_dashboard.CuotasPendientes</strong>
-                    <small>@FormatoMoneda(_dashboard.ImportePendiente)</small>
-                </div>
-            </article>
-        }
 
         <article class="kpi-card">
             <div class="kpi-icon cyan"><MudIcon Icon="@Icons.Material.Filled.Autorenew" /></div>

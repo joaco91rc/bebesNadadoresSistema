@@ -9,6 +9,13 @@ public static class ConceptosCajaSistema
     public const string CuotaNatatorioMensual =
         "Cuota natatorio mensual";
 
+    // Concepto específico para anticipos del próximo ciclo lectivo.
+    public static readonly Guid ReservaVacanteId =
+        Guid.Parse("9d40845a-5d89-4bc4-a021-3d70b4c82cb7");
+
+    public const string ReservaVacante = "Reserva de vacante";
+
+
         public static readonly Guid PagoProveedorId =
     Guid.Parse(
         "7d97a4c5-f3d8-48a1-88fd-5cdddb208ef7");

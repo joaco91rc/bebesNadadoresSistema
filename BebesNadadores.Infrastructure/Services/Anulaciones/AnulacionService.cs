@@ -98,6 +98,12 @@ public sealed class AnulacionService(
             throw new InvalidOperationException(
                 "El pago ya se encuentra anulado.");
         }
+        // Un anticipo de vacante tiene un cupo futuro asociado. No permitir
+        // anular sólo el pago: dejaría una reserva activa sin respaldo financiero.
+        if (await db.ReservasVacantesCiclo.AnyAsync(x => x.PagoId == pago.Id, ct))
+            throw new InvalidOperationException(
+                "Este pago corresponde a una reserva de vacante. Para cancelarla debe anularse conjuntamente la reserva y su cupo. Contactá al administrador.");
+
 
         // -----------------------------------------------------
         // 1. Liberar las cuotas que cancelaba

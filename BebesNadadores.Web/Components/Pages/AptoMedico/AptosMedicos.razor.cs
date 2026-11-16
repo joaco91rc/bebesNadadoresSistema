@@ -38,6 +38,13 @@ private int _mesesVigenciaApto = 1;
     protected DateOnly _fechaAgenda;
 
     protected List<FranjaMedicaDto> _agenda = [];
+    protected bool _mostrarDiaCompleto = true;
+
+    protected async Task AlternarVistaDiaAsync()
+    {
+        _mostrarDiaCompleto = !_mostrarDiaCompleto;
+        await RecargarSoloAgendaAsync();
+    }
     protected List<AptoMedicoBebeDto> _bebes = [];
 
     // =========================================================
@@ -188,7 +195,8 @@ _mesesVigenciaApto =
         }
 
         _agenda = (
-            await AptoMedicoService.ObtenerAgendaMedicaAsync(_fechaAgenda, horaReferencia)
+            await AptoMedicoService.ObtenerAgendaMedicaAsync(
+                _fechaAgenda, horaReferencia, mostrarDiaCompleto: _mostrarDiaCompleto)
         ).ToList();
     }
 

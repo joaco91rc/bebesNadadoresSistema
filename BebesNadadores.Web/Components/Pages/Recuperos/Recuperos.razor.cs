@@ -37,6 +37,12 @@ public partial class Recuperos : ComponentBase
     protected Guid? _nivelFiltroId;
 
     protected Guid? _recuperacionSeleccionadaId;
+    protected Guid? _bebeSeleccionadoId;
+
+    protected List<RecuperacionActivaDto> RecuperosDelBebe =>
+        _panel?.Recuperos.Where(x => x.BebeId == _bebeSeleccionadoId
+            && x.Estado == EstadoRecuperacion.Disponible)
+            .OrderBy(x => x.FechaOrigen).ToList() ?? [];
 
     protected bool _respetarDiaPreferido = true;
 
@@ -71,7 +77,7 @@ public partial class Recuperos : ComponentBase
     // FECHA ACTUAL
     // =========================================================
 
-    protected DateOnly Hoy => DateOnly.FromDateTime(DateTime.Today);
+    protected DateOnly Hoy => BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
     // =========================================================
     // VACANTES VISIBLES
@@ -133,27 +139,28 @@ public partial class Recuperos : ComponentBase
 
     protected async Task SeleccionarRecuperoAsync(ChangeEventArgs e)
     {
-        var valor = e.Value?.ToString();
-
-        if (string.IsNullOrWhiteSpace(valor) || !Guid.TryParse(valor, out var recuperacionId))
+        if (!Guid.TryParse(e.Value?.ToString(), out var bebeId))
         {
             LimpiarRecuperoSeleccionado();
-
             return;
         }
 
-        _recuperacionSeleccionadaId = recuperacionId;
+        _bebeSeleccionadoId = bebeId;
+        var primero = RecuperosDelBebe.FirstOrDefault();
+        await ElegirRecuperoAsync(primero?.RecuperacionId ?? Guid.Empty);
+    }
 
+    protected async Task ElegirRecuperoAsync(Guid recuperacionId)
+    {
+        _recuperacionSeleccionadaId = recuperacionId == Guid.Empty ? null : recuperacionId;
+        _nivelFiltroId = null;
+        _respetarDiaPreferido = false;
         var recupero = RecuperoSeleccionado;
-
-        /*
-         * Al seleccionar un bebé llevamos automáticamente
-         * el filtro al nivel correspondiente.
-         */
-        _nivelFiltroId = recupero?.NivelOrigenId;
-
-        _respetarDiaPreferido = true;
-
+        if (recupero is not null && recupero.FechaOrigen >= Hoy)
+            _inicioSemana = ObtenerLunes(recupero.FechaOrigen);
+        else
+            _inicioSemana = ObtenerLunes(Hoy);
+        await CargarAsync();
         await CargarClasesCompatiblesAsync();
     }
 
@@ -203,10 +210,11 @@ public partial class Recuperos : ComponentBase
     protected void LimpiarRecuperoSeleccionado()
     {
         _recuperacionSeleccionadaId = null;
+        _bebeSeleccionadoId = null;
 
         _clasesCompatibles = [];
 
-        _respetarDiaPreferido = true;
+        _respetarDiaPreferido = false;
 
         _nivelFiltroId = null;
     }

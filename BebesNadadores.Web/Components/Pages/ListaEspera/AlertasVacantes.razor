@@ -1,0 +1,89 @@
+@page "/alertas-vacantes"
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
+@using BebesNadadores.Infrastructure.Persistence
+@using BebesNadadores.Domain.Entities
+@using BebesNadadores.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<PageTitle>Alertas de vacantes | Bebés Nadadores</PageTitle>
+<div class="ev-page">
+    <header class="ev-header"><div><span class="ev-eyebrow">SEGUIMIENTO DE CUPOS FIJOS</span>
+        <h1>Alertas de vacantes</h1>
+        <p>Turnos con lugares fijos libres y familias que los solicitaron. Se calcula con las inscripciones vigentes, no con ausencias puntuales.</p>
+        </div><a class="ev-btn" href="/espera-vacantes">Administrar lista de espera</a></header>
+    @if (!string.IsNullOrEmpty(_error)) { <p class="ev-error">@_error</p> }
+    <button class="ev-btn" @onclick="CargarAsync">Actualizar disponibilidad</button>
+    @if (_cargando) { <p>Comprobando vacantes...</p> }
+    else if (_alertas.Count == 0) { <p>No hay solicitudes coincidentes con vacantes fijas disponibles.</p> }
+    else {
+        <div class="ev-alerts">
+        @foreach (var alerta in _alertas) {
+            <article class="ev-card">
+                <span class="ev-eyebrow">@alerta.Vacantes LIBRES · @alerta.Ciclo</span>
+                <h2>@alerta.Turno · @alerta.Nivel</h2>
+                <p>@alerta.Dia · @alerta.Hora.ToString("HH:mm")</p>
+                @foreach (var interesado in alerta.Interesados) {
+                    <div class="ev-row"><div><strong>@interesado.NombreBebe</strong>
+                        <small>@(interesado.BebeInscriptoId.HasValue ? "Alumno regular: solicitó cambiar de turno" : "Nueva inscripción")</small>
+                        <small>@interesado.NombreResponsable · @interesado.Telefono</small></div>
+                    </div>
+                }
+            </article>
+        }
+        </div>
+    }
+</div>
+@code {
+    private sealed record Alerta(Guid TurnoId, string Turno, string Nivel, string Ciclo,
+        DiaSemana Dia, TimeOnly Hora, int Vacantes, List<EsperaInscripcion> Interesados);
+    private List<Alerta> _alertas=[];
+    private string? _error;
+    private bool _cargando=true;
+    private DateOnly Hoy=>BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+    protected override async Task OnInitializedAsync()=>await CargarAsync();
+    private async Task CargarAsync(){
+        _cargando=true;_error=null;
+        try{
+            await using var db=await DbFactory.CreateDbContextAsync();
+            var turnos=await db.Turnos.AsNoTracking().Include(x=>x.Nivel).Include(x=>x.CicloLectivo)
+                .Where(x=>x.Estado==EstadoTurno.Activo
+                    && (!x.VigenteHasta.HasValue || x.VigenteHasta>=Hoy))
+                .OrderBy(x=>x.DiaSemana).ThenBy(x=>x.HoraInicio).ToListAsync();
+            var solicitudes=await db.Set<EsperaInscripcion>().AsNoTracking()
+                .Where(x=>x.Estado==EstadoListaEspera.Activa || x.Estado==EstadoListaEspera.Notificada)
+                .ToListAsync();
+            var turnoIds=turnos.Select(x=>x.Id).ToList();
+            var relaciones=await db.InscripcionesTurnos.AsNoTracking().Include(x=>x.Inscripcion)
+                .Where(x=>turnoIds.Contains(x.TurnoId)).ToListAsync();
+            var reservasConfirmadas=await db.ReservasVacantesCiclo.AsNoTracking()
+                .Where(x=>turnoIds.Contains(x.TurnoId) && x.Estado!=EstadoReservaVacanteCiclo.Cancelada)
+                .Select(x=>new {x.TurnoId,x.BebeId}).ToListAsync();
+            _alertas=[];
+            foreach(var turno in turnos){
+                // Para ciclos futuros se considera la fecha de comienzo del turno.
+                var fecha=turno.VigenteDesde>Hoy ? turno.VigenteDesde : Hoy;
+                var ocupantes=relaciones.Where(x=>x.TurnoId==turno.Id
+                    && x.Inscripcion.Estado==EstadoInscripcion.Activa
+                    && x.Inscripcion.FechaInicio<=fecha
+                    && (!x.Inscripcion.FechaFin.HasValue || x.Inscripcion.FechaFin>=fecha))
+                    .Select(x=>x.Inscripcion.BebeId).ToHashSet();
+                // Una reserva con anticipo ya ocupa un cupo futuro.
+                foreach(var id in reservasConfirmadas.Where(x=>x.TurnoId==turno.Id).Select(x=>x.BebeId))
+                    ocupantes.Add(id);
+                var libres=Math.Max(0,turno.Cupo-ocupantes.Count);
+                if(libres==0) continue;
+                var interesados=solicitudes.Where(s=>s.NivelId==turno.NivelId
+                    && (!s.BebeInscriptoId.HasValue || !ocupantes.Contains(s.BebeInscriptoId.Value))
+                    && (s.TurnoId==turno.Id || (s.TurnoId==null
+                        && (!s.DiaPreferido.HasValue || s.DiaPreferido==turno.DiaSemana))))
+                    .ToList();
+                if(interesados.Count==0) continue;
+                _alertas.Add(new Alerta(turno.Id,turno.Nombre,turno.Nivel.Nombre,
+                    turno.CicloLectivo?.Anio.ToString()??"Sin ciclo",turno.DiaSemana,
+                    turno.HoraInicio,libres,interesados));
+            }
+        }catch(Exception ex){_error=ex.Message;}
+        finally{_cargando=false;}
+    }
+}

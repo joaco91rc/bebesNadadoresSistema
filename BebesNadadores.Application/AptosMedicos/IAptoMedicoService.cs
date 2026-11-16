@@ -12,7 +12,8 @@ public interface IAptoMedicoService
         ObtenerAgendaMedicaAsync(
             DateOnly fecha,
             TimeOnly horaActual,
-            CancellationToken ct = default);
+            CancellationToken ct = default,
+            bool mostrarDiaCompleto = false);
 
 
     Task<IReadOnlyList<AptoMedicoBebeDto>>

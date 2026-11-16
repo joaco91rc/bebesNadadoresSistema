@@ -48,8 +48,7 @@ public sealed class RecuperosService(
 
 
     var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
     await ActualizarVencidosAsync(
@@ -393,8 +392,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
 
 
     var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
     await ActualizarVencidosAsync(
@@ -510,6 +508,19 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
     }
 
 
+    // Los grupos mixtos 3 a 6 también admiten recuperos de 3-4 y 5-6.
+    var nivelOrigenId = recuperacion.NivelOrigenId
+        ?? recuperacion.SesionOrigen?.NivelId
+        ?? recuperacion.Bebe.NivelActualId;
+    if (!nivelOrigenId.HasValue) return [];
+    var todosNiveles = await db.Niveles.AsNoTracking()
+        .Select(n => new { n.Id, n.Nombre }).ToListAsync(ct);
+    var origen = todosNiveles.FirstOrDefault(n => n.Id == nivelOrigenId.Value);
+    if (origen is null) return [];
+    var destinosCompatibles = todosNiveles
+        .Where(n => CompatibilidadNivelesRecupero.Permite(origen.Nombre, n.Nombre))
+        .Select(n => n.Id).ToArray();
+
     // =====================================================
     // SESIONES
     // =====================================================
@@ -544,8 +555,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
 
                 &&
 
-                x.NivelId ==
-                    (recuperacion.NivelOrigenId ?? recuperacion.SesionOrigen!.NivelId)
+                destinosCompatibles.Contains(x.NivelId)
 
                 &&
 
@@ -744,8 +754,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
 
 
     var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
     await ActualizarVencidosAsync(
@@ -830,6 +839,13 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
             sesion.Fecha);
 
 
+    // Recuperos de grupos 3-4 y 5-6 también pueden usar clases 3 a 6.
+    var niveles = await db.Niveles.AsNoTracking()
+        .Select(n => new { n.Id, n.Nombre }).ToListAsync(ct);
+    var origenesCompatibles = niveles
+        .Where(n => CompatibilidadNivelesRecupero.Permite(n.Nombre, sesion.Nivel.Nombre))
+        .Select(n => n.Id).ToArray();
+
     // =========================================================
     // LISTA DE ESPERA
     //
@@ -865,8 +881,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
                 )
 
                 &&
-                x.NivelId ==
-                    sesion.NivelId
+                origenesCompatibles.Contains(x.NivelId)
 
                 &&
                 x.RecuperacionId.HasValue
@@ -1096,8 +1111,7 @@ private static string ObtenerPreferenciaListaEsperaTexto(
 
 
         var hoy =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+            BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
         var recuperacion =
@@ -1105,6 +1119,7 @@ private static string ObtenerPreferenciaListaEsperaTexto(
 
                 .Include(x =>
                     x.Bebe)
+                .Include(x => x.SesionOrigen)
 
                 .FirstOrDefaultAsync(
                     x =>
@@ -1196,14 +1211,18 @@ private static string ObtenerPreferenciaListaEsperaTexto(
         // NIVEL
         // =====================================================
 
-        if (
-            !recuperacion.Bebe.NivelActualId.HasValue
-            ||
-            recuperacion.Bebe.NivelActualId.Value !=
-                sesion.NivelId)
+        var nivelOrigen = recuperacion.NivelOrigenId
+            ?? recuperacion.SesionOrigen?.NivelId
+            ?? recuperacion.Bebe.NivelActualId;
+        var nombreOrigen = nivelOrigen.HasValue
+            ? await db.Niveles.AsNoTracking()
+                .Where(x => x.Id == nivelOrigen.Value)
+                .Select(x => x.Nombre).FirstOrDefaultAsync(ct)
+            : null;
+        if (!CompatibilidadNivelesRecupero.Permite(nombreOrigen, sesion.Nivel.Nombre))
         {
             throw new InvalidOperationException(
-                "El bebé no pertenece al nivel de la clase seleccionada.");
+                "El nivel de la clase no es compatible con el recupero del alumno.");
         }
 
 
@@ -1339,8 +1358,7 @@ foreach (var solicitud in solicitudesEspera)
 
 
         var hoy =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+            BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
         if (

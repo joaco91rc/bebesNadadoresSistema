@@ -178,6 +178,14 @@ public enum EstadoCicloLectivo
 
 
 
+// Reserva de un cupo fijo del próximo ciclo, cobrada por adelantado.
+public enum EstadoReservaVacanteCiclo
+{
+    Confirmada = 1,
+    Aplicada = 2,
+    Cancelada = 3
+}
+
 public enum EstadoReservaSesion
 {
     Activa = 1,

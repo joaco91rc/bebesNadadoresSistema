@@ -167,6 +167,9 @@ private IReadOnlyList<MovimientoCuentaViewModel>
             ObtenerDetallePagoCuenta(
                 pago);
 
+        var esReservaVacante = pago.Observaciones?.StartsWith(
+            "Reserva vacante ciclo", StringComparison.OrdinalIgnoreCase) == true;
+
 
         movimientos.Add(
             new MovimientoCuentaViewModel
@@ -185,10 +188,10 @@ private IReadOnlyList<MovimientoCuentaViewModel>
                 Tipo =
                     "Pago",
 
-                Concepto =
-                    $"Pago - " +
-                    $"{ObtenerMedioPagoTexto(pago.MedioPago)}" +
-                    (pago.Anulado ? " (anulado)" : ""),
+                Concepto = esReservaVacante
+                    ? "Reserva de vacante" + (pago.Anulado ? " (anulada)" : "")
+                    : $"Pago - " + $"{ObtenerMedioPagoTexto(pago.MedioPago)}" +
+                      (pago.Anulado ? " (anulado)" : ""),
 
                 Detalle =
                     detalle,

@@ -174,10 +174,15 @@
                     <span class="section-eyebrow">AGENDA MÉDICA</span>
                     <h2>@ObtenerTituloFecha(_fechaAgenda)</h2>
                     <p>
-                        Se muestran los horarios más cercanos a la hora actual,
-                        agrupando las clases que comienzan al mismo tiempo.
+                        @(_mostrarDiaCompleto
+                            ? "Todas las clases del día seleccionado, con los alumnos esperados y su apto médico."
+                            : "Horario anterior, actual y siguiente.")
                     </p>
                 </div>
+
+                <button type="button" class="today-button" @onclick="AlternarVistaDiaAsync">
+                    @(_mostrarDiaCompleto ? "Ver 3 horarios cercanos" : "Ver todas las clases")
+                </button>
 
                 <div class="date-navigation">
                     <button type="button" @onclick="DiaAnteriorAsync" title="Día anterior">

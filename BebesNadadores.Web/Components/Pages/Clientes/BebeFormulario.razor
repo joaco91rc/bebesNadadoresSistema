@@ -202,45 +202,11 @@
                 </div>
 
                 <div class="form-grid">
-
-                    @* NOMBRE *@
-
-                    <div class="form-field">
-
-                        <label>
-
-                            Nombre *
-
-                        </label>
-
-                        <input type="text"
-
-                               maxlength="100"
-
-                               autocomplete="off"
-
-                               @bind="_form.Nombre" />
-
-                    </div>
-
-                    @* APELLIDO *@
-
-                    <div class="form-field">
-
-                        <label>
-
-                            Apellido *
-
-                        </label>
-
-                        <input type="text"
-
-                               maxlength="100"
-
-                               autocomplete="off"
-
-                               @bind="_form.Apellido" />
-
+                    @* DATOS PERSONALES: nombre y apellido en un campo *@
+                    <div class="form-field span-2">
+                        <label>Nombre y apellido *</label>
+                        <input type="text" maxlength="200" autocomplete="off"
+                               @bind="_form.NombreYApellido" />
                     </div>
 
                     @* NACIMIENTO *@
@@ -286,30 +252,7 @@
                         </select>
 
                     </div>
-
-                    @* DNI *@
-
-                    <div class="form-field">
-
-                        <label>
-
-                            DNI
-
-                        </label>
-
-                        <input type="text"
-
-                               maxlength="20"
-
-                               placeholder="Opcional"
-
-                               autocomplete="off"
-
-                               @bind="_form.Dni" />
-
-                    </div>
-
-                    @* NIVEL *@
+@* NIVEL *@
 
                     <div class="form-field">
 
@@ -623,44 +566,11 @@
 
                             <div class="responsible-fields">
 
-                                @* NOMBRE *@
-
-                                <div class="form-field">
-
-                                    <label>
-
-                                        Nombre *
-
-                                    </label>
-
-                                    <input type="text"
-
-                                           maxlength="100"
-
-                                           autocomplete="off"
-
-                                           @bind="responsable.Nombre" />
-
-                                </div>
-
-                                @* APELLIDO *@
-
-                                <div class="form-field">
-
-                                    <label>
-
-                                        Apellido *
-
-                                    </label>
-
-                                    <input type="text"
-
-                                           maxlength="100"
-
-                                           autocomplete="off"
-
-                                           @bind="responsable.Apellido" />
-
+                                @* NOMBRE Y APELLIDO (SIN DNI NI TELÉFONO) *@
+                                <div class="form-field span-2">
+                                    <label>Nombre y apellido *</label>
+                                    <input type="text" maxlength="200" autocomplete="off"
+                                           @bind="responsable.NombreYApellido" />
                                 </div>
 
                                 @* RELACIÓN *@
@@ -692,48 +602,7 @@
                                     </select>
 
                                 </div>
-
-                                @* DNI *@
-
-                                <div class="form-field">
-
-                                    <label>
-
-                                        DNI
-
-                                    </label>
-
-                                    <input type="text"
-
-                                           maxlength="20"
-
-                                           autocomplete="off"
-
-                                           @bind="responsable.Dni" />
-
-                                </div>
-
-                                @* TELÉFONO *@
-
-                                <div class="form-field">
-
-                                    <label>
-
-                                        Teléfono
-
-                                    </label>
-
-                                    <input type="tel"
-
-                                           maxlength="50"
-
-                                           autocomplete="off"
-
-                                           @bind="responsable.Telefono" />
-
-                                </div>
-
-                                @* WHATSAPP *@
+@* WHATSAPP *@
 
                                 <div class="form-field">
 

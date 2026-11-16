@@ -67,6 +67,9 @@ public static class PoliticasSistema
      */
     public const string ConsultaGeneral = "ConsultaGeneral";
 
+    // Los reportes tienen información sensible: sólo administración general.
+    public const string ConsultarReportes = "ConsultarReportes";
+
 
     public static void Configurar(AuthorizationOptions options)
     {
@@ -92,6 +95,10 @@ public static class PoliticasSistema
             policy => policy.RequireRole(
                 RolesSistema.Administrador,
                 RolesSistema.Medica));
+
+        options.AddPolicy(
+            ConsultarReportes,
+            policy => policy.RequireRole(RolesSistema.Administrador));
 
         options.AddPolicy(
             ConsultaGeneral,
