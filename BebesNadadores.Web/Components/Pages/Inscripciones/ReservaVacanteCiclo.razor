@@ -172,9 +172,23 @@
                                    @bind-SelectedId="BebeSeleccionadoId"
                                    Disabled="@(_guardando || _cargando)" />
         </div>
+        <label>Nivel para el próximo ciclo</label>
+        <select value="@_nivelReservaId" @onchange="CambiarNivelReserva">
+            <option value="">Elegí un nivel</option>
+            @foreach (var nivel in _disponibilidad
+                .GroupBy(x => new { x.NivelId, x.Nivel, x.NivelOrden })
+                .Select(g => g.Key)
+                .OrderBy(x => x.NivelOrden).ThenBy(x => x.Nivel))
+            {
+                <option value="@nivel.NivelId">@nivel.Nivel</option>
+            }
+        </select>
+        <p class="rv-note">Elegí el nivel que cursará el próximo año, aunque hoy asista a otro nivel.</p>
         <label>Turno del ciclo a reservar</label>
-        <select @bind="_turnoId"><option value="">Elegí horario</option>
-            @foreach(var turno in _turnos.Where(t=>t.CicloId.ToString()==_cicloId)){
+        <select @bind="_turnoId" disabled="@(string.IsNullOrWhiteSpace(_nivelReservaId) || _cargandoDisponibilidad)">
+            <option value="">@(string.IsNullOrWhiteSpace(_nivelReservaId) ? "Primero elegí un nivel" : "Elegí horario")</option>
+            @foreach(var turno in _turnos.Where(t => t.CicloId.ToString() == _cicloId
+                && t.NivelId.ToString() == _nivelReservaId)){
                 <option value="@turno.Id" disabled="@(CuposLibres(turno.Id) <= 0)">
                     @turno.Nombre · @TextoDia(turno.Dia) · @turno.Hora.ToString("HH:mm")
                     (@(CuposLibres(turno.Id) > 0 ? $"{CuposLibres(turno.Id)} libres" : "COMPLETO"))
@@ -336,7 +350,7 @@
 @code {
     private sealed record CicloItem(Guid Id,int Anio,DateOnly Desde);
     private sealed record BebeItem(Guid Id,string Nombre);
-    private sealed record TurnoItem(Guid Id,Guid CicloId,string Nombre,DiaSemana Dia,TimeOnly Hora,int Cupo);
+    private sealed record TurnoItem(Guid Id,Guid CicloId,Guid NivelId,string Nombre,DiaSemana Dia,TimeOnly Hora,int Cupo);
     private sealed record CuentaItem(Guid Id,string Nombre);
     private List<CicloItem> _ciclos=[];
     private List<CicloItem> _ciclosAsociar=[];
@@ -352,6 +366,7 @@
     private bool _soloLibres, _cargandoDisponibilidad;
     private List<ReservaVacanteItemDto> _reservas=[];
     private string _cicloId="",_bebeId="",_turnoId="",_cuentaId="";
+    private string _nivelReservaId = "";
     private Guid? BebeSeleccionadoId
     {
         get => Guid.TryParse(_bebeId, out var id) ? id : null;
@@ -385,14 +400,16 @@
                 .Where(x=>x.CicloLectivoId.HasValue && ciclosIds.Contains(x.CicloLectivoId.Value)
                     && x.Estado==EstadoTurno.Activo)
                 .OrderBy(x=>x.DiaSemana).ThenBy(x=>x.HoraInicio)
-                .Select(x=>new TurnoItem(x.Id,x.CicloLectivoId!.Value,x.Nombre,x.DiaSemana,x.HoraInicio,x.Cupo)).ToListAsync();
+                .Select(x=>new TurnoItem(x.Id,x.CicloLectivoId!.Value,x.NivelId,x.Nombre,x.DiaSemana,x.HoraInicio,x.Cupo)).ToListAsync();
             _cuentas=await db.CuentasBancarias.AsNoTracking().Include(x=>x.Banco)
                 .Where(x=>x.Activa && x.Banco.Activo)
                 .Select(x=>new CuentaItem(x.Id,x.Nombre)).ToListAsync();
             _reservas=(await ReservaService.ListarAsync()).ToList();
             await ActualizarDisponibilidadAsync();
             if (Guid.TryParse(_turnoId, out var turnoSeleccionado)
-                && !_turnos.Any(x => x.Id == turnoSeleccionado && x.CicloId.ToString() == _cicloId))
+                && !_turnos.Any(x => x.Id == turnoSeleccionado
+                    && x.CicloId.ToString() == _cicloId
+                    && x.NivelId.ToString() == _nivelReservaId))
                 _turnoId = "";
         }catch(Exception ex){_error=ex.Message;}
         finally{_cargando=false;}
@@ -424,13 +441,24 @@
     private void ElegirTurno(Guid turnoId)
     {
         if (CuposLibres(turnoId) <= 0) return;
+        var turno = _turnos.FirstOrDefault(x => x.Id == turnoId && x.CicloId.ToString() == _cicloId);
+        if (turno is null) return;
+        _nivelReservaId = turno.NivelId.ToString();
         _turnoId = turnoId.ToString();
+        _error = null;
+    }
+
+    private void CambiarNivelReserva(ChangeEventArgs args)
+    {
+        _nivelReservaId = args.Value?.ToString() ?? "";
+        _turnoId = ""; // Evita conservar un turno de otro nivel.
         _error = null;
     }
 
     private async Task CambiarCicloReservaAsync(ChangeEventArgs args)
     {
         _cicloId = args.Value?.ToString() ?? "";
+        _nivelReservaId = "";
         _turnoId = "";
         _filtroNivelId = "";
         _filtroDia = "";
@@ -448,6 +476,11 @@
                 : [];
             if (!_disponibilidad.Any(x => x.NivelId.ToString() == _filtroNivelId))
                 _filtroNivelId = "";
+            if (!_disponibilidad.Any(x => x.NivelId.ToString() == _nivelReservaId))
+            {
+                _nivelReservaId = "";
+                _turnoId = "";
+            }
         }
         catch (Exception ex)
         {
@@ -462,7 +495,12 @@
         try{
             if(!Guid.TryParse(_cicloId,out var ciclo)) throw new InvalidOperationException("Elegí un ciclo futuro.");
             if(!Guid.TryParse(_bebeId,out var bebe)) throw new InvalidOperationException("Elegí un alumno.");
+            if(!Guid.TryParse(_nivelReservaId,out var nivel)) throw new InvalidOperationException("Elegí el nivel que cursará el alumno.");
             if(!Guid.TryParse(_turnoId,out var turno)) throw new InvalidOperationException("Elegí un turno.");
+            if (!_turnos.Any(x => x.Id == turno && x.CicloId == ciclo && x.NivelId == nivel))
+                throw new InvalidOperationException("El horario seleccionado no corresponde al nivel y ciclo elegidos.");
+            if (CuposLibres(turno) <= 0)
+                throw new InvalidOperationException("El horario seleccionado ya no tiene vacantes. Actualizá los cupos.");
             var auth=await AuthenticationStateProvider.GetAuthenticationStateAsync();
             if(!Guid.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier),out var usuario))
                 throw new InvalidOperationException("No se identificó el usuario que registra el cobro.");
