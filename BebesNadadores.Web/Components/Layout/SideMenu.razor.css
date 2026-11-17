@@ -776,3 +776,77 @@
     }
 
 }
+/* Navegación compacta organizada en grupos desplegables. */
+.menu-group-toggle {
+    width: 100%;
+    min-height: 43px;
+    margin: 7px 0 3px;
+    padding: 0 11px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(133, 220, 255, .12);
+    border-radius: 11px;
+    background: rgba(10, 49, 79, .18);
+    color: rgba(228, 244, 252, .88);
+    font: 700 12px "Montserrat", "Segoe UI", Arial, sans-serif;
+    cursor: pointer;
+    text-align: left;
+    transition: background .18s ease, border-color .18s ease;
+}
+.menu-group-toggle:hover,
+.menu-group-toggle.open {
+    background: rgba(31, 168, 224, .20);
+    border-color: rgba(135, 224, 255, .24);
+    color: #fff;
+}
+.menu-group-toggle:focus-visible {
+    outline: 2px solid #8be9ff;
+    outline-offset: 2px;
+}
+.menu-group-toggle .menu-icon {
+    height: 30px;
+    width: 23px;
+    flex: 0 0 23px;
+}
+.menu-group-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.menu-group-toggle ::deep .mud-icon-root {
+    font-size: 19px;
+    color: #9edbf4;
+    transition: transform .18s ease;
+}
+.menu-group-toggle.open ::deep .mud-icon-root { transform: rotate(180deg); }
+.menu-group-body {
+    margin: 1px 0 5px 16px;
+    padding-left: 5px;
+    border-left: 1px solid rgba(140, 223, 255, .17);
+}
+::deep .menu-group-body .menu-link {
+    min-height: 42px;
+    font-size: 13px;
+    margin-bottom: 2px;
+    padding: 0 9px;
+}
+::deep .menu-settings-link {
+    margin-top: 10px;
+    border-top: 1px solid rgba(140, 223, 255, .12);
+}
+.side-menu.collapsed .menu-group-body {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+.side-menu.collapsed ::deep .menu-group-body .menu-link {
+    width: 55px;
+    height: 48px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0;
+    justify-content: center;
+}

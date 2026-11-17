@@ -48,15 +48,45 @@ public partial class Recuperos : ComponentBase
 
     protected string _busqueda = string.Empty;
 
-    protected string _consultaAlumno = string.Empty;
+    // El Autocomplete reemplaza el input y el combo: búsqueda en todos los
+    // recuperos disponibles, no limitada a la semana visible.
+    protected sealed record RecuperoAlumnoOpcion(Guid Id, string Nombre, int Cantidad);
 
-    protected IEnumerable<IGrouping<Guid, RecuperacionActivaDto>> AlumnosConRecuperos =>
-        (_panel?.Recuperos ?? [])
+    protected RecuperoAlumnoOpcion? _alumnoSeleccionado;
+
+    protected Task<IEnumerable<RecuperoAlumnoOpcion>> BuscarAlumnosRecuperosAsync(
+        string? texto, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var alumnos = (_panel?.Recuperos ?? [])
             .Where(x => x.Estado == EstadoRecuperacion.Disponible)
             .GroupBy(x => x.BebeId)
-            .Where(g => string.IsNullOrWhiteSpace(_consultaAlumno)
-                || g.First().Bebe.Contains(_consultaAlumno.Trim(), StringComparison.OrdinalIgnoreCase))
-            .OrderBy(g => g.First().Bebe);
+            .Select(g => new RecuperoAlumnoOpcion(g.Key, g.First().Bebe, g.Count()))
+            .Where(x => string.IsNullOrWhiteSpace(texto)
+                || x.Nombre.Contains(texto.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.Nombre)
+            .Take(50)
+            .ToList();
+        return Task.FromResult<IEnumerable<RecuperoAlumnoOpcion>>(alumnos);
+    }
+
+    protected string TextoAlumnoRecuperos(RecuperoAlumnoOpcion? alumno) => alumno is null
+        ? string.Empty
+        : $"{alumno.Nombre} ({alumno.Cantidad} recupero{(alumno.Cantidad == 1 ? "" : "s")})";
+
+    protected async Task SeleccionarAlumnoAutocompleteAsync(RecuperoAlumnoOpcion? alumno)
+    {
+        _alumnoSeleccionado = alumno;
+        if (alumno is null)
+        {
+            LimpiarRecuperoSeleccionado();
+            return;
+        }
+
+        _bebeSeleccionadoId = alumno.Id;
+        var primero = RecuperosDelBebe.FirstOrDefault();
+        await ElegirRecuperoAsync(primero?.RecuperacionId ?? Guid.Empty);
+    }
 
     protected Guid? _nivelFiltroId;
 
@@ -161,19 +191,6 @@ public partial class Recuperos : ComponentBase
         _nivelFiltroId = nivelId;
     }
 
-    protected async Task SeleccionarRecuperoAsync(ChangeEventArgs e)
-    {
-        if (!Guid.TryParse(e.Value?.ToString(), out var bebeId))
-        {
-            LimpiarRecuperoSeleccionado();
-            return;
-        }
-
-        _bebeSeleccionadoId = bebeId;
-        var primero = RecuperosDelBebe.FirstOrDefault();
-        await ElegirRecuperoAsync(primero?.RecuperacionId ?? Guid.Empty);
-    }
-
     protected async Task ElegirRecuperoAsync(Guid recuperacionId)
     {
         _recuperacionSeleccionadaId = recuperacionId == Guid.Empty ? null : recuperacionId;
@@ -235,6 +252,7 @@ public partial class Recuperos : ComponentBase
     {
         _recuperacionSeleccionadaId = null;
         _bebeSeleccionadoId = null;
+        _alumnoSeleccionado = null;
 
         _clasesCompatibles = [];
 
@@ -482,6 +500,19 @@ public partial class Recuperos : ComponentBase
             _respetarDiaPreferido = true;
 
             await CargarAsync();
+            if (_bebeSeleccionadoId.HasValue)
+            {
+                var disponibles = RecuperosDelBebe.Count;
+                if (disponibles == 0)
+                {
+                    _alumnoSeleccionado = null;
+                    _bebeSeleccionadoId = null;
+                }
+                else if (_alumnoSeleccionado is not null)
+                {
+                    _alumnoSeleccionado = _alumnoSeleccionado with { Cantidad = disponibles };
+                }
+            }
         }
         catch (Exception ex)
         {

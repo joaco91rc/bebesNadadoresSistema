@@ -778,28 +778,26 @@
 
 
                     <div class="recovery-filter recovery-filter-baby">
-
-                        <label>
-                            CONSULTAR RECUPEROS DE UN ALUMNO
-                        </label>
-
-                        <input type="search" class="recovery-baby-search"
-                               placeholder="Escribí nombre o apellido..."
-                               aria-label="Filtrar alumnos con recuperos disponibles"
-                               @bind="_consultaAlumno" @bind:event="oninput" />
-
-                        <select value="@(_bebeSeleccionadoId?.ToString() ?? "")"
-                                @onchange="SeleccionarRecuperoAsync">
-                            <option value="">Cualquier alumno</option>
-                            @foreach (var alumno in AlumnosConRecuperos)
-                            {
-                                <option value="@alumno.Key">
-                                    @alumno.First().Bebe (@alumno.Count() recuperos)
-                                </option>
-                            }
-                        </select>
-
-                    </div>
+                       <label>CONSULTAR RECUPEROS DE UN ALUMNO</label>
+                       <MudAutocomplete T="RecuperoAlumnoOpcion"
+                                        Value="@_alumnoSeleccionado"
+                                        ValueChanged="@SeleccionarAlumnoAutocompleteAsync"
+                                        SearchFunc="@BuscarAlumnosRecuperosAsync"
+                                        ToStringFunc="@TextoAlumnoRecuperos"
+                                        Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        Dense="true"
+                                        Clearable="true"
+                                        ResetValueOnEmptyText="true"
+                                        FullWidth="true"
+                                        DebounceInterval="200"
+                                        MinCharacters="0"
+                                        MaxItems="50"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Filled.Search"
+                                        Placeholder="Buscar bebé por nombre o apellido..."
+                                        Class="recovery-autocomplete" />
+                   </div>
 
                 </div>
 

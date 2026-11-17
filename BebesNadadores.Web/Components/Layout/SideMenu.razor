@@ -1,564 +1,293 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
+@implements IDisposable
+@inject NavigationManager Navegacion
 
 <div class="side-menu @(Collapsed ? "collapsed" : "")">
-
-    @* =========================================================
-       BRAND
-       ========================================================= *@
-
     <div class="sidebar-header">
-
         <div class="brand">
-
-            <img src="/images/logoBebesTransparente.png"
-                 alt="Bebés Nadadores"
-                 class="brand-logo" />
-
+            <img src="/images/logoBebesTransparente.png" alt="Bebés Nadadores" class="brand-logo" />
             @if (!Collapsed)
             {
-                <div class="brand-text">
-
-                    <strong>
-                        Bebés
-                        <br />
-                        Nadadores
-                    </strong>
-
-                    <span>
-                        Gestión integral
-                    </span>
-
-                </div>
+                <div class="brand-text"><strong>Bebés<br />Nadadores</strong><span>Gestión integral</span></div>
             }
-
         </div>
-
-
-        <button type="button"
-                class="collapse-button"
-                title="Contraer menú"
-                @onclick="ToggleAsync">
-
-            <MudIcon Icon="@(Collapsed
-                              ? Icons.Material.Filled.KeyboardDoubleArrowRight
-                              : Icons.Material.Filled.KeyboardDoubleArrowLeft)"
+        <button type="button" class="collapse-button" title="Contraer o expandir menú" @onclick="ToggleAsync">
+            <MudIcon Icon="@(Collapsed ? Icons.Material.Filled.KeyboardDoubleArrowRight : Icons.Material.Filled.KeyboardDoubleArrowLeft)"
                      Size="Size.Small" />
-
         </button>
-
     </div>
 
-
-    @* =========================================================
-       NAVEGACIÓN
-       ========================================================= *@
-
-    <nav class="menu-navigation">
-
-
-      @* -----------------------------------------------------
-   PRINCIPAL
-   ----------------------------------------------------- *@
-
-<AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
-    <Authorized>
-
-        @if (!Collapsed)
-        {
-            <div class="menu-section-title">
-                PRINCIPAL
-            </div>
-        }
-
-        <NavLink href="/"
-                 Match="NavLinkMatch.All"
-                 class="menu-link"
-                 ActiveClass="active">
-
-            <span class="menu-icon">
-                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" />
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Dashboard
-                </span>
-            }
-
-        </NavLink>
-
-    </Authorized>
-</AuthorizeView>
-
-
-        @* =====================================================
-           ADMINISTRACIÓN / ADMIN
-           ===================================================== *@
-
-        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
-
+    <nav class="menu-navigation" aria-label="Menú principal">
+        @* Accesos frecuentes, siempre arriba para evitar desplazamiento. *@
+        <AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
             <Authorized>
-
-                <NavLink href="/turnos"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Turnos
-                        </span>
-                    }
-
+                <NavLink href="/" Match="NavLinkMatch.All" class="menu-link" ActiveClass="active" title="Dashboard">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Dashboard</span> }
                 </NavLink>
-
             </Authorized>
-
         </AuthorizeView>
-
-
-        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
-
-            <Authorized>
-
-                <NavLink href="/asistencia"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.TaskAlt" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Asistencia
-                        </span>
-                    }
-
-                </NavLink>
-
-            </Authorized>
-
-        </AuthorizeView>
-
-
-        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
-
-            <Authorized>
-
-                <NavLink href="/ausencias-sin-aviso" class="menu-link" ActiveClass="active">
-                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.PersonOff" /></span>
-                    @if (!Collapsed) { <span class="menu-text">Ausencias sin aviso</span> }
-                </NavLink>
-
-                <NavLink href="/recuperos"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Autorenew" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Recuperos
-                        </span>
-                    }
-
-                </NavLink>
-
-
-                <AuthorizeView Policy="@PoliticasSistema.GestionCaja">
-                    <Authorized Context="reservaCajaAuth">
-                    <NavLink href="/reservas-vacantes" class="menu-link" ActiveClass="active">
-                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Payments" /></span>
-                        @if (!Collapsed) { <span class="menu-text">Reservas de vacantes</span> }
-                    </NavLink>
-                </Authorized></AuthorizeView>
-
-                <NavLink href="/inscripciones/primeras-clases" class="menu-link" ActiveClass="active">
-                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" /></span>
-                    @if (!Collapsed) { <span class="menu-text">Primeras clases</span> }
-                </NavLink>
-
-                <NavLink href="/alertas-vacantes" class="menu-link" ActiveClass="active">
-                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.NotificationsActive" /></span>
-                    @if (!Collapsed) { <span class="menu-text">Alertas de cupos</span> }
-                </NavLink>
-
-                <NavLink href="/espera-vacantes"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Groups" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Lista de espera
-                        </span>
-                    }
-
-                </NavLink>
-
-            </Authorized>
-
-        </AuthorizeView>
-
-
-      @* -----------------------------------------------------
-   FINANZAS
-   ----------------------------------------------------- *@
-
-<AuthorizeView Policy="@PoliticasSistema.GestionCaja">
-
-    <Authorized>
-
-        @if (!Collapsed)
-        {
-            <div class="menu-section-title">
-                GESTIÓN
-            </div>
-        }
-
-
-        @* =====================================================
-           PAGOS
-           ===================================================== *@
-
-        <NavLink href="/pagos"
-                 class="menu-link"
-                 ActiveClass="active">
-
-            <span class="menu-icon">
-
-                <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
-
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Pagos
-                </span>
-            }
-
-        </NavLink>
-
-
-        @* =====================================================
-           BANCOS
-           ===================================================== *@
-
-        <NavLink href="/bancos"
-                 class="menu-link"
-                 ActiveClass="active">
-
-            <span class="menu-icon">
-
-                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
-
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Bancos
-                </span>
-            }
-
-        </NavLink>
-
-
-        @* =====================================================
-           CAJA
-           ===================================================== *@
-
-        <NavLink href="/caja"
-                 class="menu-link"
-                 ActiveClass="active">
-
-            <span class="menu-icon">
-
-                <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
-
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Caja
-                </span>
-            }
-
-        </NavLink>
-
-        @* =====================================================
-   PROVEEDORES
-   ===================================================== *@
-
-<NavLink href="/proveedores"
-         class="menu-link"
-         ActiveClass="active">
-
-    <span class="menu-icon">
-
-        <MudIcon Icon="@Icons.Material.Filled.LocalShipping" />
-
-    </span>
-
-    @if (!Collapsed)
-    {
-        <span class="menu-text">
-            Proveedores
-        </span>
-    }
-
-</NavLink>
-
-    </Authorized>
-
-</AuthorizeView>
-
-
-        @* -----------------------------------------------------
-           PERSONAS
-           ----------------------------------------------------- *@
 
         <AuthorizeView Policy="@PoliticasSistema.ConsultaGeneral">
-
             <Authorized>
-
-                @if (!Collapsed)
-                {
-                    <div class="menu-section-title">
-                        PERSONAS
-                    </div>
-                }
-
-
-                <NavLink href="/clientes/historial" class="menu-link" ActiveClass="active">
-                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.History" /></span>
-                    @if (!Collapsed) { <span class="menu-text">Historial de alumnos</span> }
+                <NavLink href="/clientes" class="menu-link" ActiveClass="active" title="Bebés / Clientes">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.ChildCare" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Bebés / Clientes</span> }
                 </NavLink>
-
-                <NavLink href="/clientes"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.ChildCare" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Bebés / Clientes
-                        </span>
-                    }
-
-                </NavLink>
-
             </Authorized>
-
         </AuthorizeView>
-
-@* -----------------------------------------------------
-   SALUD
-   ----------------------------------------------------- *@
-
-
-
-      
-
-
-      <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
-
-    <Authorized>
-
-        @* =====================================================
-           PROFESORES
-           ===================================================== *@
-
-      <NavLink href="/profesores"
-         Match="NavLinkMatch.All"
-         class="menu-link"
-         ActiveClass="active">
-
-    <span class="menu-icon">
-        <MudIcon Icon="@Icons.Material.Filled.SupervisorAccount" />
-    </span>
-
-    @if (!Collapsed)
-    {
-        <span class="menu-text">
-            Profesores
-        </span>
-    }
-
-</NavLink>
-
-
-        @* =====================================================
-           CONTROL DOCENTE
-           ===================================================== *@
-
-        <NavLink href="/profesores/control-docente"
-                 class="menu-link"
-                 ActiveClass="active">
-
-            <span class="menu-icon">
-                <MudIcon Icon="@Icons.Material.Filled.FactCheck" />
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Control docente
-                </span>
-            }
-
-        </NavLink>
-
-    </Authorized>
-
-</AuthorizeView>
-
-<AuthorizeView Policy="@PoliticasSistema.GestionMedica">
-    <Authorized>
-
-        @if (!Collapsed)
-        {
-            <div class="menu-section-title">
-                SALUD
-            </div>
-        }
-
-        <NavLink href="/aptos-medicos"
-                 class="menu-link"
-                 ActiveClass="active">
-
-            <span class="menu-icon">
-                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
-            </span>
-
-            @if (!Collapsed)
-            {
-                <span class="menu-text">
-                    Aptos médicos
-                </span>
-            }
-
-        </NavLink>
-
-    </Authorized>
-</AuthorizeView>
-
-
-        @* -----------------------------------------------------
-           REPORTES
-           ----------------------------------------------------- *@
-
-        <AuthorizeView Policy="@PoliticasSistema.ConsultarReportes">
-
-            <Authorized>
-
-                @if (!Collapsed)
-                {
-                    <div class="menu-section-title">
-                        ANÁLISIS
-                    </div>
-                }
-
-
-                <NavLink href="/reportes"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.BarChart" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Reportes
-                        </span>
-                    }
-
-                </NavLink>
-
-            </Authorized>
-
-        </AuthorizeView>
-
-
-        @* -----------------------------------------------------
-           CONFIGURACIÓN
-           ----------------------------------------------------- *@
 
         <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
-
             <Authorized>
-
-                <NavLink href="/configuracion"
-                         class="menu-link"
-                         ActiveClass="active">
-
-                    <span class="menu-icon">
-                        <MudIcon Icon="@Icons.Material.Filled.Settings" />
-                    </span>
-
-                    @if (!Collapsed)
-                    {
-                        <span class="menu-text">
-                            Configuración
-                        </span>
-                    }
-
+                <NavLink href="/turnos" class="menu-link" ActiveClass="active" title="Turnos">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.CalendarMonth" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Turnos</span> }
                 </NavLink>
-
             </Authorized>
-
         </AuthorizeView>
 
+        @* La sección desplegada sigue la pantalla actual; al contraer el lateral
+           se mantienen todos los iconos accesibles. *@
+        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
+            <Authorized>
+                @if (!Collapsed)
+                {
+                    <button type="button" class="menu-group-toggle @(_grupoAbierto == "asistencia" ? "open" : "")"
+                            aria-expanded="@(_grupoAbierto == "asistencia")"
+                            @onclick='() => AlternarGrupo("asistencia")'>
+                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.TaskAlt" /></span>
+                        <span class="menu-group-name">Asistencia y recuperos</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                    </button>
+                }
+                @if (Collapsed || _grupoAbierto == "asistencia")
+                {
+                    <div class="menu-group-body">
+                        <NavLink href="/asistencia" class="menu-link" ActiveClass="active" title="Asistencia">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.TaskAlt" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Asistencia</span> }
+                        </NavLink>
+                        <NavLink href="/ausencias-sin-aviso" class="menu-link" ActiveClass="active" title="Ausencias sin aviso">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.PersonOff" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Ausencias sin aviso</span> }
+                        </NavLink>
+                        <NavLink href="/recuperos" class="menu-link" ActiveClass="active" title="Recuperos">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Autorenew" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Recuperos</span> }
+                        </NavLink>
+                    </div>
+                }
+
+                @if (!Collapsed)
+                {
+                    <button type="button" class="menu-group-toggle @(_grupoAbierto == "inscripciones" ? "open" : "")"
+                            aria-expanded="@(_grupoAbierto == "inscripciones")"
+                            @onclick='() => AlternarGrupo("inscripciones")'>
+                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" /></span>
+                        <span class="menu-group-name">Inscripciones y cupos</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                    </button>
+                }
+                @if (Collapsed || _grupoAbierto == "inscripciones")
+                {
+                    <div class="menu-group-body">
+                        <NavLink href="/inscripciones/primeras-clases" class="menu-link" ActiveClass="active" title="Primeras clases">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Primeras clases</span> }
+                        </NavLink>
+                        <AuthorizeView Policy="@PoliticasSistema.GestionCaja">
+                            <Authorized Context="reservasAuth">
+                                <NavLink href="/reservas-vacantes" class="menu-link" ActiveClass="active" title="Reservas de vacantes">
+                                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Payments" /></span>
+                                    @if (!Collapsed) { <span class="menu-text">Reservas de vacantes</span> }
+                                </NavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <NavLink href="/alertas-vacantes" class="menu-link" ActiveClass="active" title="Alertas de cupos">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.NotificationsActive" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Alertas de cupos</span> }
+                        </NavLink>
+                        <NavLink href="/espera-vacantes" class="menu-link" ActiveClass="active" title="Lista de espera">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Groups" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Lista de espera</span> }
+                        </NavLink>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PoliticasSistema.GestionCaja">
+            <Authorized>
+                @if (!Collapsed)
+                {
+                    <button type="button" class="menu-group-toggle @(_grupoAbierto == "finanzas" ? "open" : "")"
+                            aria-expanded="@(_grupoAbierto == "finanzas")"
+                            @onclick='() => AlternarGrupo("finanzas")'>
+                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.CreditCard" /></span>
+                        <span class="menu-group-name">Finanzas y gestión</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                    </button>
+                }
+                @if (Collapsed || _grupoAbierto == "finanzas")
+                {
+                    <div class="menu-group-body">
+                        <NavLink href="/pagos" class="menu-link" ActiveClass="active" title="Pagos">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.CreditCard" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Pagos</span> }
+                        </NavLink>
+                        <NavLink href="/caja" class="menu-link" ActiveClass="active" title="Caja">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.PointOfSale" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Caja</span> }
+                        </NavLink>
+                        <NavLink href="/bancos" class="menu-link" ActiveClass="active" title="Bancos">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.AccountBalance" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Bancos</span> }
+                        </NavLink>
+                        <NavLink href="/proveedores" class="menu-link" ActiveClass="active" title="Proveedores">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.LocalShipping" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Proveedores</span> }
+                        </NavLink>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Administrador,Administrativa,Medica">
+            <Authorized>
+                @if (!Collapsed)
+                {
+                    <button type="button" class="menu-group-toggle @(_grupoAbierto == "equipo" ? "open" : "")"
+                            aria-expanded="@(_grupoAbierto == "equipo")"
+                            @onclick='() => AlternarGrupo("equipo")'>
+                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.SupervisorAccount" /></span>
+                        <span class="menu-group-name">Equipo y salud</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                    </button>
+                }
+                @if (Collapsed || _grupoAbierto == "equipo")
+                {
+                    <div class="menu-group-body">
+                        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
+                            <Authorized Context="docentesAuth">
+                                <NavLink href="/profesores" Match="NavLinkMatch.All" class="menu-link" ActiveClass="active" title="Profesores">
+                                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.SupervisorAccount" /></span>
+                                    @if (!Collapsed) { <span class="menu-text">Profesores</span> }
+                                </NavLink>
+                                <NavLink href="/profesores/control-docente" class="menu-link" ActiveClass="active" title="Control docente">
+                                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.FactCheck" /></span>
+                                    @if (!Collapsed) { <span class="menu-text">Control docente</span> }
+                                </NavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@PoliticasSistema.GestionMedica">
+                            <Authorized Context="medicaAuth">
+                                <NavLink href="/aptos-medicos" class="menu-link" ActiveClass="active" title="Aptos médicos">
+                                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.MedicalServices" /></span>
+                                    @if (!Collapsed) { <span class="menu-text">Aptos médicos</span> }
+                                </NavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Administrador,Administrativa,SoloLectura">
+            <Authorized>
+                @if (!Collapsed)
+                {
+                    <button type="button" class="menu-group-toggle @(_grupoAbierto == "consultas" ? "open" : "")"
+                            aria-expanded="@(_grupoAbierto == "consultas")"
+                            @onclick='() => AlternarGrupo("consultas")'>
+                        <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.History" /></span>
+                        <span class="menu-group-name">Historial y reportes</span>
+                        <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Size="Size.Small" />
+                    </button>
+                }
+                @if (Collapsed || _grupoAbierto == "consultas")
+                {
+                    <div class="menu-group-body">
+                        <AuthorizeView Policy="@PoliticasSistema.ConsultaGeneral">
+                            <Authorized Context="historialAuth">
+                                <NavLink href="/clientes/historial" class="menu-link" ActiveClass="active" title="Historial de alumnos">
+                                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.History" /></span>
+                                    @if (!Collapsed) { <span class="menu-text">Historial de alumnos</span> }
+                                </NavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                        <AuthorizeView Policy="@PoliticasSistema.ConsultarReportes">
+                            <Authorized Context="reportesAuth">
+                                <NavLink href="/reportes" class="menu-link" ActiveClass="active" title="Reportes">
+                                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.BarChart" /></span>
+                                    @if (!Collapsed) { <span class="menu-text">Reportes</span> }
+                                </NavLink>
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
+            <Authorized>
+                <NavLink href="/configuracion" class="menu-link menu-settings-link" ActiveClass="active" title="Configuración">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Settings" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Configuración</span> }
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 
-
-    @* =========================================================
-       FOOTER
-       ========================================================= *@
-
     <div class="sidebar-footer">
-    <div class="wave wave-one"></div>
-    <div class="wave wave-two"></div>
+        <div class="wave wave-one"></div>
+        <div class="wave wave-two"></div>
+    </div>
 </div>
-
-</div>
-
 
 @code {
+    [Parameter] public bool Collapsed { get; set; }
+    [Parameter] public EventCallback OnToggle { get; set; }
 
-    [Parameter]
-    public bool Collapsed { get; set; }
+    private string? _grupoAbierto;
 
+    protected override void OnInitialized()
+    {
+        _grupoAbierto = GrupoDeRuta(Navegacion.Uri);
+        Navegacion.LocationChanged += AlCambiarRuta;
+    }
 
-    [Parameter]
-    public EventCallback OnToggle { get; set; }
+    private static string? GrupoDeRuta(string uri)
+    {
+        var ruta = new Uri(uri).AbsolutePath.Trim('/').ToLowerInvariant();
+        if (ruta == "asistencia" || ruta.StartsWith("ausencias-sin-aviso") || ruta.StartsWith("recuperos"))
+            return "asistencia";
+        if (ruta.StartsWith("inscripciones/primeras-clases") || ruta.StartsWith("reservas-vacantes") ||
+            ruta.StartsWith("alertas-vacantes") || ruta.StartsWith("espera-vacantes"))
+            return "inscripciones";
+        if (ruta.StartsWith("pagos") || ruta.StartsWith("caja") || ruta.StartsWith("bancos") || ruta.StartsWith("proveedores"))
+            return "finanzas";
+        if (ruta.StartsWith("profesores") || ruta.StartsWith("aptos-medicos"))
+            return "equipo";
+        if (ruta.StartsWith("clientes/historial") || ruta.StartsWith("reportes"))
+            return "consultas";
+        return null;
+    }
 
+    private void AlternarGrupo(string nombre) => _grupoAbierto = _grupoAbierto == nombre ? null : nombre;
 
-    private Task ToggleAsync()
-        => OnToggle.InvokeAsync();
+    private void AlCambiarRuta(object? sender, LocationChangedEventArgs e)
+    {
+        var grupo = GrupoDeRuta(e.Location);
+        if (grupo is not null)
+        {
+            _grupoAbierto = grupo;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
 
+    private Task ToggleAsync() => OnToggle.InvokeAsync();
+
+    public void Dispose() => Navegacion.LocationChanged -= AlCambiarRuta;
 }

@@ -2670,3 +2670,21 @@
 .recovery-page .recovery-card .recovery-person span {font-size:13px;}
 @media(max-width:620px) { .recovery-page .recovery-credits-heading {align-items:stretch;flex-direction:column;}
  .recovery-page .recovery-credits-heading .recovery-whatsapp {width:100%;} }
+
+/* Selector único de recuperos: MudAutocomplete integrado con los filtros. */
+.recovery-filter-baby ::deep .recovery-autocomplete {
+    width: 100%;
+    margin: 0;
+}
+.recovery-filter-baby ::deep .recovery-autocomplete .mud-input-root {
+    min-height: 42px;
+    font-size: 14px;
+    color: var(--mud-palette-text-primary);
+}
+.recovery-filter-baby ::deep .recovery-autocomplete .mud-input-outlined-border {
+    border-color: var(--mud-palette-lines-default);
+    border-radius: 10px;
+}
+.recovery-filter-baby ::deep .recovery-autocomplete .mud-input-control-input-container {
+    margin-top: 0;
+}
