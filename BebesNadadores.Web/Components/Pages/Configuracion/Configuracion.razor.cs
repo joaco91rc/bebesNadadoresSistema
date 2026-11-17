@@ -31,6 +31,7 @@ public partial class Configuracion : ComponentBase
         = null!;
 
 
+    protected bool _esAdministrador;
     protected bool _cargando = true;
     protected bool _guardando;
     protected string? _error;
@@ -107,6 +108,8 @@ public partial class Configuracion : ComponentBase
                 await AuthenticationStateProvider
                     .GetAuthenticationStateAsync();
 
+            _esAdministrador = auth.User.IsInRole(RolesSistema.Administrador);
+
             var idTexto =
                 auth.User
                     .FindFirst(
@@ -148,6 +151,16 @@ public partial class Configuracion : ComponentBase
          * Cargamos usuarios/roles en forma secuencial para no
          * ejecutar operaciones concurrentes sobre UserManager.
          */
+        // Administrativa: acceso de consulta, sin recuperar información de usuarios ni permisos.
+        if (!_esAdministrador)
+        {
+            _usuarios = [];
+            _roles = [];
+            _profesores = [];
+            _planes = [];
+            return;
+        }
+
         _usuarios =
             (await UsuarioService.ListarAsync())
                 .ToList();

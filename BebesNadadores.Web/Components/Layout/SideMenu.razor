@@ -154,6 +154,11 @@
 
             <Authorized>
 
+                <NavLink href="/ausencias-sin-aviso" class="menu-link" ActiveClass="active">
+                    <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.PersonOff" /></span>
+                    @if (!Collapsed) { <span class="menu-text">Ausencias sin aviso</span> }
+                </NavLink>
+
                 <NavLink href="/recuperos"
                          class="menu-link"
                          ActiveClass="active">
@@ -503,7 +508,7 @@
            CONFIGURACIÓN
            ----------------------------------------------------- *@
 
-        <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
+        <AuthorizeView Policy="@PoliticasSistema.GestionAdministrativa">
 
             <Authorized>
 

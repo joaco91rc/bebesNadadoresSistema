@@ -1,0 +1,183 @@
+@page "/ausencias-sin-aviso"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
+@using BebesNadadores.Application.Comunicaciones
+@using BebesNadadores.Domain.Common
+@using BebesNadadores.Domain.Enums
+@using BebesNadadores.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IWhatsAppService WhatsAppService
+@inject IJSRuntime JS
+
+<PageTitle>Ausencias sin aviso | Bebés Nadadores</PageTitle>
+
+<div class="aus-page">
+    <header class="aus-head">
+        <div>
+            <span class="aus-eyebrow">SEGUIMIENTO DE ASISTENCIAS</span>
+            <h1>Ausencias sin aviso</h1>
+            <p>Alumnos que fueron marcados como ausentes sin aviso. El recordatorio abre WhatsApp con el mensaje preparado; la administrativa confirma el envío.</p>
+        </div>
+        <button type="button" class="aus-button" @onclick="CargarAsync" disabled="@_cargando">Actualizar</button>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="aus-error" role="alert">@_error</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <p class="aus-success" role="status">@_mensaje</p>
+    }
+
+    <section class="aus-summary">
+        <div><small>Ausencias sin aviso</small><strong>@Filtradas.Count</strong></div>
+        <div><small>Alumnos diferentes</small><strong>@Filtradas.Select(x => x.BebeId).Distinct().Count()</strong></div>
+        <div><small>Con contacto autorizado</small><strong>@Filtradas.Count(x => !string.IsNullOrWhiteSpace(x.Telefono))</strong></div>
+    </section>
+
+    <section class="aus-filter">
+        <label>Buscar alumno
+            <input type="search" @bind="_buscar" @bind:event="oninput" placeholder="Nombre o apellido..." />
+        </label>
+        <label>Período
+            <select @bind="_dias" @bind:after="CargarAsync">
+                <option value="7">Últimos 7 días</option>
+                <option value="30">Últimos 30 días</option>
+                <option value="90">Últimos 90 días</option>
+                <option value="365">Último año</option>
+            </select>
+        </label>
+    </section>
+
+    @if (_cargando)
+    {
+        <p>Cargando ausencias...</p>
+    }
+    else if (Filtradas.Count == 0)
+    {
+        <section class="aus-empty">No hay ausencias sin aviso registradas para el período y la búsqueda seleccionados.</section>
+    }
+    else
+    {
+        <section class="aus-list">
+            @foreach (var item in Filtradas)
+            {
+                <article class="aus-item" @key="item.AsistenciaId">
+                    <div class="aus-item-body">
+                        <strong>@item.Alumno</strong>
+                        <div class="aus-meta">
+                            <span>@item.Fecha.ToString("dd/MM/yyyy")</span>
+                            <span>@item.Horario</span>
+                        </div>
+                        @if (string.IsNullOrWhiteSpace(item.Telefono))
+                        {
+                            <span class="aus-warning">Sin responsable con WhatsApp autorizado</span>
+                        }
+                        else
+                        {
+                            <span class="aus-contact">WhatsApp: @item.Responsable</span>
+                        }
+                    </div>
+                    <div class="aus-actions">
+                        <a href="@($"/asistencia?sesionId={item.SesionId}")" class="aus-button subtle">Ver asistencia</a>
+                        <button type="button" class="aus-button primary" disabled="@string.IsNullOrWhiteSpace(item.Telefono)"
+                            @onclick="() => AbrirWhatsAppAsync(item)">Enviar recordatorio por WhatsApp</button>
+                    </div>
+                </article>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private sealed record AusenciaItem(Guid AsistenciaId, Guid BebeId, Guid SesionId,
+        string Alumno, DateOnly Fecha, string Horario, string Responsable, string? Telefono);
+
+    private const string MensajeWhatsApp =
+        "Hola como están!! Figura en el grupo que estuvieron ausentes, siempre recuerden avisarnos por favor para poder  poner la clase en la lista de recuperación y así reprogramarla otro día. No obstante puede haberles sucedido algo de último momento por lo tanto la próxima clase personalmente tratamos de darle algún lugar para recuperarla.!! Esperamos estén bien un abrazoooo";
+
+    private readonly List<AusenciaItem> _items = [];
+    private bool _cargando = true;
+    private string _buscar = string.Empty;
+    private int _dias = 30;
+    private string? _error;
+    private string? _mensaje;
+
+    private List<AusenciaItem> Filtradas => _items
+        .Where(x => string.IsNullOrWhiteSpace(_buscar)
+            || x.Alumno.Contains(_buscar.Trim(), StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = null;
+        _mensaje = null;
+        try
+        {
+            var hoy = FechaArgentina.Hoy;
+            var desde = hoy.AddDays(-_dias);
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var datos = await db.Asistencias.AsNoTracking()
+                .Where(x => x.Estado == EstadoAsistencia.Ausente && !x.EsRecupero
+                    && x.SesionClase.Fecha >= desde && x.SesionClase.Fecha <= hoy)
+                .Include(x => x.SesionClase).ThenInclude(x => x.Turno)
+                .Include(x => x.Bebe).ThenInclude(x => x.Responsables)
+                    .ThenInclude(x => x.Responsable)
+                .OrderByDescending(x => x.SesionClase.Fecha)
+                .ThenBy(x => x.Bebe.Apellido)
+                .ToListAsync();
+
+            _items.Clear();
+            foreach (var asistencia in datos)
+            {
+                var contacto = asistencia.Bebe.Responsables
+                    .Where(x => x.AutorizaComunicaciones && x.Responsable.Activo
+                        && !string.IsNullOrWhiteSpace(x.Responsable.WhatsApp))
+                    .OrderByDescending(x => x.EsContactoPrincipal)
+                    .Select(x => x.Responsable)
+                    .FirstOrDefault();
+                var sesion = asistencia.SesionClase;
+                _items.Add(new AusenciaItem(
+                    asistencia.Id, asistencia.BebeId, asistencia.SesionClaseId,
+                    $"{asistencia.Bebe.Nombre} {asistencia.Bebe.Apellido}".Trim(),
+                    sesion.Fecha,
+                    $"{sesion.Turno.Nombre} · {sesion.HoraInicio:HH\\:mm}",
+                    contacto is null ? "" : $"{contacto.Nombre} {contacto.Apellido}".Trim(),
+                    contacto?.WhatsApp));
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = "No se pudieron cargar las ausencias: " + ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task AbrirWhatsAppAsync(AusenciaItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.Telefono))
+        {
+            _error = "El alumno no tiene un responsable con WhatsApp autorizado.";
+            return;
+        }
+        try
+        {
+            // Solo se abre el mensaje: no se marca como enviado automáticamente.
+            var url = WhatsAppService.CrearUrl(item.Telefono, MensajeWhatsApp);
+            await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
+            _mensaje = "Se abrió el mensaje para " + item.Alumno + ". Confirmá el envío desde WhatsApp.";
+        }
+        catch (Exception ex)
+        {
+            _error = "No se pudo abrir WhatsApp: " + ex.Message;
+        }
+    }
+}

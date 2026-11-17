@@ -49,6 +49,8 @@ public partial class Home
     // PERMISOS (qué tarjetas y accesos ve cada rol)
     // =========================================================
 
+    private bool _esAdministrador;
+
     private bool _puedeGestionar;
 
     private bool _puedeCaja;
@@ -145,6 +147,8 @@ public partial class Home
             return;
         }
 
+
+        _esAdministrador = principal.IsInRole(RolesSistema.Administrador);
 
         _puedeGestionar =
             await Permisos.TieneAsync(

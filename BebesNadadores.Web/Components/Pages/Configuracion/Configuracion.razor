@@ -1,6 +1,6 @@
 @page "/configuracion"
 
-@attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
 
 @using BebesNadadores.Application.Configuracion.Dtos
 @using BebesNadadores.Infrastructure.Identity
@@ -8,6 +8,49 @@
 
 <PageTitle>Configuración | Bebés Nadadores</PageTitle>
 
+@if (!_esAdministrador)
+{
+    <div class="settings-page">
+        <section class="settings-header">
+            <div class="settings-header-copy">
+                <span class="settings-eyebrow">CONSULTA ADMINISTRATIVA</span>
+                <h1>Configuración del sistema</h1>
+                <p>Información de consulta. Solo el Administrador puede modificar estas opciones.</p>
+            </div>
+        </section>
+        @if (_cargando)
+        {
+            <p>Cargando configuración...</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="settings-message error">@_error</p>
+        }
+        else if (_configuracion is not null)
+        {
+            <section class="settings-hub">
+                <article class="settings-card institution">
+                    <span class="settings-card-body"><small>INSTITUCIÓN</small><strong>@_configuracion.NombreInstitucion</strong>
+                        <span>Dirección: @(_configuracion.Direccion ?? "No configurada")</span>
+                        <span>WhatsApp: @(_configuracion.WhatsApp ?? "No configurado")</span>
+                    </span>
+                </article>
+                <article class="settings-card rules">
+                    <span class="settings-card-body"><small>REGLAS OPERATIVAS</small><strong>Parámetros vigentes</strong>
+                        <span>Recuperos: @_configuracion.DiasVigenciaRecupero días</span>
+                        <span>Apto médico: @_configuracion.MesesVigenciaApto meses</span>
+                        <span>Alerta de apto: @_configuracion.DiasAlertaApto días</span>
+                        <span>Vencimiento de cuota: día @_configuracion.DiaVencimientoCuota</span>
+                        <span>Edad máxima: @_configuracion.EdadMaximaMeses meses</span>
+                    </span>
+                </article>
+            </section>
+            <p style="margin-top:18px;opacity:.75">Usuarios, contraseñas, precios y edición de parámetros son exclusivos del Administrador.</p>
+        }
+    </div>
+}
+else
+{
 <div class="settings-page">
     <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
       <Authorized><div style="padding:10px 0 17px"><a href="/administracion/migracion" style="color:var(--mud-palette-primary);font-weight:700">Migración desde el sistema anterior</a></div></Authorized>
@@ -1452,4 +1495,5 @@
         </section>
 
     </div>
+}
 }

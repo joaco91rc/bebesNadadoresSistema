@@ -79,6 +79,8 @@
 
     <section class="kpi-grid">
 
+        @if (_esAdministrador)
+        {
         <article class="kpi-card">
             <div class="kpi-icon blue"><MudIcon Icon="@Icons.Material.Filled.ChildCare" /></div>
             <div class="kpi-body">
@@ -96,6 +98,7 @@
                 </small>
             </div>
         </article>
+        }
 
 
         <article class="kpi-card">

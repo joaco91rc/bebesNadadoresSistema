@@ -710,6 +710,10 @@
                                     </div>
 
 
+                                    @* El motivo de una ausencia/recupero no se exige ni se pide. *@
+                                    @if (alumno.Estado != EstadoAsistencia.AusenteConAviso &&
+                                         alumno.Estado != EstadoAsistencia.Ausente)
+                                    {
                                     <div class="student-observation">
 
                                         <input type="text"
@@ -737,6 +741,8 @@
                                         </button>
 
                                     </div>
+                                    }
+
 
 
                                     @if (alumno.GeneroRecupero)
