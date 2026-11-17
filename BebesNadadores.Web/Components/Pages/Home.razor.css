@@ -220,7 +220,7 @@
     display: grid;
 
     grid-template-columns:
-        repeat(5, minmax(0, 1fr));
+        repeat(4, minmax(0, 1fr));
 
     gap: 14px;
 }
@@ -3228,3 +3228,176 @@
 .birthday-today-actions {margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .birthday-today-actions .birthday-whatsapp-button {min-height:39px;}
 @media(max-width:750px){.birthday-today-actions{width:100%;margin-left:0;}}
+
+/* ============================================================
+   DASHBOARD · INDICADORES PLEGABLES Y CUMPLEAÑOS DE HOY
+   ============================================================ */
+.dashboard-indicators {
+    margin-bottom: 22px;
+}
+.dashboard-indicators-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 13px;
+}
+.dashboard-indicators-header h2 {
+    margin: 2px 0 0;
+    font-family: var(--bn-font-title, "Montserrat", "Segoe UI", Arial, sans-serif);
+    font-size: 19px;
+    line-height: 1.3;
+    font-weight: 800;
+    color: var(--mud-palette-text-primary);
+}
+.dashboard-indicators-eyebrow {
+    color: var(--mud-palette-text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.1px;
+}
+.dashboard-indicators-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 42px;
+    padding: 9px 14px;
+    border: 1px solid var(--mud-palette-divider);
+    border-radius: 11px;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    font-family: var(--bn-font-title, "Montserrat", "Segoe UI", Arial, sans-serif);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+}
+.dashboard-indicators-toggle:hover {
+    border-color: var(--mud-palette-primary);
+    background: color-mix(in srgb, var(--mud-palette-primary) 7%, var(--mud-palette-surface));
+}
+.dashboard-indicators-toggle:focus-visible {
+    outline: 3px solid var(--mud-palette-primary);
+    outline-offset: 2px;
+}
+.dashboard-indicators-hidden {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    margin: 0;
+    padding: 12px 16px;
+    border: 1px dashed var(--mud-palette-divider);
+    border-radius: 12px;
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-secondary);
+    font-size: 13px;
+}
+.dashboard-indicators .kpi-grid {
+    margin-bottom: 0;
+}
+.birthdays-card .birthdays-date {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--mud-palette-text-secondary);
+    text-transform: capitalize;
+}
+.birthdays-card .birthday-today {
+    margin-bottom: 0;
+}
+.birthdays-none {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px dashed var(--mud-palette-divider);
+    border-radius: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-size: 14px;
+}
+@media (max-width: 700px) {
+    .dashboard-indicators-header { align-items: flex-start; }
+    .dashboard-indicators-toggle { width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-indicators-toggle { transition: none; }
+}
+
+/* ============================================================
+   DASHBOARD · ACCESO DESTACADO A ASISTENCIA
+   ============================================================ */
+.dashboard-attendance-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 17px 20px;
+    margin: 0 0 22px;
+    border: 1px solid color-mix(in srgb, var(--mud-palette-primary) 25%, var(--mud-palette-divider));
+    border-radius: 17px;
+    background: color-mix(in srgb, var(--mud-palette-primary) 7%, var(--mud-palette-surface));
+    color: var(--mud-palette-text-primary);
+}
+.attendance-shortcut-icon {
+    display: flex;
+    flex: 0 0 48px;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--mud-palette-primary) 15%, transparent);
+    color: var(--mud-palette-primary);
+}
+.attendance-shortcut-copy { flex: 1 1 auto; min-width: 0; }
+.attendance-shortcut-eyebrow {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--mud-palette-primary);
+}
+.attendance-shortcut-copy h2 {
+    margin: 0;
+    font-family: var(--bn-font-title, "Montserrat", "Segoe UI", Arial, sans-serif);
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+.attendance-shortcut-copy p {
+    margin: 5px 0 0;
+    color: var(--mud-palette-text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+.attendance-shortcut-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 11px;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text, #fff);
+    font-family: var(--bn-font-title, "Montserrat", "Segoe UI", Arial, sans-serif);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter .15s ease, transform .15s ease;
+}
+.attendance-shortcut-button:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.attendance-shortcut-button:focus-visible { outline: 3px solid var(--mud-palette-primary); outline-offset: 3px; }
+@media (max-width: 760px) {
+    .dashboard-attendance-shortcut { flex-wrap: wrap; gap: 12px; padding: 16px; }
+    .attendance-shortcut-copy { flex-basis: calc(100% - 60px); }
+    .attendance-shortcut-button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .attendance-shortcut-button { transition: none; }
+    .attendance-shortcut-button:hover { transform: none; }
+}

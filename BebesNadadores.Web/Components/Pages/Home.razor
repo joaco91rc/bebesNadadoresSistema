@@ -77,10 +77,28 @@
        KPIs
        ========================================================= *@
 
-    <section class="kpi-grid">
+    <section class="dashboard-indicators" aria-label="Indicadores del sistema">
+        <div class="dashboard-indicators-header">
+            <div>
+                <span class="dashboard-indicators-eyebrow">RESUMEN GENERAL</span>
+                <h2>Indicadores</h2>
+            </div>
+            <button type="button"
+                    class="dashboard-indicators-toggle"
+                    title="@(_mostrarIndicadores ? "Ocultar todos los indicadores" : "Mostrar todos los indicadores")"
+                    aria-label="@(_mostrarIndicadores ? "Ocultar todos los indicadores" : "Mostrar todos los indicadores")"
+                    aria-expanded="@_mostrarIndicadores"
+                    @onclick="AlternarIndicadores">
+                <MudIcon Icon="@(_mostrarIndicadores ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                         Size="Size.Small" />
+                <span>@(_mostrarIndicadores ? "Ocultar indicadores" : "Mostrar indicadores")</span>
+            </button>
+        </div>
 
-        @if (_esAdministrador)
+        @if (_mostrarIndicadores)
         {
+            <div class="kpi-grid">
+
         <article class="kpi-card">
             <div class="kpi-icon blue"><MudIcon Icon="@Icons.Material.Filled.ChildCare" /></div>
             <div class="kpi-body">
@@ -98,7 +116,6 @@
                 </small>
             </div>
         </article>
-        }
 
 
         <article class="kpi-card">
@@ -136,8 +153,40 @@
             </div>
         </article>
 
+            </div>
+        }
+        else
+        {
+            <p class="dashboard-indicators-hidden">
+                <MudIcon Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small" />
+                Los indicadores están ocultos. Usá el botón del ojo para volver a verlos.
+            </p>
+        }
     </section>
 
+
+    @* =========================================================
+       ACCESO DIRECTO A ASISTENCIA (USO DIARIO)
+       ========================================================= *@
+
+    @if (_puedeGestionar)
+    {
+        <section class="dashboard-attendance-shortcut" aria-label="Gestión de asistencia diaria">
+            <span class="attendance-shortcut-icon" aria-hidden="true">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+            </span>
+            <div class="attendance-shortcut-copy">
+                <span class="attendance-shortcut-eyebrow">CONTROL DIARIO</span>
+                <h2>Asistencia de alumnos</h2>
+                <p>Marcá presentes, ausentes y ausentes con aviso en las clases del día.</p>
+            </div>
+            <button type="button" class="attendance-shortcut-button" @onclick="IrAAsistencia">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
+                Ir a Asistencia
+                <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            </button>
+        </section>
+    }
 
     @* =========================================================
    CLASE EN CURSO
@@ -421,7 +470,7 @@
     }
 
     @* =========================================================
-   CUMPLEAÑOS DEL MES
+   CUMPLEAÑOS DE HOY
    ========================================================= *@
 
     <section class="birthdays-card">
@@ -434,10 +483,9 @@
                 </span>
 
                 <h2>
-                    Cumpleaños de @_ahora.ToString(
-                                                                                                    "MMMM",
-                                                                                                    new System.Globalization.CultureInfo("es-AR"))
+                    Cumpleaños de hoy
                 </h2>
+                <p class="birthdays-date">@_ahora.ToString("dddd d 'de' MMMM", new System.Globalization.CultureInfo("es-AR"))</p>
             </div>
 
             <div class="birthdays-icon">
@@ -500,107 +548,13 @@
         }
 
 
-        <div class="birthday-list">
-
-            @foreach (var cumple in CumpleaniosDelMes)
-            {
-                var esHoy =
-                    cumple.FechaNacimiento.Month == _ahora.Month
-                    && cumple.FechaNacimiento.Day == _ahora.Day;
-
-                <div class="birthday-row @(esHoy ? "birthday-row-today" : "")">
-
-                    <div class="birthday-date">
-
-                        <strong>
-                            @cumple.FechaNacimiento.Day.ToString("00")
-                        </strong>
-
-                        <span>
-                            @ObtenerMesAbreviado(
-                                cumple.FechaNacimiento)
-                        </span>
-
-                    </div>
-
-
-                    <div class="birthday-avatar">
-
-                        @ObtenerIniciales(
-                            cumple.NombreCompleto)
-
-                    </div>
-
-
-                    <div class="birthday-info">
-
-                        <strong>
-                            @cumple.NombreCompleto
-                        </strong>
-
-                        <span>
-                            Cumple @cumple.EdadQueCumple años
-                        </span>
-
-                    </div>
-
-
-                    @if (esHoy)
-                    {
-                        <div class="birthday-actions">
-
-                            <span class="birthday-today-badge">
-                                HOY
-                            </span>
-
-
-                            <button type="button" class="birthday-whatsapp-button" title="Saludar por WhatsApp" @onclick="async () =>
-                                await SaludarCumpleaniosAsync(
-                                cumple)">
-
-                                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
-
-                                Saludar
-
-                            </button>
-
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="birthday-days">
-
-                            @{
-                                var faltan =
-                                    new DateOnly(_ahora.Year, cumple.FechaNacimiento.Month,
-                                        cumple.FechaNacimiento.Day).DayNumber
-                                    - DateOnly.FromDateTime(_ahora).DayNumber;
-                            }
-
-                            @if (faltan > 0)
-                            {
-                                <span>
-                                    en
-                                </span>
-
-                                <strong>
-                                    @faltan
-                                </strong>
-
-                                <span>
-                                    @(faltan == 1
-                                        ? "día"
-                                        : "días")
-                                </span>
-                            }
-
-                        </div>
-                    }
-
-                </div>
-            }
-
-        </div>
+        @if (!CumpleaniosHoy.Any())
+        {
+            <div class="birthdays-none">
+                <MudIcon Icon="@Icons.Material.Filled.Cake" Size="Size.Small" />
+                Hoy no hay cumpleaños de bebés registrados.
+            </div>
+        }
 
     </section>
 
@@ -806,6 +760,14 @@
 
                 </div>
 
+                @if (_puedeGestionar)
+                {
+                    <button type="button" class="text-action" @onclick="IrARecuperos">
+                        Ir a Recuperos
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                    </button>
+                }
+
             </div>
 
 
@@ -843,11 +805,11 @@
 
                         @if (_puedeGestionar)
                         {
-                            <button class="notify-button" @onclick="IrAListaEspera">
+                            <button type="button" class="notify-button" @onclick="IrARecuperos" title="Abrir la pantalla de Recuperos">
 
-                                <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.Replay" Size="Size.Small" />
 
-                                Avisar
+                                Ver recuperos
 
                             </button>
                         }
@@ -1033,12 +995,11 @@
 
                 @if (_puedeGestionar)
                 {
-                    <button type="button" class="open-attendance-button" @onclick="AbrirAsistenciaCompleta">
-
-                        Ver asistencia completa
-
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
-
+                    <button type="button" @onclick="IrAAsistencia">
+                        <span class="quick-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+                        </span>
+                        <span>Registrar asistencia</span>
                     </button>
                 }
 

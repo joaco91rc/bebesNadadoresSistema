@@ -23,8 +23,16 @@ public partial class Home
     private void IrATurnos() =>
         Navigation.NavigateTo("/turnos");
 
-    private void IrAListaEspera() =>
-        Navigation.NavigateTo("/lista-espera");
+    private void IrARecuperos() =>
+        Navigation.NavigateTo("/recuperos");
+
+    private void IrAAsistencia()
+    {
+        if (!_puedeGestionar)
+            return;
+
+        Navigation.NavigateTo("/asistencia");
+    }
 
     private void IrACaja() =>
         Navigation.NavigateTo("/caja");
@@ -49,7 +57,11 @@ public partial class Home
     // PERMISOS (qué tarjetas y accesos ve cada rol)
     // =========================================================
 
-    private bool _esAdministrador;
+    // Visibilidad de las cuatro tarjetas de indicadores; la controla cada usuario.
+    private bool _mostrarIndicadores = false; // Privacidad: ocultos en cada entrada al Dashboard.
+
+    private void AlternarIndicadores() =>
+        _mostrarIndicadores = !_mostrarIndicadores;
 
     private bool _puedeGestionar;
 
@@ -148,7 +160,6 @@ public partial class Home
         }
 
 
-        _esAdministrador = principal.IsInRole(RolesSistema.Administrador);
 
         _puedeGestionar =
             await Permisos.TieneAsync(
@@ -454,11 +465,6 @@ public partial class Home
 
 
 
-
-
-    private List<CumpleaniosBebeDto>
-        CumpleaniosDelMes =>
-            _cumpleanios;
 
 
     private List<CumpleaniosBebeDto>
