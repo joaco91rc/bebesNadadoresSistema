@@ -33,7 +33,7 @@
 .section-eyebrow {
     color: var(--mud-palette-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 850;
     letter-spacing: 1.25px;
 }
@@ -52,7 +52,7 @@
     max-width: 720px;
     margin: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.55;
 }
 
@@ -78,7 +78,7 @@
     gap: 6px;
     border-radius: 9px;
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
     cursor: pointer;
     transition: .18s ease;
@@ -148,7 +148,7 @@
 .filter-field label {
     color: var(--mud-palette-text-secondary);
     font-family: var(--bn-font-title);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .5px;
     text-transform: uppercase;
@@ -174,7 +174,7 @@
     color: var(--mud-palette-text-secondary);
     background: transparent;
     font-family: var(--bn-font-title);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 750;
     cursor: pointer;
     transition: .16s ease;
@@ -198,7 +198,7 @@
     align-items: center;
     gap: 8px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .message-box > span {
@@ -236,11 +236,11 @@
 .reports-loading strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .reports-loading span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -276,7 +276,7 @@
 .report-kpi > div > span,
 .report-kpi small {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .report-kpi strong {
@@ -363,7 +363,7 @@
     color: var(--mud-palette-text-secondary);
     background: transparent;
     font-family: var(--bn-font-title);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
     cursor: pointer;
     white-space: nowrap;
@@ -437,7 +437,7 @@
     border-radius: 999px;
     color: var(--mud-palette-text-secondary);
     background: rgba(47, 195, 235, .05);
-    font-size: 8px;
+    font-size: 12px;
     white-space: nowrap;
 }
 
@@ -467,7 +467,7 @@
 .finance-mini span {
     display: block;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .summary-metrics strong,
@@ -497,13 +497,13 @@
     justify-content: space-between;
     gap: 10px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .progress-label strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .progress-track {
@@ -567,7 +567,7 @@
 .payment-method-row strong {
     overflow: hidden;
     color: var(--mud-palette-text-primary);
-    font-size: 9px;
+    font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -577,7 +577,7 @@
 .payment-method-row span,
 .simple-list span {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .ranking-row b,
@@ -587,7 +587,7 @@
     flex: 0 0 auto;
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .debt-summary-row b {
@@ -649,12 +649,12 @@
 .attendance-date strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .attendance-date span {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .attendance-pending {
@@ -671,7 +671,7 @@
 .attendance-pending strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -710,20 +710,20 @@
     overflow: hidden;
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 10px;
+    font-size: 13px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .occupation-card-head span {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .occupation-card-head b {
     color: var(--mud-palette-primary);
     font-family: var(--bn-font-title);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .occupation-details {
@@ -743,7 +743,7 @@
     display: block;
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -767,7 +767,7 @@
 
 .status-kpis span {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .status-kpis strong {
@@ -817,7 +817,7 @@
 .finance-kpis span,
 .finance-kpis small {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .finance-kpis strong {
@@ -881,7 +881,7 @@
         var(--mud-palette-divider) 75%,
         transparent);
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .report-table tbody tr:last-child td {
@@ -890,7 +890,7 @@
 
 .report-table td strong {
     color: var(--mud-palette-text-primary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .money-cell {
@@ -941,7 +941,7 @@
 
 .medical-report-card > span {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .medical-report-card > strong {
@@ -981,7 +981,7 @@
     display: grid;
     place-items: center;
     color: var(--mud-palette-text-secondary);
-    font-size: 10px;
+    font-size: 13px;
     text-align: center;
 }
 
@@ -1116,7 +1116,7 @@
     }
 
     .report-kpi .money-value {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .report-tabs {
@@ -1238,12 +1238,12 @@
 .bank-account-title strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .bank-account-title span:not(.bank-icon) {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .bank-icon {
@@ -1282,7 +1282,7 @@
     margin-top: 2px;
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .bank-report-card .report-table-wrap {
@@ -1292,7 +1292,7 @@
 .bank-no-movements {
     padding: 18px 13px;
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
     text-align: center;
 }
 
@@ -1357,44 +1357,44 @@
    ============================================================ */
 
 .reports-page {
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .reports-eyebrow,
 .section-eyebrow {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .reports-header p,
 .section-header p {
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .primary-action,
 .secondary-action,
 .link-action {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .filter-field label {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .quick-periods button {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .message-box {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .reports-loading span {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .report-kpi > div > span,
 .report-kpi small {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .report-kpi strong {
@@ -1408,7 +1408,7 @@
 .report-tabs button {
     min-height: 38px;
     padding-inline: 13px;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .card-heading h2,
@@ -1417,12 +1417,12 @@
 }
 
 .period-badge {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .summary-metrics span,
 .finance-mini span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .summary-metrics strong,
@@ -1431,43 +1431,43 @@
 }
 
 .progress-label {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .progress-label strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .ranking-row strong,
 .debt-summary-row strong,
 .payment-method-row strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .ranking-row span,
 .debt-summary-row span,
 .payment-method-row span,
 .simple-list span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .ranking-row b,
 .debt-summary-row b,
 .payment-method-row b,
 .simple-list strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .attendance-date strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .attendance-date span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .attendance-pending span {
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .attendance-pending strong {
@@ -1475,27 +1475,27 @@
 }
 
 .occupation-card-head strong {
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .occupation-card-head span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .occupation-card-head b {
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .occupation-details span {
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .occupation-details b {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .status-kpis span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .status-kpis strong {
@@ -1504,7 +1504,7 @@
 
 .finance-kpis span,
 .finance-kpis small {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .finance-kpis strong {
@@ -1513,20 +1513,20 @@
 
 .report-table th {
     padding: 10px 10px;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .report-table td {
     padding: 11px 10px;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .report-table td strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .medical-report-card > span {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .medical-report-card > strong {
@@ -1534,39 +1534,39 @@
 }
 
 .empty-state {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 /* Bancos */
 
 .bank-account-title strong {
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .bank-account-title span:not(.bank-icon) {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .bank-account-totals span {
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .bank-account-totals strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .bank-no-movements {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .movement-type {
     min-width: 64px;
     min-height: 24px;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .movement-observation {
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1578,12 +1578,12 @@
 
     .reports-header p,
     .section-header p {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .report-kpi > div > span,
     .report-kpi small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .report-kpi strong {
@@ -1591,27 +1591,27 @@
     }
 
     .report-kpi .money-value {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .report-tabs button {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .report-table th {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .report-table td,
     .report-table td strong {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .cash-table th:nth-child(3),
     .cash-table td:nth-child(3),
     .cash-table th:nth-child(4),
     .cash-table td:nth-child(4) {
-        font-size: 9px;
+        font-size: 12px;
     }
 }
 
@@ -1637,7 +1637,7 @@
     gap: 6px;
     border-radius: 9px;
     font-family: var(--bn-font-title);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
     cursor: pointer;
     transition: .18s ease;

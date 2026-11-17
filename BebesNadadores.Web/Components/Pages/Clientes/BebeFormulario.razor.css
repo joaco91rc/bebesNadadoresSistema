@@ -49,7 +49,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -78,7 +78,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 11px;
+    font-size: 13px;
 
     transition: .16s ease;
 }
@@ -97,7 +97,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 /* ============================================================
@@ -175,7 +175,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 
     letter-spacing: 1.3px;
@@ -207,7 +207,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 14px;
 
     line-height: 1.5;
 }
@@ -231,7 +231,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -262,7 +262,7 @@
     background:
         rgba(255, 70, 84, .05);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -378,7 +378,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 }
 
@@ -412,7 +412,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 11px;
+    font-size: 13px;
 
     line-height: 1.35;
 }
@@ -452,7 +452,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
 
     cursor: pointer;
@@ -511,7 +511,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 650;
 }
 
@@ -547,7 +547,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 13px;
+    font-size: 14px;
 
     transition: .16s ease;
 }
@@ -662,7 +662,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: .6px;
@@ -680,7 +680,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
 
     white-space: nowrap;
@@ -781,7 +781,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 600;
 
     cursor: pointer;
@@ -831,7 +831,7 @@
     color:
         var(--mud-palette-primary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -913,7 +913,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 750;
 }
 
@@ -924,7 +924,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -956,7 +956,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -983,7 +983,7 @@
     background:
         rgba(239, 184, 79, .04);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1044,7 +1044,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -1077,7 +1077,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1138,7 +1138,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1149,7 +1149,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 
     text-align: center;
 }
@@ -1207,7 +1207,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
 
     text-transform: uppercase;
@@ -1218,7 +1218,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1352,7 +1352,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -1364,7 +1364,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 
     white-space: nowrap;
 
@@ -1378,7 +1378,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1406,7 +1406,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 
     white-space: nowrap;
 }
@@ -1419,7 +1419,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -1458,7 +1458,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -1466,7 +1466,7 @@
 .schedule-loading span {
     margin-top: 2px;
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1493,7 +1493,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
 
     cursor: pointer;
@@ -1853,7 +1853,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
 }
 
@@ -1862,7 +1862,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1930,7 +1930,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1941,7 +1941,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1978,7 +1978,7 @@
 .schedule-mode-heading p {
     margin: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .schedule-mode-options {
@@ -2039,13 +2039,13 @@
 .schedule-mode-card strong {
     display: block;
     margin-bottom: 4px;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .schedule-mode-card span {
     display: block;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
     line-height: 1.45;
 }
 
@@ -2077,7 +2077,7 @@
 .pending-schedule-info span {
     margin-top: 3px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .first-class-option,
@@ -2156,14 +2156,14 @@
 .health-declaration-heading strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 750;
 }
 
 .health-declaration-heading small {
     margin-top: 2px;
     color: var(--mud-palette-text-secondary);
-    font-size: 10px;
+    font-size: 13px;
     line-height: 1.4;
 }
 
@@ -2188,7 +2188,7 @@
 .health-question-label {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 650;
     line-height: 1.4;
 }
@@ -2208,7 +2208,7 @@
     color: var(--mud-palette-text-secondary);
     background: transparent;
     font-family: var(--bn-font-title);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 750;
     cursor: pointer;
     transition: .16s ease;
@@ -2257,6 +2257,63 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.4;
 }
+
+/* ============================================================
+   LEGIBILIDAD GRILLA DE INSCRIPCIÓN (desktop + tablet + móvil)
+   Los horarios tienen prioridad visual: la administrativa debe
+   leer horas, nivel, sector y cupos sin ampliar el navegador.
+   ============================================================ */
+.enrollment-page .schedule-picker { max-width: 100%; }
+.enrollment-page .schedule-options { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.enrollment-page .schedule-option { min-height: 104px; padding: 15px 14px;
+    grid-template-columns: 34px minmax(0,1fr) auto; gap: 12px; border-radius: 13px; }
+.enrollment-page .schedule-option-check { width:34px;height:34px; }
+.enrollment-page .schedule-day-title > span { font-size: 15px; }
+.enrollment-page .schedule-day-title small { font-size: 13px; }
+.enrollment-page .schedule-option-time strong { font-size: 17px; letter-spacing: -.2px; }
+.enrollment-page .schedule-option-time span { font-size: 13px; line-height:1.45;
+    white-space: normal; overflow-wrap: anywhere; }
+.enrollment-page .schedule-option-time small { font-size: 12px; line-height:1.4; }
+.enrollment-page .schedule-option-capacity { min-width: 66px; }
+.enrollment-page .schedule-option-capacity strong { font-size: 19px; }
+.enrollment-page .schedule-option-capacity span,
+.enrollment-page .schedule-option-capacity .no-capacity { font-size: 12px; }
+.enrollment-page .schedule-eyebrow { font-size: 12px; }
+.enrollment-page .schedule-picker-header h3 { font-size: 21px; }
+.enrollment-page .schedule-picker-header p,
+.enrollment-page .schedule-mode-heading p { font-size: 14px;line-height:1.5; }
+.enrollment-page .schedule-mode-card strong { font-size: 15px; }
+.enrollment-page .schedule-mode-card span { font-size: 13px;line-height:1.5; }
+.enrollment-page .schedule-mode-card { min-height: 112px; padding: 17px; }
+.enrollment-page .first-class-option { padding: 15px; border: 1px solid var(--mud-palette-divider);
+    border-radius: 13px; background: color-mix(in srgb,var(--mud-palette-surface) 96%,var(--mud-palette-primary) 4%); }
+.enrollment-page .discount-toggle-text strong { font-size: 15px; }
+.enrollment-page .discount-toggle-text span { font-size: 13px; line-height:1.5; }
+@media(max-width: 1300px) { .enrollment-page .schedule-options { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width: 650px) { .enrollment-page .schedule-options { grid-template-columns: 1fr; }
+  .enrollment-page .schedule-option { min-height: 96px; } }
+
+
+/* Autorización explícita de sobrecupo. Mantiene todos los horarios visibles. */
+.capacity-override { margin:14px 0 18px; border:1px solid var(--mud-palette-divider);
+    border-radius:14px; padding:16px 18px; background:var(--mud-palette-surface); }
+.capacity-override-active { border-color:rgba(235,155,45,.6);
+    background:color-mix(in srgb, var(--mud-palette-surface) 92%, #ffb13b 8%); }
+.capacity-override-toggle { display:flex;gap:13px;align-items:flex-start;cursor:pointer; }
+.capacity-override-toggle input[type=checkbox] { width:20px;height:20px;flex:0 0 20px;accent-color:#e29b29;margin-top:2px; }
+.capacity-override-toggle > span { display:flex; flex-direction:column;gap:5px; }
+.capacity-override-toggle strong { font-size:15px;color:var(--mud-palette-text-primary); }
+.capacity-override-toggle small,.capacity-override-reason small { font-size:13px;line-height:1.55;color:var(--mud-palette-text-secondary); }
+.capacity-override-reason {display:flex;flex-direction:column;gap:7px;margin:15px 0 0 33px;max-width:600px;}
+.capacity-override-reason label {font-weight:700;font-size:14px;color:var(--mud-palette-text-primary);}
+.capacity-override-reason input {min-height:42px;width:100%;padding:10px 12px;
+    background:var(--mud-palette-background);color:var(--mud-palette-text-primary);
+    border:1px solid var(--mud-palette-lines-default, var(--mud-palette-divider));border-radius:9px;}
+.schedule-option.overcapacity-enabled {border-color:rgba(235,155,45,.8)!important;}
+@media(max-width:650px){.capacity-override-reason{margin-left:0;}}
+
+/* Una tarjeta completa habilitada administrativamente debe seguir legible y seleccionable. */
+.schedule-option.full.overcapacity-enabled, .schedule-option.overcapacity-enabled { opacity:1;cursor:pointer; }

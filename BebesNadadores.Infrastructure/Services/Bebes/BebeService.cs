@@ -443,7 +443,7 @@ public sealed class BebeService(
             {
                 var ocupados = ocupacion.TryGetValue(turno.Id, out var cantidad) ? cantidad : 0;
 
-                if (ocupados >= turno.Cupo)
+                if (ocupados >= turno.Cupo && !dto.PermitirSobrecupo)
                 {
                     throw new InvalidOperationException(
                         $"El turno {turno.DiaSemana} "
@@ -566,7 +566,7 @@ public sealed class BebeService(
                     ct
                 );
 
-                if (ocupacion.Libres <= 0)
+                if (ocupacion.Libres <= 0 && !dto.PermitirSobrecupo)
                 {
                     throw new InvalidOperationException(
                         $"La clase del {sesionInicial.Fecha:dd/MM/yyyy} "
@@ -576,6 +576,9 @@ public sealed class BebeService(
                 }
             }
         }
+
+        if (dto.PermitirSobrecupo && string.IsNullOrWhiteSpace(dto.MotivoSobrecupo))
+            throw new InvalidOperationException("Indicá el motivo para autorizar un sobrecupo.");
 
         // =========================================================
         // CREAR BEBÉ
@@ -659,6 +662,9 @@ public sealed class BebeService(
                 : dto.MotivoDescuento.Trim(),
 
             BonificaRecuperoInicio = inicioAMitadDeMes,
+            Observaciones = dto.PermitirSobrecupo
+                ? $"Sobrecupo autorizado en inscripción: {dto.MotivoSobrecupo!.Trim()}"
+                : null,
         };
 
         // =========================================================
@@ -791,6 +797,10 @@ public sealed class BebeService(
         await db.SaveChangesAsync(ct);
 
         await transaction.CommitAsync(ct);
+
+        if (dto.PermitirSobrecupo)
+            logger.LogWarning("Inscripción con permiso de sobrecupo: bebé {BebeId}; motivo: {Motivo}",
+                bebe.Id, dto.MotivoSobrecupo);
 
         return bebe.Id;
     }
@@ -1300,7 +1310,8 @@ public sealed class BebeService(
 
         await using var db = await factory.CreateDbContextAsync(ct);
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        // El VPS suele operar en UTC. Un cumpleaños se determina según Argentina.
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         var bebes = await db
             .Bebes.AsNoTracking()

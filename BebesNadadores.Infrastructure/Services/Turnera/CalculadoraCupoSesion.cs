@@ -83,12 +83,19 @@ public static class CalculadoraCupoSesion
                 .Select(x => new
                 {
                     x.TurnoId,
+                    x.InscripcionId,
                     x.Inscripcion.BebeId,
                     x.Inscripcion.Estado,
                     x.Inscripcion.FechaInicio,
                     x.Inscripcion.FechaFin
                 })
                 .ToListAsync(ct);
+
+        // La primera clase en otro turno reemplaza la asistencia habitual
+        // únicamente hasta esa fecha; la plaza fija sigue reservada.
+        var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
+            db, inscripciones.Select(x => x.InscripcionId),
+            sesiones.Min(x => x.Fecha), ct);
 
         var reservasIniciales =
             await db.ReservasSesionesClase
@@ -143,7 +150,9 @@ public static class CalculadoraCupoSesion
                             x.Estado,
                             x.FechaInicio,
                             x.FechaFin,
-                            sesion.Fecha))
+                            sesion.Fecha)
+                        && !PrimeraClaseExcepcional.TodaviaNoComenzo(
+                            primerasExcepcionales, x.InscripcionId, sesion.Fecha))
                     .Select(x => x.BebeId)
                     .ToHashSet();
 

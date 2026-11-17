@@ -5,6 +5,7 @@ using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using BebesNadadores.Application.Configuracion;
+using BebesNadadores.Infrastructure.Services.Turnera;
 
 namespace BebesNadadores.Infrastructure.Services.Asistencias;
 
@@ -64,6 +65,9 @@ public sealed class AsistenciaService(
                 .ToListAsync(ct);
 
 
+        var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
+            db, relaciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
+
         var esperados =
             new Dictionary<
                 Guid,
@@ -76,7 +80,9 @@ public sealed class AsistenciaService(
                 relacion.Inscripcion;
 
 
-            if (!InscripcionValidaEnFecha(
+            if (PrimeraClaseExcepcional.TodaviaNoComenzo(
+                primerasExcepcionales, relacion.InscripcionId, sesion.Fecha)
+                || !InscripcionValidaEnFecha(
                 inscripcion,
                 sesion.Fecha))
             {
@@ -807,10 +813,15 @@ var configuracion =
                 .ToListAsync(ct);
 
 
+        var primeraExcepcional = await PrimeraClaseExcepcional.ObtenerFechasAsync(
+            db, relaciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
+
         var regular =
             relaciones
                 .FirstOrDefault(x =>
-                    InscripcionValidaEnFecha(
+                    !PrimeraClaseExcepcional.TodaviaNoComenzo(
+                        primeraExcepcional, x.InscripcionId, sesion.Fecha)
+                    && InscripcionValidaEnFecha(
                         x.Inscripcion,
                         sesion.Fecha));
 

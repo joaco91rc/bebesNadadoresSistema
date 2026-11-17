@@ -780,16 +780,18 @@
                     <div class="recovery-filter recovery-filter-baby">
 
                         <label>
-                            BUSCAR CLASES PARA
+                            CONSULTAR RECUPEROS DE UN ALUMNO
                         </label>
+
+                        <input type="search" class="recovery-baby-search"
+                               placeholder="Escribí nombre o apellido..."
+                               aria-label="Filtrar alumnos con recuperos disponibles"
+                               @bind="_consultaAlumno" @bind:event="oninput" />
 
                         <select value="@(_bebeSeleccionadoId?.ToString() ?? "")"
                                 @onchange="SeleccionarRecuperoAsync">
                             <option value="">Cualquier alumno</option>
-                            @foreach (var alumno in _panel.Recuperos
-                                .Where(x => x.Estado == EstadoRecuperacion.Disponible)
-                                .GroupBy(x => x.BebeId)
-                                .OrderBy(x => x.First().Bebe))
+                            @foreach (var alumno in AlumnosConRecuperos)
                             {
                                 <option value="@alumno.Key">
                                     @alumno.First().Bebe (@alumno.Count() recuperos)
@@ -810,8 +812,17 @@
                     @if (RecuperosDelBebe.Count > 0)
                     {
                         <div class="recovery-credits-panel" style="margin:10px 0;padding:14px;border:1px solid var(--mud-palette-lines-default);border-radius:12px">
-                            <strong>Recuperos disponibles de @recuperoSeleccionado.Bebe (@RecuperosDelBebe.Count)</strong>
-                            <p>Elegí el recupero que querés asignar. Se indica la fecha de la ausencia informada.</p>
+                            <div class="recovery-credits-heading">
+                                <div>
+                                    <strong>Recuperos disponibles de @recuperoSeleccionado.Bebe (@RecuperosDelBebe.Count)</strong>
+                                    <p>Estas son todas las clases pendientes de este alumno. Elegí cuál querés asignar.</p>
+                                </div>
+                                <button type="button" class="secondary-action recovery-whatsapp"
+                                        @onclick="() => RecordarRecuperosWhatsAppAsync(recuperoSeleccionado.BebeId)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Message" Size="Size.Small" />
+                                    Recordar por WhatsApp
+                                </button>
+                            </div>
                             <div style="display:flex;gap:8px;flex-wrap:wrap">
                                 @foreach (var credito in RecuperosDelBebe)
                                 {
@@ -1862,6 +1873,15 @@
 
                                     </button>
 
+                                }
+                                else
+                                {
+                                    <button type="button" class="secondary-action recovery-whatsapp"
+                                            title="Abrir WhatsApp con un recordatorio de las clases pendientes de este alumno"
+                                            @onclick="() => RecordarRecuperosWhatsAppAsync(recupero.BebeId)">
+                                        <MudIcon Icon="@Icons.Material.Filled.Message" Size="Size.Small" />
+                                        Recordar recupero
+                                    </button>
                                 }
 
 

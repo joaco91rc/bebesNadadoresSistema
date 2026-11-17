@@ -470,7 +470,8 @@ protected bool EsPrimeraInscripcion =>
             turno.Disponibles <= 0
             &&
             !EsTurnoActual(
-                turno.TurnoId))
+                turno.TurnoId)
+            && !_form.PermitirSobrecupo)
         {
             _error =
                 "El horario seleccionado no tiene cupo.";
@@ -675,6 +676,12 @@ protected bool EsPrimeraInscripcion =>
             return;
         }
 
+
+        if (_form.PermitirSobrecupo && string.IsNullOrWhiteSpace(_form.MotivoSobrecupo))
+        {
+            _error = "Indicá el motivo del sobrecupo antes de guardar.";
+            return;
+        }
 
         try
         {

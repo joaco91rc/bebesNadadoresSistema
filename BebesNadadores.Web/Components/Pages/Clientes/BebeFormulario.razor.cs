@@ -84,6 +84,12 @@ public partial class BebeFormulario : ComponentBase
     private bool _cargandoSesionesIniciales;
 
     private bool _usarPrimeraClaseEspecial;
+    // Si el turno fijo ya está elegido, la primera clase debe ser en OTRO turno.
+    private IEnumerable<SesionClaseDto> SesionesPrimeraClaseVisibles =>
+        _usarPrimeraClaseEspecial && _form.DefinirHorarioHabitualAhora
+            ? _sesionesIniciales.Where(s => !_form.TurnosIds.Contains(s.TurnoId))
+            : _sesionesIniciales;
+
     protected string NombreBebeParaHorario =>
         string.IsNullOrWhiteSpace(_form.Nombre) ? "el bebé" : _form.Nombre.Trim();
 
@@ -217,7 +223,6 @@ public partial class BebeFormulario : ComponentBase
                 .Where(x =>
                     x.NivelId == _form.NivelActualId.Value
                     && x.Estado == EstadoSesionClase.Programada
-                    && x.Vacantes > 0
                 )
                 .OrderBy(x => x.Fecha)
                 .ThenBy(x => x.HoraInicio)
@@ -269,9 +274,9 @@ public partial class BebeFormulario : ComponentBase
 
     private void SeleccionarSesionInicial(SesionClaseDto sesion)
     {
-        if (sesion.Vacantes <= 0)
+        if (sesion.Vacantes <= 0 && !_form.PermitirSobrecupo)
         {
-            _error = "La clase seleccionada ya no posee cupos.";
+            _error = "La clase seleccionada ya no posee cupos. Activá 'Permitir sobrecupo' para forzarla.";
 
             return;
         }
@@ -312,6 +317,8 @@ public partial class BebeFormulario : ComponentBase
             SesionInicialId = null,
 
             TurnosIds = [],
+            PermitirSobrecupo = false,
+            MotivoSobrecupo = null,
         };
 
         form.Responsables.Add(
@@ -562,9 +569,9 @@ public partial class BebeFormulario : ComponentBase
             return;
         }
 
-        if (turno.Disponibles <= 0)
+        if (turno.Disponibles <= 0 && !_form.PermitirSobrecupo)
         {
-            _error = "El horario seleccionado ya no tiene cupo.";
+            _error = "El horario seleccionado no tiene cupo. Activá 'Permitir sobrecupo' para seleccionarlo.";
 
             return;
         }
@@ -595,6 +602,12 @@ public partial class BebeFormulario : ComponentBase
         }
 
         _form.TurnosIds.Add(turno.TurnoId);
+        if (_usarPrimeraClaseEspecial && _form.SesionInicialId.HasValue &&
+            _sesionesIniciales.Any(s => s.Id == _form.SesionInicialId && s.TurnoId == turno.TurnoId))
+        {
+            _form.SesionInicialId = null;
+            _error = "Elegí una primera clase distinta del turno habitual seleccionado.";
+        }
     }
 
     // =========================================================
@@ -831,6 +844,13 @@ public partial class BebeFormulario : ComponentBase
 
                     return;
                 }
+                if (_usarPrimeraClaseEspecial &&
+                    _sesionesIniciales.Any(s => s.Id == _form.SesionInicialId &&
+                                                _form.TurnosIds.Contains(s.TurnoId)))
+                {
+                    _error = "La primera clase excepcional debe ser en un horario distinto del fijo.";
+                    return;
+                }
             }
             else
             {
@@ -909,6 +929,12 @@ public partial class BebeFormulario : ComponentBase
         // =========================================================
         // GUARDAR
         // =========================================================
+
+        if (_form.PermitirSobrecupo && string.IsNullOrWhiteSpace(_form.MotivoSobrecupo))
+        {
+            _error = "Indicá el motivo de la autorización de sobrecupo.";
+            return;
+        }
 
         try
         {

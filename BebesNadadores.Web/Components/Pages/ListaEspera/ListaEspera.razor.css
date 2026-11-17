@@ -103,7 +103,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 
     letter-spacing: 1.2px;
@@ -135,7 +135,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -166,7 +166,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 750;
 
     cursor: pointer;
@@ -191,7 +191,7 @@
 
     border-radius: 9px;
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -308,7 +308,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -331,7 +331,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -479,7 +479,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -580,7 +580,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -605,7 +605,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
 
     white-space: nowrap;
 
@@ -620,7 +620,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -645,7 +645,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -680,7 +680,7 @@
     background:
         rgba(46, 195, 235, .06);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -783,7 +783,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -830,7 +830,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -840,7 +840,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 
     line-height: 1.5;
 }
@@ -947,7 +947,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1043,7 +1043,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -1061,7 +1061,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1071,7 +1071,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1087,7 +1087,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 750;
 }
 
@@ -1164,7 +1164,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1173,7 +1173,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1258,7 +1258,7 @@
 
 
 .recovery-option strong {
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1268,7 +1268,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1341,7 +1341,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -1416,7 +1416,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1452,7 +1452,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1496,7 +1496,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 750;
 
     cursor: pointer;
@@ -1598,7 +1598,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 

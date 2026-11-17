@@ -482,6 +482,17 @@
 
                 </div>
 
+                <div class="birthday-today-actions">
+                    @foreach (var cumpleHoy in CumpleaniosHoy)
+                    {
+                        <button type="button" class="birthday-whatsapp-button"
+                                title="Preparar saludo de cumpleaños en WhatsApp"
+                                @onclick="() => SaludarCumpleaniosAsync(cumpleHoy)">
+                            <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
+                            Saludar a @cumpleHoy.Nombre
+                        </button>
+                    }
+                </div>
             </div>
         }
 
@@ -491,7 +502,8 @@
             @foreach (var cumple in CumpleaniosDelMes)
             {
                 var esHoy =
-                    cumple.EsHoy;
+                    cumple.FechaNacimiento.Month == _ahora.Month
+                    && cumple.FechaNacimiento.Day == _ahora.Day;
 
                 <div class="birthday-row @(esHoy ? "birthday-row-today" : "")">
 
@@ -557,7 +569,9 @@
 
                             @{
                                 var faltan =
-                                    cumple.DiasFaltantes;
+                                    new DateOnly(_ahora.Year, cumple.FechaNacimiento.Month,
+                                        cumple.FechaNacimiento.Day).DayNumber
+                                    - DateOnly.FromDateTime(_ahora).DayNumber;
                             }
 
                             @if (faltan > 0)

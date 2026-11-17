@@ -1176,6 +1176,9 @@ public sealed class TurneraService(
             .Where(x => x.TurnoId == sesion.TurnoId)
             .ToListAsync(ct);
 
+        var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
+            db, inscripciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
+
         var reservasIniciales = await db
             .ReservasSesionesClase.AsNoTracking()
             .Where(x => x.SesionClaseId == sesion.Id && x.Estado == EstadoReservaSesion.Activa)
@@ -1196,7 +1199,9 @@ public sealed class TurneraService(
 
         foreach (var relacion in inscripciones)
         {
-            if (!InscripcionValidaEnFecha(relacion.Inscripcion, sesion.Fecha))
+            if (PrimeraClaseExcepcional.TodaviaNoComenzo(
+                    primerasExcepcionales, relacion.InscripcionId, sesion.Fecha)
+                || !InscripcionValidaEnFecha(relacion.Inscripcion, sesion.Fecha))
             {
                 continue;
             }

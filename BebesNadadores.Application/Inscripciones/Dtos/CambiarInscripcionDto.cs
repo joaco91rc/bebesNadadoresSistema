@@ -16,6 +16,10 @@ public sealed class CambiarInscripcionDto
 
     public List<Guid> TurnosIds { get; set; } = [];
 
+// Se habilita exclusivamente cuando la administrativa autoriza sobrecupo.
+public bool PermitirSobrecupo { get; set; }
+public string? MotivoSobrecupo { get; set; }
+
 
     // =========================================================
     // DESCUENTO MANUAL

@@ -44,7 +44,7 @@
     display: block;
     margin-bottom: 6px;
     color: var(--cyan);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: .17em;
 }
@@ -70,7 +70,7 @@
     max-width: 740px;
     margin: 7px 0 0;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
 }
 
@@ -89,7 +89,7 @@
     color: var(--text);
     background: var(--surface-strong);
     font: inherit;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
     transition: border-color .18s ease,
@@ -128,7 +128,7 @@
 .secondary-action.compact {
     min-height: 34px;
     padding: 0 10px;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .secondary-action.danger-soft {
@@ -150,7 +150,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .settings-message span {
@@ -285,7 +285,7 @@
 .settings-card-body small,
 .settings-card-value small {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: .08em;
 }
@@ -301,7 +301,7 @@
 
 .settings-card-body > span {
     color: var(--muted);
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.45;
 }
 
@@ -381,7 +381,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .panel-footer-actions {
@@ -414,12 +414,12 @@
 
 .role-guide strong {
     color: var(--text);
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .role-guide span {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.4;
 }
 
@@ -431,13 +431,13 @@
 .settings-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .settings-table th {
     padding: 10px 14px;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: .08em;
     font-weight: 700;
@@ -475,7 +475,7 @@
     place-items: center;
     background: rgba(41, 197, 246, .11);
     color: var(--cyan);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 }
 
@@ -488,12 +488,12 @@
 
 .user-cell strong {
     color: var(--text);
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .user-cell small {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .self-badge {
@@ -514,7 +514,7 @@
     gap: 5px;
     border-radius: 999px;
     padding: 5px 8px;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -645,7 +645,7 @@
 
 .plan-title-wrap small {
     color: var(--cyan);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .08em;
 }
@@ -660,7 +660,7 @@
     min-height: 32px;
     margin: 12px 0;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 13px;
     line-height: 1.5;
 }
 
@@ -676,7 +676,7 @@
 
 .plan-current-price > span {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .plan-current-price strong {
@@ -691,13 +691,13 @@
 
 .plan-current-price small {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .plan-meta {
     padding: 10px 2px;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .plan-meta span {
@@ -726,7 +726,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .tariff-history summary::-webkit-details-marker {
@@ -747,7 +747,7 @@
     color: var(--cyan);
     display: grid;
     place-items: center;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .tariff-history-list {
@@ -775,12 +775,12 @@
 
 .tariff-row strong {
     color: var(--text);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .tariff-row small {
     color: var(--muted);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .current-badge {
@@ -800,7 +800,7 @@
     border-radius: 8px;
     color: var(--muted);
     background: var(--panel);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 /* ============================================================
@@ -865,12 +865,12 @@
 
 .rule-copy strong {
     color: var(--text);
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .rule-copy small {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.4;
 }
 
@@ -894,14 +894,14 @@
     color: var(--text);
     padding: 0 8px;
     font: inherit;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
 }
 
 .number-unit span {
     flex: 1;
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 /* ============================================================
@@ -938,7 +938,7 @@
 .form-field > span,
 .toggle-field strong {
     color: var(--text-soft);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -952,7 +952,7 @@
     background: var(--input-bg);
     color: var(--text);
     font: inherit;
-    font-size: 11px;
+    font-size: 13px;
     transition: border-color .16s ease,
                 box-shadow .16s ease;
 }
@@ -980,7 +980,7 @@
 .toggle-field small,
 .password-help {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.4;
 }
 
@@ -1042,7 +1042,7 @@
 
 .institution-preview small {
     color: var(--cyan);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .10em;
 }
@@ -1054,7 +1054,7 @@
 
 .institution-preview span span {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 /* ============================================================
@@ -1101,7 +1101,7 @@
 
 .overview-stats span {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .overview-stats strong {
@@ -1112,7 +1112,7 @@
 
 .overview-stats small {
     color: var(--muted);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .operational-section {
@@ -1156,12 +1156,12 @@
 
 .operational-grid strong {
     color: var(--text);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .operational-grid small {
     color: var(--muted);
-    font-size: 8px;
+    font-size: 12px;
     line-height: 1.35;
 }
 
@@ -1244,7 +1244,7 @@
 .modal-header p {
     margin: 4px 0 0;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .modal-body {
@@ -1273,7 +1273,7 @@
     display: flex;
     align-items: flex-start;
     gap: 7px;
-    font-size: 9px;
+    font-size: 12px;
     line-height: 1.45;
 }
 
@@ -1471,18 +1471,18 @@
 .settings-modal.small-modal { width: min(620px, 100%); }
 .modal-header { padding: 22px 26px 18px; }
 .modal-header h2 { font-size: clamp(21px, 2vw, 25px); }
-.modal-header p { font-size: 13px; }
+.modal-header p { font-size: 14px; }
 .modal-body { padding: 24px 26px; }
 .modal-footer { padding: 17px 26px; }
 .form-grid { gap: 17px; }
 .form-field > span,
-.toggle-field strong { font-size: 13px; }
+.toggle-field strong { font-size: 14px; }
 .form-field input,
 .form-field select,
 .form-field textarea { min-height: 48px; font-size: 14px; border-radius: 12px; }
 .form-field small,
 .toggle-field small,
-.password-help { font-size: 12px; }
+.password-help { font-size: 14px; }
 .toggle-field { min-height: 70px; }
 .form-field select {
     background-color: #134c71;

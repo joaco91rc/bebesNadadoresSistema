@@ -28,7 +28,7 @@
 }
 
 .eyebrow {
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 1.4px;
     color: var(--mud-palette-primary);
     font-weight: 800
@@ -59,7 +59,7 @@
     border-radius: 12px;
     background: rgba(39, 139, 202, .11);
     color: var(--mud-palette-primary);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 800
 }
 
@@ -72,7 +72,7 @@
 
 .migracion-section-head p {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55
 }
 
@@ -90,7 +90,7 @@
     min-height: 43px;
     padding: 10px 17px;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 750;
     line-height: 1.3;
     text-decoration: none;
@@ -202,7 +202,7 @@
 }
 
 .bn-upload-copy span {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--mud-palette-text-secondary);
     overflow-wrap: anywhere
 }
@@ -249,14 +249,14 @@
 }
 
 .hash {
-    font-size: 11px;
+    font-size: 13px;
     overflow-wrap: anywhere
 }
 
 .bn-result {
     padding: 12px 14px;
     border-radius: 11px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     margin-top: 15px;
     line-height: 1.5;
@@ -302,13 +302,13 @@
 }
 
 .bn-working-title strong {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 750
 }
 
 .bn-working-title span,
 .bn-working-state {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--mud-palette-text-secondary);
     line-height: 1.5
 }
@@ -358,14 +358,14 @@
 
 .bn-field-label {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     margin: 0 0 9px
 }
 
 .bn-date-hint {
     color: var(--mud-palette-text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     padding-bottom: 10px
 }
 
@@ -395,7 +395,7 @@
 }
 
 .bn-report-path {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--mud-palette-text-secondary);
     margin: 14px 0 0;
     overflow-wrap: anywhere
@@ -428,7 +428,7 @@
 }
 
 .bn-csv-panel code {
-    font-size: 11px;
+    font-size: 13px;
     overflow-wrap: anywhere
 }
 
@@ -443,12 +443,12 @@
 .bn-csv-feedback {
     margin: 2px 0 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     overflow-wrap: anywhere
 }
 
 .bn-small-note {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.6;
     margin: 14px 0 0
 }
@@ -467,7 +467,7 @@
 }
 
 .precaucion p {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.6;
     margin: 8px 0 0
 }
@@ -484,7 +484,7 @@
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.6;
     margin: 16px 0;
     cursor: pointer
@@ -507,7 +507,7 @@
     width: 410px;
     color: var(--mud-palette-text-primary);
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
     display: block
 }
 
@@ -517,7 +517,7 @@
 }
 
 .bn-prod-disabled {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--mud-palette-text-secondary);
     margin: 16px 0 0
 }
@@ -535,7 +535,7 @@
 }
 
 .bn-executor-state {
-    font-size: 13px;
+    font-size: 14px;
     margin: 15px 0;
     overflow-wrap: anywhere
 }
@@ -545,7 +545,7 @@
     color: var(--mud-palette-text-primary);
     border: 1px solid var(--mud-palette-divider);
     border-radius: 11px;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.6;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -559,7 +559,7 @@
     margin-top: 13px;
     border-top: 1px solid var(--mud-palette-divider);
     padding-top: 12px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--mud-palette-text-secondary)
 }
 

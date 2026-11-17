@@ -76,7 +76,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 800;
 
@@ -118,7 +118,7 @@
 
 
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -180,7 +180,7 @@
 
 
 
-    font-size: 11px;
+    font-size: 13px;
 
     font-weight: 750;
 
@@ -278,7 +278,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -490,7 +490,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 800;
 
@@ -580,7 +580,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -832,7 +832,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -872,7 +872,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -900,7 +900,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -932,7 +932,7 @@
 
 .family-finance strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -1126,7 +1126,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
     line-height: 1.55;
 
@@ -1290,7 +1290,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -1332,7 +1332,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 800;
 
@@ -1424,7 +1424,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -1663,7 +1663,7 @@
 
 .fee-period strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -1871,7 +1871,7 @@
 
 .fee-balance strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2041,7 +2041,7 @@
 
 .payment-main strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2131,7 +2131,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -2159,7 +2159,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -2209,7 +2209,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2233,7 +2233,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2253,7 +2253,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -2271,7 +2271,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -2389,7 +2389,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 800;
 
@@ -2427,7 +2427,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2501,7 +2501,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2583,7 +2583,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -2639,7 +2639,7 @@
 
     font: inherit;
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -2749,7 +2749,7 @@
 
     color: var(--mud-palette-text-secondary);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -2775,7 +2775,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 750;
 
@@ -2899,7 +2899,7 @@
 
 .payment-route strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2919,7 +2919,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -2959,7 +2959,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 750;
 
@@ -3001,7 +3001,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -3089,7 +3089,7 @@
 
 
 
-    font-size: 11px;
+    font-size: 13px;
 
 }
 
@@ -3113,7 +3113,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -3183,7 +3183,7 @@
 
 .preview-line strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -3213,7 +3213,7 @@
 
 .preview-line > span {
 
-    font-size: 9px;
+    font-size: 12px;
 
     font-weight: 800;
 
@@ -3293,7 +3293,7 @@
 
 
 
-    font-size: 11px;
+    font-size: 13px;
 
 }
 
@@ -3341,7 +3341,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     line-height: 1.5;
 
@@ -3399,7 +3399,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -3433,7 +3433,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -3525,7 +3525,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
     font-weight: 750;
 
@@ -3657,7 +3657,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -3695,7 +3695,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -3865,7 +3865,7 @@
 
 .movement-date strong {
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -3895,7 +3895,7 @@
 
 .movement-concept strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -3929,7 +3929,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -4255,7 +4255,7 @@
     .page-eyebrow,
     .section-eyebrow,
     .account-eyebrow {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .payments-header h1 {
@@ -4269,11 +4269,11 @@
     .primary-action,
     .secondary-action {
         min-height: 41px;
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .message-box {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .families-header h2 {
@@ -4282,27 +4282,27 @@
 
     .result-count,
     .section-count {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .search-box input {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .family-data strong {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .family-data small {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .family-finance strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .family-finance small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .select-family-state h2 {
@@ -4310,7 +4310,7 @@
     }
 
     .select-family-state p {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .account-person h2 {
@@ -4318,16 +4318,16 @@
     }
 
     .account-person small {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .hero-pay-button {
         min-height: 42px;
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .account-kpis span {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .account-kpis strong {
@@ -4335,7 +4335,7 @@
     }
 
     .account-kpis small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .section-header h3,
@@ -4346,7 +4346,7 @@
     .fee-period strong,
     .fee-balance strong,
     .movement-concept strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .fee-period small,
@@ -4354,37 +4354,37 @@
     .fee-progress-top,
     .movement-date small,
     .movement-concept small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .fee-status {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .payment-main strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .payment-main small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .payment-allocation small,
     .payment-credit small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .payment-allocation span,
     .payment-credit span {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .payment-total {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .modal-header > div > span {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .modal-header h2 {
@@ -4392,87 +4392,87 @@
     }
 
     .modal-header p {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .modal-error {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .form-field label {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .form-field input,
     .form-field select {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .pay-total-action {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .payment-route strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .payment-route small,
     .route-action,
     .no-account-warning {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .preview-header span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .preview-header h3 {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .preview-empty {
-        font-size: 11px;
-    }
-
-    .preview-line strong {
-        font-size: 11px;
-    }
-
-    .preview-line small {
-        font-size: 9px;
-    }
-
-    .preview-line > span {
-        font-size: 11px;
-    }
-
-    .preview-total span {
-        font-size: 9px;
-    }
-
-    .preview-total strong {
         font-size: 13px;
     }
 
+    .preview-line strong {
+        font-size: 13px;
+    }
+
+    .preview-line small {
+        font-size: 12px;
+    }
+
+    .preview-line > span {
+        font-size: 13px;
+    }
+
+    .preview-total span {
+        font-size: 12px;
+    }
+
+    .preview-total strong {
+        font-size: 14px;
+    }
+
     .credit-warning {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .cancel-action {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .loading-state {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .account-tabs button {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .current-account-header p,
     .current-balance span {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .current-balance strong {
@@ -4480,11 +4480,11 @@
     }
 
     .movement-date strong {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .amount-column {
-        font-size: 11px;
+        font-size: 13px;
     }
 }
 
@@ -4537,7 +4537,7 @@
     margin-top: 2px;
 
     color: #0b7fc4;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
 
     cursor: help;
@@ -4555,7 +4555,7 @@
     color: #bc3d49;
     background: rgba(228, 95, 105, .10);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
 
     cursor: help;
@@ -4594,7 +4594,7 @@
   display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px;
   border: 1px solid rgba(40, 175, 226, .34); border-radius: 8px;
   background: rgba(40, 175, 226, .08); color: var(--mud-palette-text-primary);
-  font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none;
+  font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none;
 }
 .payment-receipt-actions a:hover, .payment-receipt-actions button:hover {
   background: rgba(40, 175, 226, .19); border-color: #28afe2;

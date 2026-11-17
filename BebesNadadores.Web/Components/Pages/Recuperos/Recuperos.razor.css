@@ -99,7 +99,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 
     letter-spacing: 1.25px;
@@ -131,7 +131,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -175,7 +175,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
 
     cursor: pointer;
@@ -214,7 +214,7 @@
 
     border-radius: 10px;
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -365,7 +365,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -389,7 +389,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -485,7 +485,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -501,7 +501,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -515,7 +515,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -551,7 +551,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -663,7 +663,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -689,7 +689,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -785,7 +785,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -803,7 +803,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -813,7 +813,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -927,7 +927,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -952,7 +952,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 750;
 }
 
@@ -972,7 +972,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -988,7 +988,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1015,7 +1015,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1026,7 +1026,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1042,7 +1042,7 @@
 
     border-radius: 6px;
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -1099,7 +1099,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 750;
 
     cursor: pointer;
@@ -1206,7 +1206,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1288,7 +1288,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -1310,7 +1310,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 750;
 
     white-space: nowrap;
@@ -1327,7 +1327,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 
     white-space: nowrap;
 
@@ -1398,7 +1398,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1421,7 +1421,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1476,7 +1476,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -1507,7 +1507,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -1578,14 +1578,14 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
 .empty-state span {
     max-width: 290px;
 
-    font-size: 10px;
+    font-size: 13px;
 
     line-height: 1.45;
 }
@@ -1605,7 +1605,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1697,7 +1697,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1815,7 +1815,7 @@
     color:
         var(--mud-palette-primary);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: .8px;
@@ -1914,7 +1914,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -1941,7 +1941,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1964,7 +1964,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -1996,7 +1996,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 750;
 
     cursor: pointer;
@@ -2050,14 +2050,14 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
 .empty-candidates span {
     max-width: 360px;
 
-    font-size: 10px;
+    font-size: 13px;
 
     line-height: 1.45;
 }
@@ -2089,7 +2089,7 @@
     background:
         rgba(255, 69, 84, .05);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -2133,7 +2133,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: .8px;
@@ -2163,7 +2163,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 11px;
+    font-size: 13px;
 
     cursor: pointer;
 }
@@ -2238,7 +2238,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 }
 
@@ -2274,7 +2274,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -2284,7 +2284,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -2341,7 +2341,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -2382,7 +2382,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 750;
 
     cursor: pointer;
@@ -2434,7 +2434,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 
     cursor: pointer;
@@ -2650,3 +2650,23 @@
     }
 
 }
+/* ============================================================
+   CONSULTA DE RECUPEROS POR ALUMNO Y RECORDATORIOS
+   ============================================================ */
+.recovery-page .recovery-baby-search { display:block;width:100%;min-width:0;min-height:43px;
+   padding:10px 12px;margin:7px 0 10px;border:1px solid var(--mud-palette-divider);
+   border-radius:9px;color:var(--mud-palette-text-primary);background:var(--mud-palette-surface);
+   font:500 14px var(--bn-font-title); }
+.recovery-page .recovery-baby-search:focus {outline:2px solid var(--mud-palette-primary);outline-offset:1px;}
+.recovery-page .recovery-credits-panel { background:var(--mud-palette-surface); }
+.recovery-page .recovery-credits-heading { display:flex; align-items:center;justify-content:space-between;
+   gap:13px;flex-wrap:wrap;margin-bottom:12px; }
+.recovery-page .recovery-credits-heading strong { font:700 16px var(--bn-font-title); }
+.recovery-page .recovery-credits-heading p {margin:5px 0 0;font-size:14px;line-height:1.5;}
+.recovery-page .recovery-whatsapp { display:inline-flex;align-items:center;gap:7px;
+   margin-top:11px;min-height:42px;font-size:13px;white-space:normal; }
+.recovery-page .recovery-credits-heading .recovery-whatsapp {margin-top:0;}
+.recovery-page .recovery-card .recovery-person strong {font-size:16px;}
+.recovery-page .recovery-card .recovery-person span {font-size:13px;}
+@media(max-width:620px) { .recovery-page .recovery-credits-heading {align-items:stretch;flex-direction:column;}
+ .recovery-page .recovery-credits-heading .recovery-whatsapp {width:100%;} }

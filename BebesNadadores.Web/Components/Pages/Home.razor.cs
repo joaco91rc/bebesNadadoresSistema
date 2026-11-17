@@ -214,10 +214,23 @@ public partial class Home
                     _ =>
                     {
                         _ = InvokeAsync(
-                            () =>
+                            async () =>
                             {
-                                _ahora = ObtenerAhoraArgentina();
-
+                                var ahora = ObtenerAhoraArgentina();
+                                var otroMes = ahora.Month != _ahora.Month || ahora.Year != _ahora.Year;
+                                _ahora = ahora;
+                                if (otroMes)
+                                {
+                                    try
+                                    {
+                                        _cumpleanios = (await BebeService.ObtenerCumpleaniosMesAsync(
+                                            ahora.Year, ahora.Month)).ToList();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Snackbar.Add(Errores.Mensaje(ex), Severity.Error);
+                                    }
+                                }
                                 StateHasChanged();
                             });
                     },
@@ -293,27 +306,30 @@ public partial class Home
 
             if (bebe is null)
             {
+                Snackbar.Add("No se encontró al bebé para enviar el saludo.", Severity.Warning);
                 return;
             }
 
 
-            var responsable =
-                bebe.Responsables
-                    .FirstOrDefault(x =>
-                        x.EsContactoPrincipal)
-                ??
-                bebe.Responsables
+            // Priorizar un contacto autorizado y con WhatsApp válido.
+            var responsable = bebe.Responsables
+                .OrderByDescending(x => x.EsContactoPrincipal)
+                .FirstOrDefault(x => x.AutorizaComunicaciones
+                    && !string.IsNullOrWhiteSpace(x.WhatsApp))
+                ?? bebe.Responsables.OrderByDescending(x => x.EsContactoPrincipal)
                     .FirstOrDefault();
 
 
             if (responsable is null)
             {
+                Snackbar.Add("Este bebé no tiene un responsable registrado.", Severity.Warning);
                 return;
             }
 
 
             if (!responsable.AutorizaComunicaciones)
             {
+                Snackbar.Add("El responsable no autorizó comunicaciones por WhatsApp.", Severity.Warning);
                 return;
             }
 
@@ -321,6 +337,7 @@ public partial class Home
             if (string.IsNullOrWhiteSpace(
                 responsable.WhatsApp))
             {
+                Snackbar.Add("El responsable no tiene número de WhatsApp registrado.", Severity.Warning);
                 return;
             }
 
@@ -443,8 +460,8 @@ public partial class Home
     private List<CumpleaniosBebeDto>
         CumpleaniosHoy =>
             _cumpleanios
-                .Where(x =>
-                    x.EsHoy)
+                .Where(x => x.FechaNacimiento.Month == _ahora.Month
+                    && x.FechaNacimiento.Day == _ahora.Day)
                 .ToList();
 
 

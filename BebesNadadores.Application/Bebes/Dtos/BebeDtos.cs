@@ -86,6 +86,10 @@ public MedioPago MedioPagoPreferido { get; set; }
     = MedioPago.Transferencia;
 
 public List<Guid> TurnosIds { get; set; } = [];
+
+// Excepción autorizada expresamente por la administrativa. Los cupos siguen visibles.
+public bool PermitirSobrecupo { get; set; }
+public string? MotivoSobrecupo { get; set; }
 public bool DefinirHorarioHabitualAhora { get; set; }
     = true;
 public TipoDescuento? TipoDescuento { get; set; }

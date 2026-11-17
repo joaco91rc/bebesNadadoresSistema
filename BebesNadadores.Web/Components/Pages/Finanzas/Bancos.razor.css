@@ -74,7 +74,7 @@
 
     color: var(--blue);
 
-    font-size: 11px;
+    font-size: 13px;
 
     font-weight: 800;
 
@@ -586,7 +586,7 @@
 
         rgba(214, 243, 255, .68);
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 800;
 
@@ -620,7 +620,7 @@
 
         rgba(222, 240, 248, .59);
 
-    font-size: 13px;
+    font-size: 14px;
 
 }
 
@@ -668,7 +668,7 @@
 
         rgba(220, 239, 248, .62);
 
-    font-size: 11px;
+    font-size: 13px;
 
 }
 
@@ -716,7 +716,7 @@
 
     color: var(--blue);
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 800;
 
@@ -884,7 +884,7 @@
 
         var(--mud-palette-text-secondary, #74828d);
 
-    font-size: 11px;
+    font-size: 13px;
 
 }
 
@@ -1024,7 +1024,7 @@
 
         var(--mud-palette-text-secondary, #657581);
 
-    font-size: 13px;
+    font-size: 14px;
 
 }
 
@@ -1104,7 +1104,7 @@
 
         var(--mud-palette-text-secondary, #72818b);
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -1252,7 +1252,7 @@
 
     gap: 6px;
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 750;
 
@@ -1306,7 +1306,7 @@
 
     color: var(--blue);
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 800;
 
@@ -1342,7 +1342,7 @@
 
         var(--mud-palette-text-secondary, #7c8993);
 
-    font-size: 11px;
+    font-size: 13px;
 
 }
 
@@ -1392,7 +1392,7 @@
 
         var(--mud-palette-text-secondary, #7e8b95);
 
-    font-size: 9px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -1406,7 +1406,7 @@
 
 .account-data strong {
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -1478,7 +1478,7 @@
 
     font-weight: 700;
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -1580,7 +1580,7 @@
 
         var(--mud-palette-text-secondary, #71808b);
 
-    font-size: 13px;
+    font-size: 14px;
 
 }
 
@@ -1684,7 +1684,7 @@
 
     color: var(--blue);
 
-    font-size: 9px;
+    font-size: 12px;
 
     font-weight: 800;
 
@@ -1746,7 +1746,7 @@
 
         var(--mud-palette-text-secondary, #5d6f7c);
 
-    font-size: 11px;
+    font-size: 13px;
 
     font-weight: 720;
 
@@ -1788,7 +1788,7 @@
 
     font: inherit;
 
-    font-size: 13px;
+    font-size: 14px;
 
     transition:
 
@@ -1824,7 +1824,7 @@
 
         var(--mud-palette-text-secondary, #83909a);
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -1934,7 +1934,7 @@
 
 .premium-checkbox strong {
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -1946,7 +1946,7 @@
 
         var(--mud-palette-text-secondary, #7a8993);
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -2070,7 +2070,7 @@
 
         var(--mud-palette-text-secondary, #72818b);
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -2114,7 +2114,7 @@
 
         rgba(218,240,250,.65);
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 750;
 
@@ -2216,7 +2216,7 @@
 
         var(--mud-palette-text-secondary, #76848f);
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -2318,7 +2318,7 @@
 
     text-overflow: ellipsis;
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -2332,13 +2332,13 @@
 
         var(--mud-palette-text-secondary, #788690);
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
 .movement-amount {
 
-    font-size: 13px;
+    font-size: 14px;
 
     white-space: nowrap;
 
@@ -2592,7 +2592,7 @@
 
     .eyebrow {
         margin-bottom: 4px;
-        font-size: 9px;
+        font-size: 12px;
         letter-spacing: 1.5px;
     }
 
@@ -2604,7 +2604,7 @@
     .header-copy p {
         max-width: 570px;
         margin-top: 6px;
-        font-size: 12px;
+        font-size: 14px;
         line-height: 1.5;
     }
 
@@ -2614,7 +2614,7 @@
         padding: 0 12px;
         gap: 5px;
         border-radius: 10px;
-        font-size: 11px;
+        font-size: 13px;
     }
 
     /* HERO */
@@ -2649,7 +2649,7 @@
 
     .hero-label {
         margin-bottom: 4px;
-        font-size: 9px;
+        font-size: 12px;
         letter-spacing: 1.35px;
     }
 
@@ -2660,7 +2660,7 @@
 
     .hero-caption {
         margin-top: 5px;
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .hero-stats {
@@ -2674,7 +2674,7 @@
 
     .hero-stats span {
         margin-bottom: 4px;
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .hero-stats strong {
@@ -2694,7 +2694,7 @@
 
     .section-heading > div > span {
         margin-bottom: 2px;
-        font-size: 8px;
+        font-size: 12px;
         letter-spacing: 1.4px;
     }
 
@@ -2703,7 +2703,7 @@
     }
 
     .text-action {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     /* BANCOS CONFIGURADOS */
@@ -2728,12 +2728,12 @@
     }
 
     .bank-pill-copy strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .bank-pill-copy span {
         margin-top: 2px;
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .bank-pill-actions button {
@@ -2755,12 +2755,12 @@
         padding: 0 10px;
         gap: 7px;
         border-radius: 10px;
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .inactive-toggle {
         gap: 7px;
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .toggle-ui {
@@ -2780,7 +2780,7 @@
     }
 
     .account-count {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     /* GRID DE CUENTAS
@@ -2825,7 +2825,7 @@
 
     .account-status {
         gap: 4px;
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .account-status span {
@@ -2843,7 +2843,7 @@
 
     .account-bank {
         margin-top: 12px;
-        font-size: 8px;
+        font-size: 12px;
         letter-spacing: 1px;
     }
 
@@ -2859,7 +2859,7 @@
 
     .account-balance span {
         margin-bottom: 2px;
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .account-balance strong {
@@ -2883,13 +2883,13 @@
     .account-details span,
     .account-data span {
         margin-bottom: 3px;
-        font-size: 8px;
+        font-size: 12px;
         letter-spacing: .5px;
     }
 
     .account-details strong,
     .account-data strong {
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1.35;
     }
 
@@ -2916,7 +2916,7 @@
         padding: 0 9px;
         gap: 5px;
         border-radius: 8px;
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .icon-action {
@@ -2930,7 +2930,7 @@
     .empty-inline {
         padding: 11px 13px;
         border-radius: 11px;
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .empty-state {
@@ -2951,7 +2951,7 @@
     }
 
     .empty-state p {
-        font-size: 11px;
+        font-size: 13px;
     }
 }
 
@@ -2963,7 +2963,7 @@
 @media (min-width: 781px) and (max-width: 1160px) {
 
     .eyebrow {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .header-copy h1 {
@@ -2971,33 +2971,33 @@
     }
 
     .header-copy p {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .hero-label,
     .hero-stats span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .section-heading > div > span {
-        font-size: 8px;
+        font-size: 12px;
     }
 
     .bank-pill-copy strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .bank-pill-copy span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .search-box,
     .inactive-toggle {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .account-bank {
-        font-size: 8px;
+        font-size: 12px;
     }
 
     .account-card h3 {
@@ -3005,7 +3005,7 @@
     }
 
     .account-balance span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .account-balance strong {
@@ -3014,16 +3014,16 @@
 
     .account-details span,
     .account-data span {
-        font-size: 8px;
+        font-size: 12px;
     }
 
     .account-details strong,
     .account-data strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .account-main-action {
-        font-size: 10px;
+        font-size: 13px;
     }
 }
 
@@ -3033,7 +3033,7 @@
   padding: 11px 13px; margin: 12px 0; border-radius: 11px;
   border: 1px solid rgba(48, 184, 239, .3);
   background: rgba(48, 184, 239, .09);
-  color: var(--mud-palette-text-primary); font-size: 12px; font-weight: 650;
+  color: var(--mud-palette-text-primary); font-size: 14px; font-weight: 650;
 }
 .account-payments-counter.is-at-limit {
   background: rgba(255, 174, 66, .13); border-color: rgba(225, 146, 47, .5);

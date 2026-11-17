@@ -25,10 +25,10 @@
 
     /* Escala tipográfica base */
 
-    --bn-text-xs: 11px;
-    --bn-text-sm: 12px;
-    --bn-text-md: 14px;
-    --bn-text-lg: 16px;
+    --bn-text-xs: 12px;
+    --bn-text-sm: 14px;
+    --bn-text-md: 15px;
+    --bn-text-lg: 17px;
 
     --bn-title-sm: 18px;
     --bn-title-md: 24px;
@@ -172,7 +172,7 @@ button {
 input,
 select,
 textarea {
-    font-size: 13px;
+    font-size: 15px;
 }
 
 

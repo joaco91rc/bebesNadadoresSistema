@@ -1301,6 +1301,24 @@ else if (_form.MedioPagoInicial.IngresaACaja())
     </div>
 }
 
+
+<div class="capacity-override @(_form.PermitirSobrecupo ? "capacity-override-active" : "")">
+    <label class="capacity-override-toggle">
+        <input type="checkbox" @bind="_form.PermitirSobrecupo" />
+        <span><strong>Permitir sobrecupo (autorización administrativa)</strong>
+            <small>Los lugares disponibles son informativos. Activá esta opción únicamente si necesitás inscribir en un horario completo.</small></span>
+    </label>
+    @if (_form.PermitirSobrecupo)
+    {
+        <div class="capacity-override-reason">
+            <label>Motivo de la excepción *</label>
+            <input type="text" maxlength="300" @bind="_form.MotivoSobrecupo"
+                   placeholder="Ej.: autorización de coordinación" />
+            <small>Se guardará en las observaciones de la inscripción.</small>
+        </div>
+    }
+</div>
+
 @* =================================================
    MODALIDAD DE HORARIO
    ================================================= *@
@@ -1741,9 +1759,9 @@ else if (_form.MedioPagoInicial.IngresaACaja())
 
                                                                    ? "full"
 
-                                                                   : "")"
+                                                                   : "") @(sinCupo && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
 
-                                                        disabled="@sinCupo"
+                                                        disabled="@(sinCupo && !_form.PermitirSobrecupo)"
 
                                                         @onclick="() => AlternarTurno(turno)">
 
@@ -1869,12 +1887,13 @@ else if (_form.MedioPagoInicial.IngresaACaja())
             <div class="discount-toggle-text">
 
                 <strong>
-                    La primera clase será en otro horario
+                    Primera clase en un horario diferente al fijo
                 </strong>
 
                 <span>
-                    Activá esta opción sólo si tendrá un horario habitual,
-                    pero comenzará excepcionalmente en otra clase.
+                    El cupo semanal queda guardado desde hoy, pero su primera clase
+                    será en otro día u horario. A partir de la siguiente clase
+                    asistirá a su turno fijo.
                 </span>
 
             </div>
@@ -1898,8 +1917,9 @@ else if (_form.MedioPagoInicial.IngresaACaja())
                         </h3>
 
                         <p>
-                            Esta selección reserva solamente una clase concreta.
-                            No modifica por sí sola el horario habitual.
+                            Elegí una clase de su mismo nivel pero de otro turno.
+                            En Turnera y Asistencia no figurará en su horario fijo
+                            hasta después de esta primera clase.
                         </p>
 
                     </div>
@@ -1939,7 +1959,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
 
                     </div>
                 }
-                else if (_sesionesIniciales.Count == 0)
+                else if (!SesionesPrimeraClaseVisibles.Any())
                 {
                     <div class="schedule-empty">
 
@@ -1964,7 +1984,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
                     <div class="initial-classes">
 
                         @foreach (var grupo in
-                            _sesionesIniciales
+                            SesionesPrimeraClaseVisibles
                                 .GroupBy(x => x.Fecha)
                                 .OrderBy(x => x.Key))
                         {
@@ -1997,7 +2017,8 @@ else if (_form.MedioPagoInicial.IngresaACaja())
                                             sesion.Id;
 
                                         <button type="button"
-                                                class="schedule-option @(seleccionada ? "selected" : "")"
+                                                class="schedule-option @(seleccionada ? "selected" : "") @(sesion.Vacantes <= 0 ? "full" : "") @(sesion.Vacantes <= 0 && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
+                                                disabled="@(sesion.Vacantes <= 0 && !_form.PermitirSobrecupo && !seleccionada)"
                                                 @onclick="() => SeleccionarSesionInicial(sesion)">
 
                                             <div class="schedule-option-check">
@@ -2193,7 +2214,8 @@ else
                                     sesion.Id;
 
                                 <button type="button"
-                                        class="schedule-option @(seleccionada ? "selected" : "")"
+                                        class="schedule-option @(seleccionada ? "selected" : "") @(sesion.Vacantes <= 0 ? "full" : "") @(sesion.Vacantes <= 0 && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
+                                        disabled="@(sesion.Vacantes <= 0 && !_form.PermitirSobrecupo && !seleccionada)"
                                         @onclick="() => SeleccionarSesionInicial(sesion)">
 
                                     <div class="schedule-option-check">

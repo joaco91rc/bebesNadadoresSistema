@@ -35,7 +35,7 @@
 
     background: transparent;
 
-    font-size: 9px;
+    font-size: 12px;
 
     cursor: pointer;
 }
@@ -49,7 +49,7 @@
     color:
         var(--mud-palette-primary);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -69,7 +69,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -122,7 +122,7 @@
     background:
         rgba(72, 211, 159, .07);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -262,7 +262,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -300,7 +300,7 @@
 .class-main h3 {
     margin: 2px 0 0;
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -325,7 +325,7 @@
 
     background: transparent;
 
-    font-size: 8px;
+    font-size: 12px;
 
     cursor: pointer;
 }
@@ -385,13 +385,13 @@
     background:
         rgba(44, 196, 233, .08);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 }
 
 
 .teacher-data strong {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -450,7 +450,7 @@
 
     border-radius: 8px;
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -500,7 +500,7 @@
 
     gap: 5px;
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -540,7 +540,7 @@
 
     border-radius: 10px;
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -618,7 +618,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -645,7 +645,7 @@
 
     text-align: left;
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -695,7 +695,7 @@
 .replacement-header span {
     color: #ff878f;
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -750,7 +750,7 @@
 .absent-teacher strong {
     margin-top: 4px;
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -779,7 +779,7 @@
 
 
 .replacement-field label {
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -808,7 +808,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 
     line-height: 1.4;
 }
@@ -895,7 +895,7 @@
 
 
 .correction-current strong {
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -915,7 +915,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -943,7 +943,7 @@
 
     border-radius: 10px;
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;

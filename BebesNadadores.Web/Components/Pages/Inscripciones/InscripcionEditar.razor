@@ -892,6 +892,25 @@
                 </div>
 
 
+
+<div class="capacity-override @(_form.PermitirSobrecupo ? "capacity-override-active" : "")">
+    <label class="capacity-override-toggle">
+        <input type="checkbox" @bind="_form.PermitirSobrecupo" />
+        <span><strong>Permitir sobrecupo (autorización administrativa)</strong>
+            <small>Los lugares disponibles son informativos. Activá esta opción únicamente si necesitás inscribir en un horario completo.</small></span>
+    </label>
+    @if (_form.PermitirSobrecupo)
+    {
+        <div class="capacity-override-reason">
+            <label>Motivo de la excepción *</label>
+            <input type="text" maxlength="300" @bind="_form.MotivoSobrecupo"
+                   placeholder="Ej.: autorización de coordinación" />
+            <small>Se guardará en las observaciones de la inscripción.</small>
+        </div>
+    }
+</div>
+
+
                 @* =================================================
                    SIN NIVEL
                    ================================================= *@
@@ -1024,8 +1043,8 @@
                                                            : "")
                                                        @(esActual
                                                            ? "current"
-                                                           : "")"
-                                                disabled="@sinCupo"
+                                                           : "") @(turno.Disponibles <= 0 && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
+                                                disabled="@(sinCupo && !_form.PermitirSobrecupo)"
                                                 @onclick="() => AlternarTurno(turno)">
 
                                             <div class="schedule-option-check">

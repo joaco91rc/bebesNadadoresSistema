@@ -36,7 +36,7 @@
     background:
         transparent;
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 600;
 
     cursor: pointer;
@@ -58,7 +58,7 @@
     color:
         var(--mud-palette-primary);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -86,7 +86,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -113,7 +113,7 @@
 
     border-radius: 10px;
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -214,7 +214,7 @@ button:disabled {
 
     border-radius: 11px;
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -526,7 +526,7 @@ button:disabled {
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -558,7 +558,7 @@ button:disabled {
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -590,7 +590,7 @@ button:disabled {
     background:
         rgba(255, 255, 255, .018);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -682,7 +682,7 @@ button:disabled {
         0
         8px;
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -827,7 +827,7 @@ button:disabled {
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -888,7 +888,7 @@ button:disabled {
     background:
         rgba(239, 91, 91, .055);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -966,7 +966,7 @@ button:disabled {
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -984,7 +984,7 @@ button:disabled {
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
 }
 

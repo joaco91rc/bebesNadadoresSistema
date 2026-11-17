@@ -26,6 +26,7 @@ public sealed class InscripcionService(
         CambiarInscripcionDto dto,
         CancellationToken ct = default)
     {
+        ValidarAutorizacionSobrecupo(dto);
         return ReintentoTransaccional.EjecutarAsync(
             () => CambiarInternoAsync(
                 bebeId,
@@ -34,6 +35,15 @@ public sealed class InscripcionService(
             ct);
     }
 
+
+    private static void ValidarAutorizacionSobrecupo(CambiarInscripcionDto dto)
+    {
+        if (dto.PermitirSobrecupo && string.IsNullOrWhiteSpace(dto.MotivoSobrecupo))
+            throw new InvalidOperationException("Indicá el motivo para autorizar un sobrecupo.");
+    }
+
+    private static string DescripcionSobrecupo(CambiarInscripcionDto dto) =>
+        $"Sobrecupo autorizado: {dto.MotivoSobrecupo!.Trim()}";
 
     private async Task CambiarInternoAsync(
         Guid bebeId,
@@ -282,7 +292,7 @@ public sealed class InscripcionService(
 
 
             if (ocupados >=
-                turno.Cupo)
+                turno.Cupo && !dto.PermitirSobrecupo)
             {
                 throw new InvalidOperationException(
                     $"El turno {turno.DiaSemana} " +
@@ -456,7 +466,10 @@ if (
     actual.MotivoDescuento =
         Normalizar(
             dto.MotivoDescuento);
-
+    if (dto.PermitirSobrecupo)
+        actual.Observaciones = string.IsNullOrWhiteSpace(actual.Observaciones)
+            ? DescripcionSobrecupo(dto)
+            : actual.Observaciones + " | " + DescripcionSobrecupo(dto);
 
     // =====================================================
     // SINCRONIZAR TURNOS
@@ -588,7 +601,8 @@ if (
 
                 MotivoDescuento =
                     Normalizar(
-                        dto.MotivoDescuento)
+                        dto.MotivoDescuento),
+                Observaciones = dto.PermitirSobrecupo ? DescripcionSobrecupo(dto) : null
             };
 
 
@@ -637,6 +651,7 @@ if (
         CambiarInscripcionDto dto,
         CancellationToken ct = default)
     {
+        ValidarAutorizacionSobrecupo(dto);
         await ReintentoTransaccional.EjecutarAsync(
             () => CrearPrimeraInternoAsync(
                 bebeId,
@@ -1013,7 +1028,7 @@ if (
 
 
         if (ocupados >=
-            turno.Cupo)
+            turno.Cupo && !dto.PermitirSobrecupo)
         {
             throw new InvalidOperationException(
                 $"El turno {turno.DiaSemana} " +
@@ -1137,7 +1152,8 @@ if (
 
                     ? dto.MotivoDescuento.Trim()
 
-                    : null
+                    : null,
+            Observaciones = dto.PermitirSobrecupo ? DescripcionSobrecupo(dto) : null
         };
 
 

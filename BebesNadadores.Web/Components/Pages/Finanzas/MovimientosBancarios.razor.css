@@ -64,7 +64,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 800;
 
@@ -104,7 +104,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -172,7 +172,7 @@
 
 
 
-    font-size: 10px;
+    font-size: 13px;
 
     font-weight: 750;
 
@@ -522,7 +522,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -578,7 +578,7 @@
 
     font: inherit;
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -674,7 +674,7 @@
 
     font: inherit;
 
-    font-size: 9px;
+    font-size: 12px;
 
     font-weight: 750;
 
@@ -832,7 +832,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -964,7 +964,7 @@
 
 .movement-description strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -1100,7 +1100,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -1122,7 +1122,7 @@
 
 .movement-amount {
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -1274,7 +1274,7 @@
 
 .empty-state strong {
 
-    font-size: 11px;
+    font-size: 13px;
 
 }
 
@@ -1288,7 +1288,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -1326,7 +1326,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -1664,7 +1664,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -1722,7 +1722,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
     line-height: 1.5;
 
@@ -1756,7 +1756,7 @@
 
 
 
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -1862,7 +1862,7 @@
 
 .associated-person strong {
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -1882,7 +1882,7 @@
 
 
 
-    font-size: 8px;
+    font-size: 12px;
 
 }
 
@@ -1964,7 +1964,7 @@
 
 
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2050,7 +2050,7 @@
 
 .allocation-row > strong {
 
-    font-size: 9px;
+    font-size: 12px;
 
 }
 
@@ -2158,7 +2158,7 @@
 
 @media (min-width: 651px) {
     .page-eyebrow {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .bank-header h1 {
@@ -2166,16 +2166,16 @@
     }
 
     .bank-header p {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .secondary-action {
         min-height: 41px;
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .bank-summary small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .bank-summary strong {
@@ -2183,23 +2183,23 @@
     }
 
     .bank-summary article > div > span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .filter-field label {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .filter-field input,
     .filter-field select {
         height: 40px;
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .apply-action,
     .clear-action {
         min-height: 40px;
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .table-toolbar h2 {
@@ -2207,38 +2207,38 @@
     }
 
     .result-count {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .movement-row.table-header {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .movement-date strong,
     .movement-description strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .movement-date small,
     .movement-description small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .origin-badge {
         padding: 5px 8px;
-        font-size: 9px;
-    }
-
-    .reference-text {
-        font-size: 10px;
-    }
-
-    .movement-amount {
         font-size: 12px;
     }
 
+    .reference-text {
+        font-size: 13px;
+    }
+
+    .movement-amount {
+        font-size: 14px;
+    }
+
     .detail-header span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .detail-header h2 {
@@ -2246,7 +2246,7 @@
     }
 
     .detail-amount small {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .detail-amount strong {
@@ -2255,12 +2255,12 @@
 
     .detail-grid span,
     .detail-label {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .detail-grid strong,
     .detail-section p {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .section-title h3 {
@@ -2268,31 +2268,31 @@
     }
 
     .linked-badge {
-        font-size: 9px;
-    }
-
-    .associated-person strong {
         font-size: 12px;
     }
 
+    .associated-person strong {
+        font-size: 14px;
+    }
+
     .associated-person small {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .payment-info-grid span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .payment-info-grid strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .allocation-row > div > span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .allocation-row > div > strong,
     .allocation-row > strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 }

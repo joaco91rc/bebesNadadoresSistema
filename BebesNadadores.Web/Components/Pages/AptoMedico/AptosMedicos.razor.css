@@ -16,7 +16,7 @@
 .modal-eyebrow {
     color: var(--mud-palette-primary);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 850;
     letter-spacing: 1.25px;
 }
@@ -35,7 +35,7 @@
     max-width: 660px;
     margin: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.5;
 }
 
@@ -56,7 +56,7 @@
     gap: 6px;
     border-radius: 9px;
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
     cursor: pointer;
     transition: .18s ease;
@@ -94,7 +94,7 @@
     align-items: center;
     gap: 8px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .message-box>span {
@@ -180,7 +180,7 @@
 .summary-card span:not(.summary-icon) {
     margin-top: 4px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -235,7 +235,7 @@
     color: var(--mud-palette-text-secondary);
     background: transparent;
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 750;
     cursor: pointer;
 }
@@ -300,7 +300,7 @@
     width: auto;
     padding: 0 11px;
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 750;
 }
 
@@ -340,7 +340,7 @@
 
 .time-pill small {
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .time-pill.current {
@@ -440,7 +440,7 @@
 
 .class-heading>div>span {
     color: var(--mud-palette-primary);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 750;
 }
 
@@ -448,14 +448,14 @@
     margin: 2px 0 2px;
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 760;
 }
 
 .class-heading p {
     margin: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .class-count {
@@ -468,7 +468,7 @@
     color: var(--mud-palette-primary);
     background: rgba(47, 195, 235, .07);
     font-family: var(--bn-font-title);
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .medical-students {
@@ -498,7 +498,7 @@
     color: var(--mud-palette-primary);
     background: rgba(47, 195, 235, .08);
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 850;
 }
 
@@ -516,7 +516,7 @@
 .student-data strong {
     overflow: hidden;
     color: var(--mud-palette-text-primary);
-    font-size: 10px;
+    font-size: 13px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -524,7 +524,7 @@
 .student-data span {
     margin-top: 2px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .medical-status {
@@ -574,7 +574,7 @@
     color: var(--mud-palette-primary);
     background: rgba(47, 195, 235, .045);
     font-family: var(--bn-font-title);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
     cursor: pointer;
 }
@@ -592,7 +592,7 @@
 .empty-class {
     padding: 10px 14px 14px;
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 /* ============================================================
@@ -650,7 +650,7 @@
     outline: 0;
     color: var(--mud-palette-text-primary);
     background: transparent;
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .filter-field {
@@ -679,7 +679,7 @@
     color: var(--mud-palette-text-primary);
     background: var(--mud-palette-surface);
     font-family: var(--bn-font-body);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .filter-field select,
@@ -704,7 +704,7 @@
     border-radius: 9px;
     color: var(--mud-palette-text-secondary);
     background: var(--mud-palette-surface);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 750;
     cursor: pointer;
 }
@@ -733,7 +733,7 @@
     padding: 10px 13px;
     border-top: 1px solid var(--mud-palette-divider);
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .table-person {
@@ -750,12 +750,12 @@
 .table-person strong,
 .medical-table td>strong {
     color: var(--mud-palette-text-primary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .table-person span {
     margin-top: 2px;
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .table-actions {
@@ -775,7 +775,7 @@
     justify-content: center;
     gap: 7px;
     color: var(--mud-palette-text-secondary);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .empty-icon {
@@ -791,7 +791,7 @@
 .empty-state strong {
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .empty-state span {
@@ -845,7 +845,7 @@
 .modal-header p {
     margin: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .modal-close {
@@ -888,7 +888,7 @@
     color: var(--mud-palette-primary);
     background: rgba(47, 195, 235, .09);
     font-family: var(--bn-font-title);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 850;
 }
 
@@ -913,7 +913,7 @@
     overflow: hidden;
     color: var(--mud-palette-text-primary);
     font-family: var(--bn-font-title);
-    font-size: 13px;
+    font-size: 14px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -921,7 +921,7 @@
 .patient-profile small {
     margin-top: 2px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .patient-data-grid {
@@ -948,7 +948,7 @@
 .patient-data-grid strong {
     margin-top: 3px;
     color: var(--mud-palette-text-primary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .current-medical-card,
@@ -967,7 +967,7 @@
 .current-medical-card p {
     margin: 4px 0 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .current-medical-card p strong {
@@ -980,7 +980,7 @@
     border-radius: 8px;
     color: var(--mud-palette-text-secondary);
     background: color-mix(in srgb, var(--mud-palette-surface) 94%, var(--mud-palette-primary) 6%);
-    font-size: 8px;
+    font-size: 12px;
     line-height: 1.45;
 }
 
@@ -993,7 +993,7 @@
 .history-title strong {
     color: var(--mud-palette-primary);
     font-family: var(--bn-font-title);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .history-loading,
@@ -1003,7 +1003,7 @@
     align-items: center;
     gap: 5px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .history-list {
@@ -1029,7 +1029,7 @@
 
 .history-item strong {
     color: var(--mud-palette-text-primary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .history-item span:not(.result-badge) {
@@ -1076,7 +1076,7 @@
 .form-section-heading p {
     margin: 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .result-options {
@@ -1109,11 +1109,11 @@
 
 .result-option strong {
     font-family: var(--bn-font-title);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .result-option span {
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .result-option:hover,
@@ -1166,7 +1166,7 @@
     border-radius: 9px;
     color: #ff8f9a;
     background: rgba(244, 95, 111, .055);
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .medical-note {
@@ -1178,7 +1178,7 @@
     border-radius: 9px;
     color: var(--mud-palette-text-secondary);
     background: rgba(47, 195, 235, .045);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .modal-actions {

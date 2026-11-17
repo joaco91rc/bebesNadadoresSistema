@@ -24,14 +24,14 @@
 .page-header p {
     margin: 5px 0 0;
     color: var(--mud-palette-text-secondary);
-    font-size: 10px;
+    font-size: 13px;
 }
 
 .page-eyebrow {
     display: block;
     margin-bottom: 4px;
     color: var(--blue);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: 1.3px;
 }
@@ -48,7 +48,7 @@
     color: white;
     background: linear-gradient(135deg, #159fd8, #38c3eb);
     cursor: pointer;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -89,7 +89,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .provider-kpis {
@@ -157,7 +157,7 @@
     border-radius: 12px;
     color: #0c86b5;
     background: rgba(40,175,226,.09);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
 }
 
@@ -172,13 +172,13 @@
 }
 
 .provider-title strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .provider-title span {
     margin-top: 2px;
     color: var(--mud-palette-text-secondary);
-    font-size: 8px;
+    font-size: 12px;
 }
 
 .status-badge {
@@ -222,7 +222,7 @@
 
 .provider-data strong {
     margin-top: 2px;
-    font-size: 9px;
+    font-size: 12px;
 }
 
 .provider-footer {
@@ -245,7 +245,7 @@
     color: #0985b5;
     background: rgba(40,175,226,.07);
     cursor: pointer;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -315,7 +315,7 @@
 .form-field label {
     display: block;
     margin-bottom: 5px;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -401,25 +401,25 @@
     }
 
     .page-eyebrow {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .primary-action {
         min-height: 43px;
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .search-box input {
         height: 42px;
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .inactive-toggle {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .provider-kpis span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .provider-kpis strong {
@@ -427,32 +427,32 @@
     }
 
     .provider-avatar {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .provider-title strong {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .provider-title span {
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .status-badge {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .provider-data span {
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .provider-data strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .payment-action {
         min-height: 37px;
-        font-size: 10px;
+        font-size: 13px;
     }
 
     .modal-header h2 {
@@ -460,24 +460,24 @@
     }
 
     .form-field label {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .form-field input,
     .form-field textarea {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .cancel-action {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .loading-state,
     .empty-state {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     .page-message.error {
-        font-size: 11px;
+        font-size: 13px;
     }
 }

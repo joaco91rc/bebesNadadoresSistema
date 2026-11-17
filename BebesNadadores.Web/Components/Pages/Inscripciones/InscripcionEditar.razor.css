@@ -69,7 +69,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 
     letter-spacing: 1.2px;
@@ -97,7 +97,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -170,7 +170,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -212,7 +212,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -252,7 +252,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -304,7 +304,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 }
 
@@ -332,7 +332,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -368,7 +368,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -403,7 +403,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -418,7 +418,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -458,7 +458,7 @@
     color:
         var(--mud-palette-primary);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -482,7 +482,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -598,7 +598,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -608,7 +608,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -651,7 +651,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 }
 
 
@@ -661,7 +661,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 12px;
+    font-size: 14px;
 }
 
 
@@ -717,7 +717,7 @@
     color:
         var(--mud-palette-primary);
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
 }
 
@@ -743,7 +743,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -814,7 +814,7 @@
     color:
         var(--mud-palette-text-primary);
 
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
 }
 
@@ -823,7 +823,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -920,7 +920,7 @@
 
 
 .schedule-option-time strong {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 
@@ -930,7 +930,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
@@ -955,7 +955,7 @@
 .schedule-option-capacity strong {
     color: #55dca6;
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -979,7 +979,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 10px;
+    font-size: 13px;
 }
 
 
@@ -1071,7 +1071,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
 
     cursor: pointer;
@@ -1245,7 +1245,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -1261,7 +1261,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1276,7 +1276,28 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 9px;
+    font-size: 12px;
 
     line-height: 1.45;
 }
+
+/* Autorización explícita de sobrecupo. Mantiene todos los horarios visibles. */
+.capacity-override { margin:14px 0 18px; border:1px solid var(--mud-palette-divider);
+    border-radius:14px; padding:16px 18px; background:var(--mud-palette-surface); }
+.capacity-override-active { border-color:rgba(235,155,45,.6);
+    background:color-mix(in srgb, var(--mud-palette-surface) 92%, #ffb13b 8%); }
+.capacity-override-toggle { display:flex;gap:13px;align-items:flex-start;cursor:pointer; }
+.capacity-override-toggle input[type=checkbox] { width:20px;height:20px;flex:0 0 20px;accent-color:#e29b29;margin-top:2px; }
+.capacity-override-toggle > span { display:flex; flex-direction:column;gap:5px; }
+.capacity-override-toggle strong { font-size:15px;color:var(--mud-palette-text-primary); }
+.capacity-override-toggle small,.capacity-override-reason small { font-size:13px;line-height:1.55;color:var(--mud-palette-text-secondary); }
+.capacity-override-reason {display:flex;flex-direction:column;gap:7px;margin:15px 0 0 33px;max-width:600px;}
+.capacity-override-reason label {font-weight:700;font-size:14px;color:var(--mud-palette-text-primary);}
+.capacity-override-reason input {min-height:42px;width:100%;padding:10px 12px;
+    background:var(--mud-palette-background);color:var(--mud-palette-text-primary);
+    border:1px solid var(--mud-palette-lines-default, var(--mud-palette-divider));border-radius:9px;}
+.schedule-option.overcapacity-enabled {border-color:rgba(235,155,45,.8)!important;}
+@media(max-width:650px){.capacity-override-reason{margin-left:0;}}
+
+/* Una tarjeta completa habilitada administrativamente debe seguir legible y seleccionable. */
+.schedule-option.full.overcapacity-enabled, .schedule-option.overcapacity-enabled { opacity:1;cursor:pointer; }

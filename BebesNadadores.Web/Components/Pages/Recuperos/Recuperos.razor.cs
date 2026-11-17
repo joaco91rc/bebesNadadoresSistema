@@ -3,6 +3,11 @@ using BebesNadadores.Application.Recuperos;
 using BebesNadadores.Application.Recuperos.Dtos;
 using BebesNadadores.Domain.Enums;
 using Microsoft.AspNetCore.Components;
+using BebesNadadores.Application.Comunicaciones;
+using BebesNadadores.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
+
 
 namespace BebesNadadores.Web.Components.Pages.Recuperos;
 
@@ -17,6 +22,15 @@ public partial class Recuperos : ComponentBase
 
     [Inject]
     protected NavigationManager Navigation { get; set; } = null!;
+
+    [Inject]
+    protected IWhatsAppService WhatsAppService { get; set; } = null!;
+
+    [Inject]
+    protected IJSRuntime JS { get; set; } = null!;
+
+    [Inject]
+    protected IDbContextFactory<AppDbContext> DbFactory { get; set; } = null!;
 
     // =========================================================
     // ESTADO
@@ -33,6 +47,16 @@ public partial class Recuperos : ComponentBase
     protected string? _mensaje;
 
     protected string _busqueda = string.Empty;
+
+    protected string _consultaAlumno = string.Empty;
+
+    protected IEnumerable<IGrouping<Guid, RecuperacionActivaDto>> AlumnosConRecuperos =>
+        (_panel?.Recuperos ?? [])
+            .Where(x => x.Estado == EstadoRecuperacion.Disponible)
+            .GroupBy(x => x.BebeId)
+            .Where(g => string.IsNullOrWhiteSpace(_consultaAlumno)
+                || g.First().Bebe.Contains(_consultaAlumno.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(g => g.First().Bebe);
 
     protected Guid? _nivelFiltroId;
 
@@ -217,6 +241,67 @@ public partial class Recuperos : ComponentBase
         _respetarDiaPreferido = false;
 
         _nivelFiltroId = null;
+    }
+
+    /// <summary>
+    /// Abre WhatsApp con un recordatorio redactado. El envío real lo confirma
+    /// la administrativa: no hay mensajes automáticos ni envío masivo.
+    /// </summary>
+    protected async Task RecordarRecuperosWhatsAppAsync(Guid bebeId)
+    {
+        try
+        {
+            _error = null;
+            var disponibles = _panel?.Recuperos
+                .Where(x => x.BebeId == bebeId && x.Estado == EstadoRecuperacion.Disponible)
+                .OrderBy(x => x.FechaVencimiento ?? DateOnly.MaxValue)
+                .ToList() ?? [];
+            if (disponibles.Count == 0)
+            {
+                _error = "Este alumno no tiene recuperos disponibles para recordar.";
+                return;
+            }
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var contactos = await db.BebesResponsables.AsNoTracking()
+                .Where(x => x.BebeId == bebeId && x.AutorizaComunicaciones
+                            && x.Responsable.Activo)
+                .Select(x => new
+                {
+                    x.EsContactoPrincipal,
+                    x.Responsable.Nombre,
+                    x.Responsable.WhatsApp
+                }).ToListAsync();
+            var contacto = contactos
+                .Where(x => !string.IsNullOrWhiteSpace(x.WhatsApp))
+                .OrderByDescending(x => x.EsContactoPrincipal)
+                .FirstOrDefault();
+            if (contacto is null)
+            {
+                _error = $"No hay un responsable de {disponibles[0].Bebe} con WhatsApp y autorización para comunicaciones.";
+                return;
+            }
+
+            var cantidad = disponibles.Count;
+            var textoCantidad = cantidad == 1 ? "una clase pendiente de recupero" : $"{cantidad} clases pendientes de recupero";
+            var proximoVencimiento = disponibles
+                .Where(x => !x.SinVencimiento && x.FechaVencimiento.HasValue)
+                .Select(x => x.FechaVencimiento!.Value)
+                .DefaultIfEmpty(DateOnly.MaxValue).Min();
+            var textoVencimiento = proximoVencimiento == DateOnly.MaxValue
+                ? "" : $"\n📅 El recupero más próximo vence el {proximoVencimiento:dd/MM/yyyy}.";
+            var mensaje = $"¡Hola {contacto.Nombre}! 👋\n\n" +
+                $"Desde Bebés Nadadores te recordamos que {disponibles[0].Bebe} tiene {textoCantidad}." +
+                textoVencimiento +
+                "\n\n🏊 Escribinos para coordinar un horario con cupo y aprovechar los recuperos pendientes.\n\n¡Muchas gracias!\nBebés Nadadores";
+
+            var url = WhatsAppService.CrearUrl(contacto.WhatsApp, mensaje);
+            await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
+        }
+        catch (Exception ex)
+        {
+            _error = Errores.Mensaje(ex);
+        }
     }
 
     protected int LugaresDisponiblesVisibles => VacantesVisibles.Sum(x => x.VacantesParaRecupero);
