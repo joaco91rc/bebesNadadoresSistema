@@ -32,6 +32,7 @@ public sealed class BebeService(
 
         var query = db
             .Bebes.AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.NivelActual)
             .Include(x => x.Responsables)
                 .ThenInclude(x => x.Responsable)

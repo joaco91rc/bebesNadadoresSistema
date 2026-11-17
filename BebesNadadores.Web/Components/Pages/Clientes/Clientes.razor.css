@@ -1603,3 +1603,5 @@
     }
 
 }
+.babies-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:24px 0 12px;padding:16px 19px;background:var(--mud-palette-surface);border:1px solid var(--mud-palette-lines-default);border-radius:13px;color:var(--mud-palette-text-primary)}
+.babies-pagination>div{display:flex;gap:15px;align-items:center;flex-wrap:wrap}.babies-pagination button{border:1px solid var(--mud-palette-primary);border-radius:9px;padding:10px 18px;font-weight:750;background:transparent;color:var(--mud-palette-primary);cursor:pointer}.babies-pagination button:disabled{cursor:not-allowed;opacity:.4}

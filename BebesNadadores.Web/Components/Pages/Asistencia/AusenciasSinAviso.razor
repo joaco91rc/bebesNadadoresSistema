@@ -34,7 +34,7 @@
     <section class="aus-summary">
         <div><small>Ausencias sin aviso</small><strong>@Filtradas.Count</strong></div>
         <div><small>Alumnos diferentes</small><strong>@Filtradas.Select(x => x.BebeId).Distinct().Count()</strong></div>
-        <div><small>Con contacto autorizado</small><strong>@Filtradas.Count(x => !string.IsNullOrWhiteSpace(x.Telefono))</strong></div>
+        <div><small>Recordatorios marcados como enviados</small><strong>@Filtradas.Count(x => _enviados.Contains(x.AsistenciaId))</strong></div>
     </section>
 
     <section class="aus-filter">
@@ -82,8 +82,19 @@
                     </div>
                     <div class="aus-actions">
                         <a href="@($"/asistencia?sesionId={item.SesionId}")" class="aus-button subtle">Ver asistencia</a>
-                        <button type="button" class="aus-button primary" disabled="@string.IsNullOrWhiteSpace(item.Telefono)"
-                            @onclick="() => AbrirWhatsAppAsync(item)">Enviar recordatorio por WhatsApp</button>
+                        @if (_enviados.Contains(item.AsistenciaId))
+                        {
+                            <span class="aus-sent" title="Confirmado manualmente por personal del natatorio">✓ Mensaje enviado</span>
+                            <button type="button" class="aus-button subtle" disabled="@_guardandoEnvio"
+                                @onclick="() => CambiarMarcaEnvioAsync(item.AsistenciaId, false)">Desmarcar</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="aus-button primary" disabled="@string.IsNullOrWhiteSpace(item.Telefono)"
+                                @onclick="() => AbrirWhatsAppAsync(item)">Abrir WhatsApp</button>
+                            <button type="button" class="aus-button" disabled="@(_guardandoEnvio || string.IsNullOrWhiteSpace(item.Telefono))"
+                                @onclick="() => CambiarMarcaEnvioAsync(item.AsistenciaId, true)">✓ Ya lo envié</button>
+                        }
                     </div>
                 </article>
             }
@@ -98,6 +109,10 @@
     private const string MensajeWhatsApp =
         "Hola como están!! Figura en el grupo que estuvieron ausentes, siempre recuerden avisarnos por favor para poder  poner la clase en la lista de recuperación y así reprogramarla otro día. No obstante puede haberles sucedido algo de último momento por lo tanto la próxima clase personalmente tratamos de darle algún lugar para recuperarla.!! Esperamos estén bien un abrazoooo";
 
+    // La API wa.me no informa al sistema si la persona envió el mensaje.
+    // La confirmación se hace manualmente y se guarda en PostgreSQL.
+    private readonly HashSet<Guid> _enviados = [];
+    private bool _guardandoEnvio;
     private readonly List<AusenciaItem> _items = [];
     private bool _cargando = true;
     private string _buscar = string.Empty;
@@ -132,6 +147,13 @@
                 .ThenBy(x => x.Bebe.Apellido)
                 .ToListAsync();
 
+            // Tabla independiente, sin modificar observaciones ni historiales de asistencia.
+            var confirmados = await db.Database.SqlQueryRaw<Guid>(
+                "SELECT \"AsistenciaId\" AS \"Value\" FROM \"AvisosAusenciaWhatsApp\"")
+                .ToListAsync();
+            _enviados.Clear();
+            _enviados.UnionWith(confirmados);
+
             _items.Clear();
             foreach (var asistencia in datos)
             {
@@ -161,6 +183,42 @@
         }
     }
 
+    private async Task CambiarMarcaEnvioAsync(Guid asistenciaId, bool marcarEnviado)
+    {
+        if (_guardandoEnvio) return;
+        _guardandoEnvio = true;
+        _error = null;
+        _mensaje = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var existe = await db.Asistencias.AsNoTracking().AnyAsync(x =>
+                x.Id == asistenciaId && x.Estado == EstadoAsistencia.Ausente && !x.EsRecupero);
+            if (!existe)
+                throw new InvalidOperationException("Esta ausencia ya no está registrada como sin aviso.");
+
+            if (marcarEnviado)
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"INSERT INTO \"AvisosAusenciaWhatsApp\" (\"AsistenciaId\", \"MarcadoUtc\") VALUES ({asistenciaId}, CURRENT_TIMESTAMP) ON CONFLICT (\"AsistenciaId\") DO NOTHING");
+                _enviados.Add(asistenciaId);
+                _mensaje = "Marcado como enviado. Esta confirmación es manual.";
+            }
+            else
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM \"AvisosAusenciaWhatsApp\" WHERE \"AsistenciaId\" = {asistenciaId}");
+                _enviados.Remove(asistenciaId);
+                _mensaje = "Se quitó la marca de mensaje enviado.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = "No se pudo actualizar el estado del recordatorio: " + ex.Message;
+        }
+        finally { _guardandoEnvio = false; }
+    }
+
     private async Task AbrirWhatsAppAsync(AusenciaItem item)
     {
         if (string.IsNullOrWhiteSpace(item.Telefono))
@@ -173,7 +231,7 @@
             // Solo se abre el mensaje: no se marca como enviado automáticamente.
             var url = WhatsAppService.CrearUrl(item.Telefono, MensajeWhatsApp);
             await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
-            _mensaje = "Se abrió el mensaje para " + item.Alumno + ". Confirmá el envío desde WhatsApp.";
+            _mensaje = "Se abrió WhatsApp para " + item.Alumno + ". Después de enviarlo, pulsá «Ya lo envié» para guardar el check.";
         }
         catch (Exception ex)
         {

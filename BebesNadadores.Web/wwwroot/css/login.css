@@ -31,7 +31,7 @@ body {
     align-items: center;
     justify-content: flex-end;
 
-    padding: 40px clamp(42px, 6vw, 115px) 40px 32px;
+    padding: 24px clamp(8px, 1vw, 18px) 24px 24px;
     overflow: hidden;
 
     background:
@@ -131,7 +131,7 @@ body {
     position: relative;
     z-index: 10;
 
-    width: min(510px, 100%);
+    width: min(410px, 100%);
     margin: 0;
     padding: 1px;
     overflow: hidden;
@@ -232,7 +232,7 @@ body {
     align-items: center;
     justify-content: center;
 
-    padding: 54px 56px 46px;
+    padding: 43px 32px 36px;
 
     background:
         linear-gradient(145deg,
@@ -667,11 +667,11 @@ body {
 
 @media (max-width: 1100px) {
     .login-page {
-        padding: 30px 35px;
+        padding: 25px 12px;
     }
 
     .login-shell {
-        width: min(500px, 100%);
+        width: min(410px, 100%);
     }
 }
 
@@ -683,7 +683,7 @@ body {
     }
 
     .login-shell {
-        width: min(500px, 100%);
+        width: min(410px, 100%);
         margin-left: auto;
         margin-right: auto;
     }

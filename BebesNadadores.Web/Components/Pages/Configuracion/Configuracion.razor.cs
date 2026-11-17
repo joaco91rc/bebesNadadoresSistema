@@ -151,31 +151,21 @@ public partial class Configuracion : ComponentBase
          * Cargamos usuarios/roles en forma secuencial para no
          * ejecutar operaciones concurrentes sobre UserManager.
          */
-        // Administrativa: acceso de consulta, sin recuperar información de usuarios ni permisos.
-        if (!_esAdministrador)
+        // La administrativa puede gestionar planes, tarifas y parámetros,
+        // pero no recibe información de usuarios, roles ni contraseñas.
+        if (_esAdministrador)
+        {
+            _usuarios = (await UsuarioService.ListarAsync()).ToList();
+            _roles = (await UsuarioService.ListarRolesAsync()).ToList();
+            _profesores = (await UsuarioService.ListarProfesoresAsync()).ToList();
+        }
+        else
         {
             _usuarios = [];
             _roles = [];
             _profesores = [];
-            _planes = [];
-            return;
         }
-
-        _usuarios =
-            (await UsuarioService.ListarAsync())
-                .ToList();
-
-        _roles =
-            (await UsuarioService.ListarRolesAsync())
-                .ToList();
-
-        _profesores =
-            (await UsuarioService.ListarProfesoresAsync())
-                .ToList();
-
-        _planes =
-            (await PlanTarifaService.ListarAsync())
-                .ToList();
+        _planes = (await PlanTarifaService.ListarAsync()).ToList();
     }
 
 
@@ -219,6 +209,8 @@ public partial class Configuracion : ComponentBase
     protected void SeleccionarSeccion(
         SeccionConfiguracion seccion)
     {
+        if (!_esAdministrador && seccion == SeccionConfiguracion.Usuarios)
+            return;
         _seccion = seccion;
         _error = null;
         _mensaje = null;
@@ -257,6 +249,7 @@ public partial class Configuracion : ComponentBase
 
     protected void NuevoUsuario()
     {
+        if (!_esAdministrador) return;
         _usuarioForm =
             new GuardarUsuarioSistemaDto
             {
@@ -281,6 +274,7 @@ public partial class Configuracion : ComponentBase
     protected void EditarUsuario(
         UsuarioSistemaDto usuario)
     {
+        if (!_esAdministrador) return;
         _usuarioForm =
             new GuardarUsuarioSistemaDto
             {
@@ -314,6 +308,7 @@ public partial class Configuracion : ComponentBase
 
     protected async Task GuardarUsuarioAsync()
     {
+        if (!_esAdministrador) throw new UnauthorizedAccessException("Solo un administrador puede gestionar usuarios.");
         if (_guardando)
         {
             return;
@@ -371,6 +366,7 @@ public partial class Configuracion : ComponentBase
     protected void AbrirPassword(
         UsuarioSistemaDto usuario)
     {
+        if (!_esAdministrador) return;
         _usuarioPassword = usuario;
         _nuevaPassword = string.Empty;
         _confirmacionNuevaPassword = string.Empty;
@@ -381,6 +377,7 @@ public partial class Configuracion : ComponentBase
 
     protected async Task GuardarPasswordAsync()
     {
+        if (!_esAdministrador) throw new UnauthorizedAccessException("Solo un administrador puede gestionar usuarios.");
         if (_guardando ||
             _usuarioPassword is null)
         {

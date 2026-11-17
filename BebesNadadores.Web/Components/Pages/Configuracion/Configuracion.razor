@@ -8,49 +8,6 @@
 
 <PageTitle>Configuración | Bebés Nadadores</PageTitle>
 
-@if (!_esAdministrador)
-{
-    <div class="settings-page">
-        <section class="settings-header">
-            <div class="settings-header-copy">
-                <span class="settings-eyebrow">CONSULTA ADMINISTRATIVA</span>
-                <h1>Configuración del sistema</h1>
-                <p>Información de consulta. Solo el Administrador puede modificar estas opciones.</p>
-            </div>
-        </section>
-        @if (_cargando)
-        {
-            <p>Cargando configuración...</p>
-        }
-        else if (!string.IsNullOrWhiteSpace(_error))
-        {
-            <p class="settings-message error">@_error</p>
-        }
-        else if (_configuracion is not null)
-        {
-            <section class="settings-hub">
-                <article class="settings-card institution">
-                    <span class="settings-card-body"><small>INSTITUCIÓN</small><strong>@_configuracion.NombreInstitucion</strong>
-                        <span>Dirección: @(_configuracion.Direccion ?? "No configurada")</span>
-                        <span>WhatsApp: @(_configuracion.WhatsApp ?? "No configurado")</span>
-                    </span>
-                </article>
-                <article class="settings-card rules">
-                    <span class="settings-card-body"><small>REGLAS OPERATIVAS</small><strong>Parámetros vigentes</strong>
-                        <span>Recuperos: @_configuracion.DiasVigenciaRecupero días</span>
-                        <span>Apto médico: @_configuracion.MesesVigenciaApto meses</span>
-                        <span>Alerta de apto: @_configuracion.DiasAlertaApto días</span>
-                        <span>Vencimiento de cuota: día @_configuracion.DiaVencimientoCuota</span>
-                        <span>Edad máxima: @_configuracion.EdadMaximaMeses meses</span>
-                    </span>
-                </article>
-            </section>
-            <p style="margin-top:18px;opacity:.75">Usuarios, contraseñas, precios y edición de parámetros son exclusivos del Administrador.</p>
-        }
-    </div>
-}
-else
-{
 <div class="settings-page">
     <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
       <Authorized><div style="padding:10px 0 17px"><a href="/administracion/migracion" style="color:var(--mud-palette-primary);font-weight:700">Migración desde el sistema anterior</a></div></Authorized>
@@ -68,7 +25,7 @@ else
             <h1>Configuración</h1>
 
             <p>
-                Administrá usuarios, planes, tarifas y parámetros generales
+                Administrá planes, tarifas y parámetros generales
                 de Bebés Nadadores desde un único lugar.
             </p>
 
@@ -149,6 +106,8 @@ else
 
         <section class="settings-hub">
 
+            @if (_esAdministrador)
+            {
             <button type="button"
                     class="settings-card users @(_seccion == SeccionConfiguracion.Usuarios ? "active" : null)"
                     @onclick="() => SeleccionarSeccion(SeccionConfiguracion.Usuarios)">
@@ -175,6 +134,7 @@ else
                          Class="settings-card-arrow" />
 
             </button>
+            }
 
 
             <button type="button"
@@ -282,7 +242,7 @@ else
            USUARIOS
            ===================================================== *@
 
-        @if (_seccion == SeccionConfiguracion.Usuarios)
+        @if (_esAdministrador && _seccion == SeccionConfiguracion.Usuarios)
         {
             <section class="settings-panel">
 
@@ -941,11 +901,14 @@ else
 
                 <div class="overview-stats">
 
+                    @if (_esAdministrador)
+                    {
                     <div>
                         <span>Usuarios</span>
                         <strong>@UsuariosActivos</strong>
                         <small>activos</small>
                     </div>
+                    }
 
                     <div>
                         <span>Planes</span>
@@ -1071,7 +1034,7 @@ else
    MODAL USUARIO
    ============================================================= *@
 
-@if (_mostrarUsuarioModal)
+@if (_esAdministrador && _mostrarUsuarioModal)
 {
     <div class="settings-modal-backdrop"
          @onclick="() => _mostrarUsuarioModal = false">
@@ -1222,7 +1185,7 @@ else
    MODAL PASSWORD
    ============================================================= *@
 
-@if (_mostrarPasswordModal &&
+@if (_esAdministrador && _mostrarPasswordModal &&
      _usuarioPassword is not null)
 {
     <div class="settings-modal-backdrop"
@@ -1495,5 +1458,4 @@ else
         </section>
 
     </div>
-}
 }

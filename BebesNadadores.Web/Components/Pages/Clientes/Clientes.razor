@@ -216,7 +216,7 @@
             <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
 
             <input type="text" placeholder="Buscar bebé, DNI, responsable, teléfono, WhatsApp o email..."
-                   @bind="_busqueda" @bind:event="oninput" />
+                   @bind="_busqueda" @bind:event="oninput" @bind:after="ReiniciarPagina" />
 
         </div>
 
@@ -288,14 +288,14 @@
     {
         <section class="babies-grid">
 
-            @foreach (var bebe in BebesFiltrados)
+            @foreach (var bebe in BebesPagina)
             {
                 var responsable =
                     ObtenerResponsablePrincipal(
                         bebe);
 
 
-                <article class="baby-card
+                <article @key="bebe.Id" class="baby-card
                     @(bebe.Estado == EstadoBebe.Baja
                                   ? "inactive"
                                   : "")">
@@ -669,6 +669,14 @@
             }
 
         </section>
+        <nav class="babies-pagination" aria-label="Páginas de bebés">
+            <span>Mostrando @(_bebes.Count == 0 ? 0 : (_pagina - 1) * TamañoPagina + 1)-@Math.Min(_pagina * TamañoPagina, CantidadFiltrados) de @CantidadFiltrados bebés</span>
+            <div>
+                <button type="button" disabled="@(_pagina <= 1)" @onclick="() => CambiarPagina(_pagina - 1)">Anterior</button>
+                <strong>Página @_pagina de @TotalPaginas</strong>
+                <button type="button" disabled="@(_pagina >= TotalPaginas)" @onclick="() => CambiarPagina(_pagina + 1)">Siguiente</button>
+            </div>
+        </nav>
     }
 
 </div>
@@ -822,6 +830,14 @@
     // =========================================================
     // ESTADO
     // =========================================================
+
+    private const int TamañoPagina = 24;
+    private int _pagina = 1;
+    private int CantidadFiltrados => BebesFiltrados.Count();
+    private int TotalPaginas => Math.Max(1, (int)Math.Ceiling(CantidadFiltrados / (double)TamañoPagina));
+    private IEnumerable<BebeDto> BebesPagina => BebesFiltrados.Skip((_pagina - 1) * TamañoPagina).Take(TamañoPagina);
+    private void ReiniciarPagina() => _pagina = 1;
+    private void CambiarPagina(int pagina) => _pagina = Math.Clamp(pagina, 1, TotalPaginas);
 
     private readonly List<BebeDto> _bebes = [];
 
@@ -1031,6 +1047,7 @@
 
         _bebes.AddRange(
             datos);
+        _pagina = 1;
     }
 
 
