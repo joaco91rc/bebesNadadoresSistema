@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.DataProtection;
 using BebesNadadores.Infrastructure;
 using BebesNadadores.Infrastructure.Identity;
 using BebesNadadores.Web.Authorization;
 using BebesNadadores.Web.Components;
 using BebesNadadores.Web.Services.Finanzas;
 using BebesNadadores.Web.Services.Comprobantes;
+using BebesNadadores.Web.Services.Cumpleanos;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using MudBlazor;
@@ -32,6 +34,16 @@ try
         .AddInteractiveServerComponents();
 
     builder.Services.AddRazorPages();
+
+    // IMPORTANTE: persistir estas claves en volumen Docker para que los enlaces
+    // de cumpleaños no se invaliden al reconstruir/reiniciar el contenedor.
+    var carpetaClaves = builder.Configuration["Cumpleanos:CarpetaClaves"]
+        ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "ProtectionKeys");
+    Directory.CreateDirectory(carpetaClaves);
+    builder.Services.AddDataProtection()
+        .SetApplicationName("BebesNadadores")
+        .PersistKeysToFileSystem(new DirectoryInfo(carpetaClaves));
+
     builder.Services.AddCascadingAuthenticationState();
 
     builder.Services.AddMudServices(config =>
@@ -42,6 +54,8 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddScoped<IIndicadorFinancieroService, IndicadorFinancieroService>();
     builder.Services.AddScoped<ComprobantePagoService>();
+    builder.Services.AddScoped<EnlaceComprobantePagoService>();
+    builder.Services.AddScoped<TarjetaCumpleanosService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Recuperos.RegularizacionHistoricaService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Migracion.MigracionCargaService>();
     builder.Services.AddSingleton<BebesNadadores.Web.Services.Migracion.MigracionEjecucionService>();
@@ -167,6 +181,32 @@ try
                 : Results.File(archivo.Value.Contenido, "application/pdf", archivo.Value.NombreArchivo);
         })
         .RequireAuthorization(PoliticasSistema.GestionCaja);
+
+    // Comprobantes públicos: solo con token cifrado, firmado y con vencimiento.
+    // No se expone el GUID del pago ni se requiere iniciar sesión para descargar.
+    app.MapGet(
+        "/comprobantes/descargar/{token}",
+        async (string token, HttpContext http, EnlaceComprobantePagoService enlaces,
+            ComprobantePagoService comprobantes, CancellationToken ct) =>
+        {
+            http.Response.Headers.CacheControl = "private, no-store, no-cache, max-age=0";
+            http.Response.Headers["X-Robots-Tag"] = "noindex, nofollow, noarchive";
+            http.Response.Headers["Referrer-Policy"] = "no-referrer";
+            http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+            if (!enlaces.IntentarValidar(token, out var pagoId))
+                return Results.NotFound();
+
+            var archivo = await comprobantes.GenerarAsync(pagoId, ct);
+            return archivo is null
+                ? Results.NotFound()
+                : Results.File(archivo.Value.Contenido, "application/pdf", archivo.Value.NombreArchivo);
+        });
+
+    // Tarjeta individual: pública solo con token firmado que caduca a los siete días.
+    app.MapGet("/cumple/{token}", (string token, HttpContext http,
+            TarjetaCumpleanosService tarjetas, CancellationToken ct) =>
+        tarjetas.MostrarAsync(token, http, ct));
 
     app.MapRazorComponents<App>()
         .AddInteractiveServerRenderMode();

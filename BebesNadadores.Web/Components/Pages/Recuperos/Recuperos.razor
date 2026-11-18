@@ -1248,6 +1248,20 @@
 
 
 
+                                                    @if (vacante.OcupacionActual == 13)
+                                                    {
+                                                        <div class="overcapacity-recovery-warning" role="status">
+                                                            Último lugar disponible · 13/14 alumnos.
+                                                            Al asignarlo, la clase quedará completa.
+                                                        </div>
+                                                    }
+                                                    else if (vacante.ConSobrecupoPermitido)
+                                                    {
+                                                        <div class="overcapacity-recovery-warning" role="status">
+                                                            Clase con sobrecupo permitido ·
+                                                            @vacante.OcupacionActual/14 alumnos (máximo 14)
+                                                        </div>
+                                                    }
                                                     <div class="vacancy-capacity">
 
 

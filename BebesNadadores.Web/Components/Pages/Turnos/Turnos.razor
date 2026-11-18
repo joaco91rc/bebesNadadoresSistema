@@ -1021,7 +1021,9 @@
                                 <span>
                                     @(bebe.EsRecupero
                                         ? "Asiste como recupero"
-                                        : "Inscripción regular")
+                                        : bebe.EsPrimeraClase
+                                            ? "Primera clase"
+                                            : "Alumno regular")
                                 </span>
 
                             </div>
@@ -3889,36 +3891,47 @@ if (_volverAGrillaDespuesDeGuardar)
     }
 
 
-    private async Task AbrirSesion(
-        Guid sesionId)
+    private async Task AbrirSesion(Guid sesionId)
     {
+        _error = null;
+        _sesionDetalle = null;
+        _indicadoresFinancieros = new Dictionary<Guid, IndicadorFinancieroDto>();
+
+        // La ficha de la clase no depende del cálculo de cuotas.
+        // Si este último falla, el popup continúa disponible.
         try
         {
-            _error = null;
-
-            _sesionDetalle =
-                await TurneraService
-                    .ObtenerSesionAsync(
-                        sesionId);
-
-            _indicadoresFinancieros = _sesionDetalle is null
-                ? new Dictionary<Guid, IndicadorFinancieroDto>()
-                : await IndicadoresFinancieros.ObtenerAsync(
-                    _sesionDetalle.Bebes.Select(b => b.BebeId).ToArray());
-
-            _mostrarCancelar =
-                false;
-
-            _motivoCancelacion =
-                string.Empty;
-
-            _cancelacionGeneraRecupero =
-                true;
+            _sesionDetalle = await TurneraService.ObtenerSesionAsync(sesionId);
         }
         catch (Exception ex)
         {
-            _error =
-                Errores.Mensaje(ex);
+            Console.Error.WriteLine($"[TURNERA][DETALLE SESION {sesionId}] {ex}");
+            _error = "No se pudo abrir el detalle de la clase. Revisá la consola del servidor " +
+                     "(TURNERA / DETALLE SESION): " + Errores.Mensaje(ex);
+            return;
+        }
+
+        if (_sesionDetalle is null)
+        {
+            _error = "La clase ya no existe. Actualizá la Turnera.";
+            return;
+        }
+
+        _mostrarCancelar = false;
+        _motivoCancelacion = string.Empty;
+        _cancelacionGeneraRecupero = true;
+
+        try
+        {
+            var ids = _sesionDetalle.Bebes.Select(x => x.BebeId).Distinct().ToArray();
+            if (ids.Length > 0)
+                _indicadoresFinancieros = await IndicadoresFinancieros.ObtenerAsync(ids);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[TURNERA][INDICADORES SESION {sesionId}] {ex}");
+            // No impedir la apertura del popup por un error en una consulta secundaria.
+            // El badge financiero mostrará "Revisar" hasta restaurar el servicio.
         }
     }
 

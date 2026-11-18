@@ -357,19 +357,18 @@ public partial class Home
             }
 
 
+            var linkTarjeta = TarjetasCumpleanos.CrearEnlace(bebe.Id, Navigation.BaseUri);
             var mensaje =
-                $"¡Hola {responsable.Nombre}! 👋\n\n" +
-                $"Desde Bebés Nadadores queremos desearle a " +
-                $"{bebe.Nombre} un muy feliz cumpleaños 🎂🥳🏊\n\n" +
-                $"¡Esperamos que pase un día hermoso!\n\n" +
-                $"Bebés Nadadores";
-
+                $"¡Hola {responsable.Nombre}! 🎉💙\n\n" +
+                $"¡Hoy es el cumple de {bebe.Nombre}! Desde Bebés Nadadores " +
+                "le preparamos una sorpresa muy especial. 🎂🐠\n\n" +
+                $"Abrí su tarjeta de cumpleaños acá: {linkTarjeta}\n\n" +
+                "¡Que tengan un día hermoso! 🫧💙\nBebés Nadadores";
 
             var url = WhatsAppService.CrearUrl(responsable.WhatsApp, mensaje);
+            await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
+            // Abrir WhatsApp no confirma que haya sido enviado.
 
-            await JS.InvokeVoidAsync(
-     "abrirWhatsAppBebesNadadores",
-     url);
         }
         catch (Exception ex)
         {

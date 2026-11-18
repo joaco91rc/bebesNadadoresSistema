@@ -10,9 +10,13 @@
 @using BebesNadadores.Application.Asistencia
 @using BebesNadadores.Application.Asistencia.Dtos
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Domain.Common
+@using BebesNadadores.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
 
 @inject IAsistenciaService AsistenciaService
 @inject IIndicadorFinancieroService IndicadoresFinancieros
+@inject IDbContextFactory<AppDbContext> DbFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
@@ -149,6 +153,18 @@
 
     </section>
 
+
+    @if (_fecha != FechaArgentina.Hoy)
+    {
+        <div class="attendance-readonly-warning" role="status">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Medium" />
+            <div>
+                <strong>@(_fecha < FechaArgentina.Hoy ? "Asistencia histórica · Solo lectura" : "Clase futura · Solo consulta")</strong>
+                <span>Podés consultar los presentes, ausentes y recuperos, pero solo se permite registrar o modificar asistencias durante el día de la clase (hora de Argentina).</span>
+            </div>
+            <button type="button" class="today-button" @onclick="IrHoy">Ir a hoy</button>
+        </div>
+    }
 
     @if (_cargando)
     {
@@ -393,7 +409,8 @@
                         <button type="button"
                                 class="mass-present-button"
                                 disabled="@(
-                                    _guardandoMasivo
+                                    EsSoloConsulta
+                                    || _guardandoMasivo
                                     ||
                                     _sesion.EstadoSesion ==
                                         EstadoSesionClase.Cancelada
@@ -613,13 +630,26 @@
                                             </div>
 
 
-                                            <span>
-                                                @(alumno.EsRecupero
-                                                    ? "Asiste recuperando una clase"
-                                                    : "Alumno regular")
-                                            </span>
+                                            @if (alumno.EsPrimeraClase && !alumno.EsRecupero)
+                                            {
+                                                <span class="first-class-attendee">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" />
+                                                    PRIMERA CLASE
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span>
+                                                    @(alumno.EsRecupero
+                                                        ? "Asiste recuperando una clase"
+                                                        : "Alumno regular")
+                                                </span>
+                                            }
 
-                                            <IndicadorFinancieroBadge Estado="@ObtenerIndicadorFinanciero(alumno.BebeId)" />
+                                            @if (MostrarIndicadorFinanciero(alumno.BebeId, alumno.EsPrimeraClase))
+                                            {
+                                                <IndicadorFinancieroBadge Estado="@ObtenerIndicadorFinanciero(alumno.BebeId)" />
+                                            }
 
                                         </div>
 
@@ -710,15 +740,16 @@
                                     </div>
 
 
-                                    @* El motivo de una ausencia/recupero no se exige ni se pide. *@
-                                    @if (alumno.Estado != EstadoAsistencia.AusenteConAviso &&
-                                         alumno.Estado != EstadoAsistencia.Ausente)
-                                    {
+                                        @* El motivo no es obligatorio y no se solicita en ausencias. *@
+                                        @if (alumno.Estado != EstadoAsistencia.AusenteConAviso &&
+                                             alumno.Estado != EstadoAsistencia.Ausente)
+                                        {
                                     <div class="student-observation">
 
                                         <input type="text"
                                                maxlength="1000"
                                                disabled="@(
+                                                    EsSoloConsulta ||
                                                     _sesion.EstadoSesion ==
                                                     EstadoSesionClase.Cancelada)"
                                                placeholder="Observación opcional..."
@@ -741,9 +772,9 @@
                                         </button>
 
                                     </div>
-                                    }
 
 
+                                        }
 
                                     @if (alumno.GeneroRecupero)
                                     {
@@ -791,6 +822,21 @@
     private IndicadorFinancieroDto? ObtenerIndicadorFinanciero(Guid bebeId) =>
         _indicadoresFinancieros.GetValueOrDefault(bebeId);
 
+    // Una primera clase sin turno fijo no es, por sí sola, motivo de revisión.
+    // Conservamos el indicador cuando hay cuotas realmente vencidas.
+    private HashSet<Guid> _primeraClaseSinTurnoFijo = new();
+    private HashSet<Guid> _primeraClaseConDeudaVencida = new();
+
+    private bool MostrarIndicadorFinanciero(Guid bebeId, bool esPrimeraClase)
+    {
+        if (!esPrimeraClase || !_primeraClaseSinTurnoFijo.Contains(bebeId))
+            return true;
+
+        var indicador = ObtenerIndicadorFinanciero(bebeId);
+        return _primeraClaseConDeudaVencida.Contains(bebeId)
+            || (indicador is not null && indicador.Tipo != IndicadorFinancieroTipo.Revisar);
+    }
+
     [SupplyParameterFromQuery(
         Name = "sesionId")]
     public Guid? SesionId { get; set; }
@@ -802,8 +848,7 @@
 
 
     private DateOnly _fecha =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        FechaArgentina.Hoy;
 
 
     private readonly Dictionary<Guid, string>
@@ -821,6 +866,13 @@
 
 
     private AsistenciaSesionDto? _sesion;
+
+    // También deja navegar por el historial, pero evita cualquier edición
+    // fuera del día actual argentino.
+    private bool EsSoloConsulta =>
+        _sesion is null
+        ? _fecha != FechaArgentina.Hoy
+        : _sesion.Fecha != FechaArgentina.Hoy;
 
     private Guid? _usuarioId;
 
@@ -995,8 +1047,7 @@
 
                 var enCurso =
                     _fecha ==
-                    DateOnly.FromDateTime(
-                        DateTime.Today)
+                    FechaArgentina.Hoy
                     ? _clases.FirstOrDefault(x =>
                         x.EstadoSesion !=
                             EstadoSesionClase.Cancelada
@@ -1053,8 +1104,54 @@
 
             InicializarObservaciones();
 
+            _primeraClaseSinTurnoFijo.Clear();
+            _primeraClaseConDeudaVencida.Clear();
             _indicadoresFinancieros = await IndicadoresFinancieros.ObtenerAsync(
                 _sesion.Alumnos.Select(a => a.BebeId).ToArray());
+
+            var primeros = _sesion.Alumnos
+                .Where(a => a.EsPrimeraClase && !a.EsRecupero)
+                .Select(a => a.BebeId)
+                .Distinct()
+                .ToArray();
+
+            if (primeros.Length > 0)
+            {
+                await using var db = await DbFactory.CreateDbContextAsync();
+                var conTurnoFijo = await db.InscripcionesTurnos.AsNoTracking()
+                    .Where(t => primeros.Contains(t.Inscripcion.BebeId))
+                    .Select(t => t.Inscripcion.BebeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                _primeraClaseSinTurnoFijo = primeros
+                    .Except(conTurnoFijo)
+                    .ToHashSet();
+
+                // Si el indicador devuelve Revisar por falta de conciliación,
+                // verificamos igual la deuda real: los alumnos nuevos pueden
+                // tener cuotas vencidas y esa alerta nunca debe ocultarse.
+                if (_primeraClaseSinTurnoFijo.Count > 0)
+                {
+                    var idsSinTurno = _primeraClaseSinTurnoFijo.ToArray();
+                    var cuotas = await db.Cuotas.AsNoTracking()
+                        .Where(c => idsSinTurno.Contains(c.Inscripcion.BebeId)
+                            && c.Estado != EstadoCuota.Anulada
+                            && c.FechaVencimiento < FechaArgentina.Hoy)
+                        .Select(c => new
+                        {
+                            c.Inscripcion.BebeId,
+                            c.Importe,
+                            Pagado = c.Imputaciones.Sum(i => (decimal?)i.Importe) ?? 0m
+                        })
+                        .ToListAsync();
+
+                    _primeraClaseConDeudaVencida = cuotas
+                        .Where(c => c.Importe - c.Pagado > 0.005m)
+                        .Select(c => c.BebeId)
+                        .ToHashSet();
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -1105,8 +1202,7 @@
     private async Task IrHoy()
     {
         _fecha =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+            FechaArgentina.Hoy;
 
         _busqueda =
             string.Empty;
@@ -1121,6 +1217,12 @@
     {
         if (_sesion is null)
             return;
+
+        if (EsSoloConsulta)
+        {
+            _error = "Solo se puede registrar asistencia durante el día de la clase. Esta fecha es de consulta.";
+            return;
+        }
 
 
         try
@@ -1195,6 +1297,12 @@
         if (_sesion is null)
             return;
 
+        if (EsSoloConsulta)
+        {
+            _error = "Solo se puede registrar asistencia durante el día de la clase. Esta fecha es de consulta.";
+            return;
+        }
+
 
         try
         {
@@ -1253,6 +1361,12 @@
     {
         if (_sesion is null)
             return;
+
+        if (EsSoloConsulta)
+        {
+            _error = "Solo se puede registrar asistencia durante el día de la clase. Esta fecha es de consulta.";
+            return;
+        }
 
 
         var pendientes =
@@ -1396,7 +1510,8 @@
         AsistenciaAlumnoDto alumno)
     {
         return
-            _sesion?.EstadoSesion ==
+            EsSoloConsulta
+            || _sesion?.EstadoSesion ==
                 EstadoSesionClase.Cancelada
             ||
             _guardandoAlumnos.Contains(

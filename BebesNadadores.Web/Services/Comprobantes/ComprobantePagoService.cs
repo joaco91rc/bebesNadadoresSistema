@@ -46,44 +46,84 @@ public sealed class ComprobantePagoService(
         byte[]? logo = File.Exists(logoRuta) ? await File.ReadAllBytesAsync(logoRuta, ct) : null;
         var importeTexto = pago.Importe.ToString("C2", Cultura);
 
+        // Estética institucional oscura: igual que el panel de Bebés Nadadores.
+        // Las leyendas usan alto contraste para verse también al imprimir.
         using var archivo = new MemoryStream();
         var documento = Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A5);
-                page.Margin(28);
-                page.DefaultTextStyle(t => t.FontSize(11).FontColor(Colors.Grey.Darken3));
+                page.Margin(30);
+                page.PageColor("#071F32");
+                page.DefaultTextStyle(t => t.FontSize(11).FontColor("#F4FBFF"));
                 page.Content().Column(column =>
                 {
-                    column.Spacing(12);
-                    column.Item().AlignCenter().Width(94).Height(94)
+                    column.Spacing(15);
+
+                    column.Item().AlignCenter().Width(110).Height(110)
+                        .Background("#0E4666")
+                        .Border(1).BorderColor("#268AB4")
+                        .Padding(13)
                         .Element(c =>
                         {
-                            if (logo is not null) c.Image(logo).FitArea();
+                            if (logo is not null)
+                                c.AlignCenter().AlignMiddle().Image(logo).FitArea();
                         });
+
                     column.Item().AlignCenter().Text("BEBÉS NADADORES")
-                        .Bold().FontSize(17).FontColor("#136F9D");
+                        .Bold().FontSize(19).FontColor("#FFFFFF");
                     column.Item().AlignCenter().Text("COMPROBANTE DE PAGO")
-                        .FontSize(12).FontColor(Colors.Grey.Darken2);
-                    column.Item().PaddingTop(7).BorderTop(1).BorderColor("#D2EAF5")
-                        .PaddingTop(14).Column(datos =>
+                        .Bold().FontSize(11).FontColor("#74D9F7");
+
+                    column.Item().PaddingTop(5)
+                        .BorderTop(1).BorderColor("#2B7798")
+                        .PaddingTop(20).Column(datos =>
                         {
-                            datos.Spacing(12);
-                            datos.Item().Text($"Recibimos de: {nombreAlumno}");
-                            datos.Item().Text($"Fecha: {fechaLocal:dd/MM/yyyy HH:mm}");
-                            datos.Item().Text($"Concepto: {concepto}");
-                            datos.Item().Text($"Medio de pago: {pago.MedioPago}");
-                            datos.Item().PaddingVertical(8).Background("#E8F6FC")
-                                .Padding(12).AlignCenter().Text(importeTexto)
-                                .Bold().FontSize(24).FontColor("#136F9D");
+                            datos.Spacing(13);
+                            datos.Item().Text(texto =>
+                            {
+                                texto.Span("Recibimos de: ").FontColor("#8CDDF4");
+                                texto.Span(nombreAlumno).SemiBold().FontColor("#FFFFFF");
+                            });
+                            datos.Item().Text(texto =>
+                            {
+                                texto.Span("Fecha: ").FontColor("#8CDDF4");
+                                texto.Span(fechaLocal.ToString("dd/MM/yyyy HH:mm", Cultura)).FontColor("#FFFFFF");
+                            });
+                            datos.Item().Text(texto =>
+                            {
+                                texto.Span("Concepto: ").FontColor("#8CDDF4");
+                                texto.Span(concepto).FontColor("#FFFFFF");
+                            });
+                            datos.Item().Text(texto =>
+                            {
+                                texto.Span("Medio de pago: ").FontColor("#8CDDF4");
+                                texto.Span(pago.MedioPago.ToString()).FontColor("#FFFFFF");
+                            });
                         });
-                    column.Item().PaddingTop(5).Text("Se recibió el importe indicado.")
-                        .FontSize(10).FontColor(Colors.Grey.Darken2);
+
+                    column.Item().PaddingTop(8).Background("#103C58")
+                        .Border(1).BorderColor("#2C89B1")
+                        .PaddingVertical(16).PaddingHorizontal(12)
+                        .Column(total =>
+                        {
+                            total.Spacing(5);
+                            total.Item().AlignCenter().Text("IMPORTE RECIBIDO")
+                                .FontSize(9).Bold().FontColor("#9CEAFF");
+                            total.Item().AlignCenter().Text(importeTexto)
+                                .Bold().FontSize(27).FontColor("#FFFFFF");
+                        });
+
+                    column.Item().PaddingTop(12).Text("Se recibió el importe indicado.")
+                        .FontSize(10).FontColor("#DBF5FF");
                     column.Item().Text($"N.º de operación: {pago.Id:N}")
-                        .FontSize(8).FontColor(Colors.Grey.Medium);
-                    column.Item().Text("Este comprobante acredita el pago recibido, no necesariamente la cancelación total de las cuotas.")
-                        .FontSize(8).FontColor(Colors.Grey.Darken1);
+                        .FontSize(8).FontColor("#9AC5D8");
+                    column.Item().PaddingTop(5)
+                        .BorderTop(1).BorderColor("#2B7798")
+                        .PaddingTop(10)
+                        .Text("Este comprobante acredita el pago recibido, no necesariamente la cancelación total de las cuotas.")
+                        .FontSize(8).FontColor("#AFCFDD");
                 });
             });
         });

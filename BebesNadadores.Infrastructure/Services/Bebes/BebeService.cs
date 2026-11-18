@@ -138,11 +138,11 @@ public sealed class BebeService(
         // fallar al final (ej.: caja cerrada).
         // =========================================================
 
-        if (dto.MedioPagoInicial.IngresaACaja())
+        if (dto.RegistrarPagoInicial && dto.MedioPagoInicial.IngresaACaja())
         {
             await RegistradorCobros.ObtenerCajaAbiertaHoyAsync(db, ct);
         }
-        else if (dto.MedioPagoInicial.RequiereCuentaBancaria()
+        else if (dto.RegistrarPagoInicial && dto.MedioPagoInicial.RequiereCuentaBancaria()
             && !dto.CuentaBancariaId.HasValue)
         {
             throw new InvalidOperationException(
@@ -166,19 +166,6 @@ public sealed class BebeService(
         // DECLARACIÓN DE SALUD
         // =========================================================
 
-        if (!dto.PermanecioHospitalMasDe5Dias.HasValue)
-        {
-            throw new InvalidOperationException(
-                "Debe indicar si el bebé permaneció en el hospital más de 5 días."
-            );
-        }
-
-        if (!dto.RecibeTratamiento.HasValue)
-        {
-            throw new InvalidOperationException(
-                "Debe indicar si el bebé recibe algún tratamiento."
-            );
-        }
 
         // =========================================================
         // NIVEL
@@ -319,11 +306,11 @@ public sealed class BebeService(
         );
 
         var inicioAMitadDeMes = ReglasCuota.EsInicioAMitadDeMes(dto.FechaInicioInscripcion);
+        var cobrarMediaCuota = dto.CobrarMediaCuotaPrimerMes ?? inicioAMitadDeMes;
 
-        var importePrimeraCuota = ReglasCuota.CalcularImportePrimerMes(
-            importeMensual,
-            dto.FechaInicioInscripcion
-        );
+        var importePrimeraCuota = cobrarMediaCuota
+            ? Math.Round(importeMensual * 0.50m, 2, MidpointRounding.AwayFromZero)
+            : importeMensual;
 
         if (importePrimeraCuota <= 0)
         {
@@ -339,7 +326,7 @@ public sealed class BebeService(
         // Media cuota: se cobra completa en el alta.
         // =========================================================
 
-        var importePagoInicial = inicioAMitadDeMes
+        var importePagoInicial = cobrarMediaCuota
             ? importePrimeraCuota
             : Math.Round(importePrimeraCuota * 0.50m, 2, MidpointRounding.AwayFromZero);
 
@@ -591,7 +578,7 @@ public sealed class BebeService(
 
             Nombre = NormalizarRequerido(dto.Nombre),
 
-            Apellido = NormalizarRequerido(dto.Apellido),
+            Apellido = Normalizar(dto.Apellido) ?? string.Empty,
 
             FechaNacimiento = dto.FechaNacimiento,
 
@@ -626,9 +613,8 @@ public sealed class BebeService(
 
         await VincularResponsablesAsync(db, bebe, dto.Responsables, ct);
 
-        var responsablePrincipalId = bebe
-            .Responsables.First(x => x.EsContactoPrincipal)
-            .ResponsableId;
+        Guid? responsablePrincipalId = bebe.Responsables
+            .FirstOrDefault(x => x.EsContactoPrincipal)?.ResponsableId;
 
         // =========================================================
         // INSCRIPCIÓN
@@ -757,7 +743,7 @@ public sealed class BebeService(
 
             Estado = EstadoCuota.Pendiente,
 
-            Descripcion = inicioAMitadDeMes
+            Descripcion = cobrarMediaCuota
                 ? $"Media cuota {periodoPrimeraCuota:MM/yyyy} (inicio {dto.FechaInicioInscripcion:dd/MM})"
                 : $"Cuota {periodoPrimeraCuota:MM/yyyy}",
         };
@@ -772,7 +758,9 @@ public sealed class BebeService(
         // tarjeta / Mercado Pago -> cuenta bancaria.
         // =========================================================
 
-        await registradorCobros.RegistrarAsync(
+        if (dto.RegistrarPagoInicial)
+        {
+            await registradorCobros.RegistrarAsync(
             db,
             new NuevoCobro(
                 Bebe: bebe,
@@ -783,13 +771,14 @@ public sealed class BebeService(
                     ? dto.CuentaBancariaId
                     : null,
                 ReferenciaExterna: null,
-                Observaciones: inicioAMitadDeMes
-                    ? "Pago inicial de inscripción - media cuota por inicio a mitad de mes."
+                Observaciones: cobrarMediaCuota
+                    ? "Pago inicial de inscripción - media cuota elegida por administración."
                     : "Pago inicial de inscripción - 50% de la primera cuota.",
                 CuotasAImputar: [cuota],
                 DetalleMovimiento: $"Pago inicial - {bebe.Nombre} {bebe.Apellido}",
                 UsuarioId: null),
             ct);
+        }
 
         // =========================================================
         // GUARDAR
@@ -838,7 +827,7 @@ public sealed class BebeService(
 
         bebe.Nombre = NormalizarRequerido(dto.Nombre);
 
-        bebe.Apellido = NormalizarRequerido(dto.Apellido);
+        bebe.Apellido = Normalizar(dto.Apellido) ?? string.Empty;
 
         bebe.FechaNacimiento = dto.FechaNacimiento;
 
@@ -893,7 +882,10 @@ public sealed class BebeService(
     {
         if (responsables.Count == 0)
         {
-            throw new InvalidOperationException("Debe indicar al menos un responsable.");
+            // Se puede incorporar el responsable después del alta.
+            // Al editar tampoco debe eliminar a nadie salvo que el usuario lo solicite.
+            db.BebesResponsables.RemoveRange(bebe.Responsables.ToList());
+            return;
         }
 
         var principales = responsables.Count(x => x.EsContactoPrincipal);
@@ -1368,7 +1360,8 @@ public sealed class BebeService(
     {
         if (responsables.Count == 0)
         {
-            throw new InvalidOperationException("Debe indicar al menos un responsable.");
+            // Alta mínima: se puede agregar un responsable desde Editar bebé.
+            return;
         }
 
         var principales = responsables.Count(x => x.EsContactoPrincipal);
@@ -1631,10 +1624,6 @@ public sealed class BebeService(
             throw new InvalidOperationException("Debe indicar el nombre del bebé.");
         }
 
-        if (string.IsNullOrWhiteSpace(dto.Apellido))
-        {
-            throw new InvalidOperationException("Debe indicar el apellido del bebé.");
-        }
 
         if (dto.Nombre.Trim().Length > 100)
         {
@@ -1656,18 +1645,6 @@ public sealed class BebeService(
             throw new InvalidOperationException("Debe existir exactamente un contacto principal.");
         }
 
-        if (
-            dto.PermanecioHospitalMasDe5Dias == true
-            && string.IsNullOrWhiteSpace(dto.DetalleHospitalizacion)
-        )
-        {
-            throw new InvalidOperationException("Debe detallar la hospitalización del bebé.");
-        }
-
-        if (dto.RecibeTratamiento == true && string.IsNullOrWhiteSpace(dto.DetalleTratamiento))
-        {
-            throw new InvalidOperationException("Debe detallar el tratamiento que recibe el bebé.");
-        }
 
         if (dto.DetalleHospitalizacion?.Length > 500)
         {

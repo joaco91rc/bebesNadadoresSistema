@@ -83,7 +83,7 @@
 
                         ? "Actualizá los datos personales y responsables."
 
-                        : "Registrá al bebé, su familia, plan, primera clase y pago inicial.")
+                        : "Registrá al bebé y su horario; podés completar responsables y pagar después.")
 
                 </p>
 
@@ -204,7 +204,7 @@
                 <div class="form-grid">
                     @* DATOS PERSONALES: nombre y apellido en un campo *@
                     <div class="form-field span-2">
-                        <label>Nombre y apellido *</label>
+                        <label>Nombre del bebé * (apellido opcional)</label>
                         <input type="text" maxlength="200" autocomplete="off"
                                @bind="_form.NombreYApellido" />
                     </div>
@@ -219,7 +219,7 @@
 
                         </label>
 
-                       <BnDatePicker @bind-Value="_form.FechaNacimiento" />
+                       <BnDatePicker Value="_form.FechaNacimiento" ValueChanged="FechaNacimientoCambiadaAsync" />
 
                     </div>
 
@@ -258,7 +258,7 @@
 
                         <label>
 
-                            Nivel actual *
+                            Nivel actual (sugerido por edad)
 
                         </label>
 
@@ -327,7 +327,7 @@
         <div class="health-question-content">
 
             <span class="health-question-label">
-                ¿Permaneció en el hospital más de 5 días? *
+                ¿Permaneció en el hospital más de 5 días? (opcional)
             </span>
 
             <div class="health-answer-options">
@@ -360,7 +360,7 @@
                 <div class="health-detail">
 
                     <label>
-                        Detalle de la hospitalización *
+                        Detalle de la hospitalización
                     </label>
 
                     <textarea @bind="_form.DetalleHospitalizacion"
@@ -390,7 +390,7 @@
         <div class="health-question-content">
 
             <span class="health-question-label">
-                ¿Recibe algún tratamiento? *
+                ¿Recibe algún tratamiento? (opcional)
             </span>
 
             <div class="health-answer-options">
@@ -423,7 +423,7 @@
                 <div class="health-detail">
 
                     <label>
-                        Detalle del tratamiento *
+                        Detalle del tratamiento
                     </label>
 
                     <textarea @bind="_form.DetalleTratamiento"
@@ -478,7 +478,7 @@
 
                             <small>
 
-                                Debe existir exactamente un contacto principal.
+                                Opcional: podés agregar el responsable más adelante, editando el bebé.
 
                             </small>
 
@@ -754,7 +754,7 @@
 
     Configurá el plan, la modalidad de asistencia
 
-    y el pago inicial.
+    y la tarifa del primer mes. El pago inicial es opcional.
 
 </small>
 
@@ -1201,13 +1201,12 @@
      * Misma regla que el servidor (ReglasCuota):
      * cuota completa -> se cobra el 50 %; media cuota -> se cobra entera.
      */
-    var mediaCuota =
-        ReglasCuota.EsInicioAMitadDeMes(_form.FechaInicioInscripcion);
+    var mediaCuota = _form.CobrarMediaCuotaPrimerMes
+        ?? ReglasCuota.EsInicioAMitadDeMes(_form.FechaInicioInscripcion);
 
-    var totalPrimeraCuota =
-        ReglasCuota.CalcularImportePrimerMes(
-            CalcularTotal(precioPagoInicial),
-            _form.FechaInicioInscripcion);
+    var totalPrimeraCuota = mediaCuota
+        ? Math.Round(CalcularTotal(precioPagoInicial) * 0.50m, 2, MidpointRounding.AwayFromZero)
+        : CalcularTotal(precioPagoInicial);
 
     var importePagoInicial =
         mediaCuota
@@ -1222,22 +1221,41 @@
         importePagoInicial;
 
     <div class="discount-summary initial-payment-summary">
-
+        <div class="form-field">
+            <label>Tarifa del primer mes (la elige la administrativa)</label>
+            <select @bind="_form.CobrarMediaCuotaPrimerMes">
+                <option value="">Sugerencia automática por fecha</option>
+                <option value="false">Tarifa completa</option>
+                <option value="true">Media tarifa (50%)</option>
+            </select>
+        </div>
         <div>
-            <span>@(mediaCuota ? "Media cuota (inicio a mitad de mes)" : "Primera cuota")</span>
+            <span>@(mediaCuota ? "Media cuota" : "Cuota completa")</span>
             <strong>@FormatearPrecio(totalPrimeraCuota)</strong>
         </div>
 
-        <div>
-            <span>@(mediaCuota ? "Se cobra completa" : "Pago para confirmar · 50%")</span>
-            <strong>@FormatearPrecio(importePagoInicial)</strong>
+        <div class="form-field">
+            <label class="initial-payment-choice">
+                <input type="checkbox" @bind="_form.RegistrarPagoInicial" />
+                Registrar un pago en este momento (opcional)
+            </label>
+            <small class="field-hint">Sin pago: se guarda la inscripción y la primera cuota queda pendiente en Pagos.</small>
         </div>
+        @if (_form.RegistrarPagoInicial)
+        {
+            <div>
+                <span>Pago inicial</span>
+                <strong>@FormatearPrecio(importePagoInicial)</strong>
+            </div>
+        }
 
         <div>
-            <span>Saldo posterior</span>
-            <strong>@FormatearPrecio(saldoPosterior)</strong>
+            <span>@(_form.RegistrarPagoInicial ? "Saldo posterior" : "Cuota pendiente de pago")</span>
+            <strong>@FormatearPrecio(_form.RegistrarPagoInicial ? saldoPosterior : totalPrimeraCuota)</strong>
         </div>
 
+        @if (_form.RegistrarPagoInicial)
+        {
         <div class="form-field">
             <label>
                 Medio del pago inicial
@@ -1297,6 +1315,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
     </small>
 }
         </div>
+        }
 
     </div>
 }

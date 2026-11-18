@@ -11,7 +11,8 @@ public sealed record AsistenciaAlumnoDto(
     string? Observaciones,
     DateTimeOffset? RegistradaUtc,
     bool GeneroRecupero,
-    DateOnly? RecuperoVence);
+    DateOnly? RecuperoVence,
+    bool EsPrimeraClase = false);
 
 
 public sealed record AsistenciaSesionDto(

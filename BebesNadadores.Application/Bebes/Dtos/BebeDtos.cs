@@ -100,6 +100,10 @@ public string? MotivoDescuento { get; set; }
 
 public Guid? SesionInicialId { get; set; }
 
+// La inscripción puede guardarse con cuota pendiente y sin registrar cobro.
+public bool RegistrarPagoInicial { get; set; } = false;
+// null mantiene sugerencia de la fecha, true media cuota, false completa.
+public bool? CobrarMediaCuotaPrimerMes { get; set; }
 public MedioPago MedioPagoInicial { get; set; } = MedioPago.Transferencia;
 public Guid? CuentaBancariaId { get; set; }
 }

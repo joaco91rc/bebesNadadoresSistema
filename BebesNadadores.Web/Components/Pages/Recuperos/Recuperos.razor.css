@@ -2688,3 +2688,6 @@
 .recovery-filter-baby ::deep .recovery-autocomplete .mud-input-control-input-container {
     margin-top: 0;
 }
+
+/* Aviso de recuperación que supera el cupo nominal sin pasar de 14 */
+.overcapacity-recovery-warning{margin:8px 0;padding:8px 10px;border:1px solid rgba(245,169,66,.45);border-radius:10px;background:rgba(245,169,66,.1);color:#e9ae57;font-size:12px;font-weight:700;line-height:1.35}

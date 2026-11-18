@@ -61,6 +61,9 @@ public partial class BebeFormulario : ComponentBase
 
     protected bool _guardando;
 
+    // La fecha de nacimiento debe elegirse expresamente en una inscripción nueva.
+    protected bool _fechaNacimientoInformada;
+
     protected bool _cargandoTurnos;
 
     protected string? _error;
@@ -321,15 +324,7 @@ public partial class BebeFormulario : ComponentBase
             MotivoSobrecupo = null,
         };
 
-        form.Responsables.Add(
-            new GuardarResponsableBebeDto
-            {
-                EsContactoPrincipal = true,
-
-                AutorizaComunicaciones = true,
-            }
-        );
-
+        // Responsable opcional: se incorpora al editar el legajo.
         return form;
     }
 
@@ -404,17 +399,7 @@ public partial class BebeFormulario : ComponentBase
                 .ToList(),
         };
 
-        if (_form.Responsables.Count == 0)
-        {
-            _form.Responsables.Add(
-                new GuardarResponsableBebeDto
-                {
-                    EsContactoPrincipal = true,
 
-                    AutorizaComunicaciones = true,
-                }
-            );
-        }
     }
 
     // =========================================================
@@ -451,6 +436,25 @@ public partial class BebeFormulario : ComponentBase
     // =========================================================
     // NIVEL
     // =========================================================
+
+    private async Task FechaNacimientoCambiadaAsync(DateOnly fecha)
+    {
+        _fechaNacimientoInformada = true;
+        _form.FechaNacimiento = fecha;
+        var meses = (_form.FechaInicioInscripcion.Year - fecha.Year) * 12
+            + _form.FechaInicioInscripcion.Month - fecha.Month
+            - (_form.FechaInicioInscripcion.Day < fecha.Day ? 1 : 0);
+        var compatibles = _niveles.Where(x => x.EdadMinMeses <= meses && meses <= x.EdadMaxMeses).ToList();
+        var recomendado = compatibles
+            .OrderBy(x => x.EdadMaxMeses - x.EdadMinMeses)
+            .ThenBy(x => x.Orden)
+            .FirstOrDefault();
+        if (recomendado is not null && _form.NivelActualId != recomendado.Id)
+        {
+            _form.NivelActualId = recomendado.Id;
+            await NivelCambioAsync();
+        }
+    }
 
     private async Task NivelCambioAsync()
     {
@@ -637,12 +641,6 @@ public partial class BebeFormulario : ComponentBase
             return;
         }
 
-        if (_form.Responsables.Count == 1)
-        {
-            _error = "Debe existir al menos un responsable.";
-
-            return;
-        }
 
         var eraPrincipal = _form.Responsables[index].EsContactoPrincipal;
 
@@ -701,10 +699,10 @@ public partial class BebeFormulario : ComponentBase
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_form.Apellido))
-        {
-            _error = "Debe indicar el apellido del bebé.";
 
+        if (!_editando && !_fechaNacimientoInformada)
+        {
+            _error = "Debe seleccionar la fecha de nacimiento del bebé.";
             return;
         }
 
@@ -726,12 +724,6 @@ public partial class BebeFormulario : ComponentBase
         // RESPONSABLES
         // =========================================================
 
-        if (_form.Responsables.Count == 0)
-        {
-            _error = "Debe indicar al menos un responsable.";
-
-            return;
-        }
 
         if (_form.Responsables.Any(x => string.IsNullOrWhiteSpace(x.Nombre)))
         {
@@ -747,38 +739,11 @@ public partial class BebeFormulario : ComponentBase
             return;
         }
 
-        if (_form.Responsables.Count(x => x.EsContactoPrincipal) != 1)
+        if (_form.Responsables.Count > 0 && _form.Responsables.Count(x => x.EsContactoPrincipal) != 1)
         {
             _error = "Debe indicar exactamente un contacto principal.";
 
             return;
-        }
-
-        // =====================================================
-        // ANTECEDENTES DE SALUD - SOLO ALTA
-        // =====================================================
-
-        if (!_editando)
-        {
-            if (
-                _form.PermanecioHospitalMasDe5Dias == true
-                && string.IsNullOrWhiteSpace(_form.DetalleHospitalizacion)
-            )
-            {
-                _error = "Debe detallar la hospitalización del bebé.";
-
-                return;
-            }
-
-            if (
-                _form.RecibeTratamiento == true
-                && string.IsNullOrWhiteSpace(_form.DetalleTratamiento)
-            )
-            {
-                _error = "Debe detallar el tratamiento que recibe el bebé.";
-
-                return;
-            }
         }
 
         // =========================================================
@@ -905,7 +870,7 @@ public partial class BebeFormulario : ComponentBase
             // PAGO INICIAL
             // =====================================================
 
-            if (_form.MedioPagoInicial.RequiereCuentaBancaria())
+            if (_form.RegistrarPagoInicial && _form.MedioPagoInicial.RequiereCuentaBancaria())
             {
                 if (!_form.CuentaBancariaId.HasValue)
                 {

@@ -4089,3 +4089,21 @@
     }
 
 }
+/* Acceso directo independiente del modal de edición de la clase */
+
+/* Evitar que "Disponible" o "Casi completo" se corten */
+.session-top{align-items:start;min-width:0;gap:4px}
+.session-top > strong{flex:0 0 auto}
+.session-status{
+    max-width:none;
+    min-width:0;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    font-size:10px;
+    line-height:1.25;
+    text-align:right;
+    letter-spacing:0;
+}
+.session-footer{flex-wrap:wrap}
+.vacancy-text{white-space:normal;text-align:right;overflow-wrap:break-word}

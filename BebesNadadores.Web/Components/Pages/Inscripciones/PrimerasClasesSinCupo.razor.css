@@ -10,3 +10,13 @@
 .bn-status{padding:6px 10px;border-radius:999px;font-size:.8rem;background:#e8eef7;color:#335674}.bn-status.present{background:#dcf6e6;color:#167c46}
 .bn-btn{cursor:pointer;border:1px solid #65a8d0;border-radius:9px;background:transparent;color:#54a2d1;padding:8px 12px;margin-left:8px}
 .bn-error{color:#c23c50}.bn-ok{color:#11854f}@media(max-width:650px){.bn-first{padding:12px}.bn-first-head{display:block}}
+
+
+/* Seguimiento de alumnos que ya realizaron la primera clase */
+.bn-reminder{background:rgba(32,166,215,.12);border:1px solid rgba(77,199,237,.42);border-left:4px solid #31bce8;border-radius:12px;padding:14px 18px;margin:0 0 18px;color:var(--mud-palette-text-primary)}
+.bn-reminder strong{color:#35bee9;font-weight:800}
+.bn-reminder p{margin:6px 0 0;line-height:1.55}
+.bn-needs-schedule{background:rgba(45,185,219,.065)}
+.bn-followup{display:inline-block;background:rgba(245,181,62,.14);border:1px solid rgba(245,181,62,.42);border-radius:8px;padding:7px 10px;color:#e9b654;font-size:.83rem;font-weight:750;white-space:normal}
+.bn-summary span strong{font-size:1.1rem}
+@media(max-width:650px){.bn-summary span{margin-left:0}.bn-reminder{padding:12px}}

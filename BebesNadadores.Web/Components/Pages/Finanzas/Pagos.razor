@@ -803,13 +803,13 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                                        href="@($"/pagos/comprobante/{pago.Id:D}")"
                                                        title="Descargar comprobante PDF del pago recibido">
                                                         <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small" />
-                                                        Comprobante
+                                                        Descargar PDF
                                                     </a>
                                                     <button type="button" class="receipt-share"
-                                                            title="Compartir el PDF. En celular podés elegir WhatsApp; en PC se descargará para adjuntarlo en WhatsApp Web."
+                                                            title="Descarga el PDF y abre WhatsApp con el texto sugerido. En celular intenta compartir el comprobante directamente."
                                                             @onclick="() => CompartirComprobanteAsync(pago)">
                                                         <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
-                                                        WhatsApp
+                                                        Enviar comprobante
                                                     </button>
                                                 </div>
                                             }

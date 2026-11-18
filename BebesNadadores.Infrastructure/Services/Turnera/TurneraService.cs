@@ -1170,11 +1170,37 @@ public sealed class TurneraService(
         if (sesion is null)
             return null;
 
+        // No incluir Inscripcion -> Turnos: esa navegación vuelve a Inscripcion
+        // y EF Core rechaza ciclos en las consultas AsNoTracking().
         var inscripciones = await db
             .InscripcionesTurnos.AsNoTracking()
             .Include(x => x.Inscripcion)
             .Where(x => x.TurnoId == sesion.TurnoId)
             .ToListAsync(ct);
+
+        // Obtener los días de todos los horarios habituales en una consulta
+        // independiente, sin cargar un grafo circular de entidades.
+        var inscripcionIds = inscripciones.Select(x => x.InscripcionId).Distinct().ToList();
+        var horarios = await db.InscripcionesTurnos.AsNoTracking()
+            .Where(x => inscripcionIds.Contains(x.InscripcionId))
+            .Select(x => new { x.InscripcionId, x.Turno.DiaSemana })
+            .ToListAsync(ct);
+
+        var inicioPorInscripcion = inscripciones
+            .GroupBy(x => x.InscripcionId)
+            .ToDictionary(g => g.Key, g => g.First().Inscripcion.FechaInicio);
+
+        var primeraFechaPorInscripcion = horarios
+            .GroupBy(x => x.InscripcionId)
+            .Where(g => inicioPorInscripcion.ContainsKey(g.Key))
+            .ToDictionary(g => g.Key, g =>
+            {
+                var inicio = inicioPorInscripcion[g.Key];
+                var diaInicio = (int)inicio.DayOfWeek;
+                if (diaInicio == 0) diaInicio = 7;
+                return g.Min(x => inicio.AddDays(
+                    ((int)x.DiaSemana - diaInicio + 7) % 7));
+            });
 
         var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
             db, inscripciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
@@ -1196,6 +1222,9 @@ public sealed class TurneraService(
             .ToListAsync(ct);
 
         var esperados = new Dictionary<Guid, (Guid InscripcionId, bool EsRecupero)>();
+        var primeraClaseBebeIds = reservasIniciales
+            .Where(x => x.Tipo == TipoReservaSesion.InscripcionInicial)
+            .Select(x => x.BebeId).ToHashSet();
 
         foreach (var relacion in inscripciones)
         {
@@ -1264,7 +1293,12 @@ public sealed class TurneraService(
                     esperado.Value.InscripcionId,
                     $"{bebe.Nombre} {bebe.Apellido}",
                     asistencia?.Estado,
-                    esperado.Value.EsRecupero
+                    esperado.Value.EsRecupero,
+                    !esperado.Value.EsRecupero && (
+                        primeraClaseBebeIds.Contains(bebe.Id) ||
+                        (primeraFechaPorInscripcion.TryGetValue(
+                            esperado.Value.InscripcionId, out var primeraFecha)
+                            && primeraFecha == sesion.Fecha))
                 )
             );
         }

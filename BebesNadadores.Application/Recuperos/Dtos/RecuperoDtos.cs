@@ -74,7 +74,11 @@ public sealed record VacanteRecuperoDto(
     IReadOnlyList<string> Profesores,
 
     // Bebés que tienen reservada ahí su clase inicial.
-    int ClaseInicial = 0);
+    int ClaseInicial = 0,
+    int OcupacionActual = 0)
+{
+    public bool ConSobrecupoPermitido => OcupacionActual >= Cupo;
+}
 
 
 // ============================================================

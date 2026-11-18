@@ -109,7 +109,8 @@ public sealed record BebeSesionDto(
     Guid InscripcionId,
     string NombreCompleto,
     EstadoAsistencia? EstadoAsistencia,
-    bool EsRecupero);
+    bool EsRecupero,
+    bool EsPrimeraClase = false);
 
 
 public sealed record SesionClaseDetalleDto(

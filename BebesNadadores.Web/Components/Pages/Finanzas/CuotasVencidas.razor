@@ -1,0 +1,248 @@
+@page "/pagos/cuotas-vencidas"
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
+
+@using System.Globalization
+@using BebesNadadores.Domain.Common
+@using BebesNadadores.Domain.Enums
+@using BebesNadadores.Infrastructure.Persistence
+@using BebesNadadores.Application.Comunicaciones
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IWhatsAppService WhatsAppService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Cuotas vencidas | Bebés Nadadores</PageTitle>
+
+<div class="deudas-page">
+    <header class="deudas-header">
+        <div>
+            <span class="deudas-eyebrow">FINANZAS · SEGUIMIENTO</span>
+            <h1>Cuotas vencidas</h1>
+            <p>Familias con cuotas vencidas y saldo pendiente de pago. Revisá cada caso antes de enviar un recordatorio.</p>
+        </div>
+        <div class="deudas-actions">
+            <a href="/pagos" class="deudas-button secondary"><MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"/> Volver a Pagos</a>
+            <button type="button" class="deudas-button primary" disabled="@_cargando" @onclick="CargarAsync">
+                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"/> Actualizar
+            </button>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="deudas-warning">@_error</div>
+    }
+
+    @if (_cargando)
+    {
+        <div class="deudas-loading"><MudProgressCircular Indeterminate="true"/> Calculando cuotas vencidas...</div>
+    }
+    else
+    {
+        <section class="deudas-stats">
+            <div><small>Familias con deuda</small><strong>@_filas.Count</strong></div>
+            <div><small>Cuotas vencidas</small><strong>@_filas.Sum(x => x.CuotasVencidas)</strong></div>
+            <div><small>Saldo vencido total</small><strong>@Moneda(_filas.Sum(x => x.Deuda))</strong></div>
+        </section>
+
+        <section class="deudas-panel">
+            <div class="deudas-filtros">
+                <label class="deudas-search">
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small"/>
+                    <input type="search" placeholder="Buscar bebé o responsable..." @bind="_busqueda" @bind:event="oninput" />
+                </label>
+                <label class="deudas-check"><input type="checkbox" @bind="_incluirInactivos" /> Incluir bebés inactivos</label>
+                <span class="deudas-count">@FilasVisibles.Count familias</span>
+            </div>
+
+            @if (FilasVisibles.Count == 0)
+            {
+                <div class="deudas-empty">No encontramos cuotas vencidas que coincidan con los filtros.</div>
+            }
+            else
+            {
+                <div class="deudas-table-wrap">
+                    <table class="deudas-table">
+                        <thead><tr><th>Bebé / familia</th><th>Cuotas</th><th>Períodos adeudados</th><th>Saldo vencido</th><th>Contacto</th><th>Acción</th></tr></thead>
+                        <tbody>
+                        @foreach (var fila in FilasVisibles)
+                        {
+                            <tr @key="fila.BebeId">
+                                <td>
+                                    <strong>@fila.Bebe</strong>
+                                    @if (!fila.Activo) { <span class="deudas-chip muted">Inactivo</span> }
+                                    <small>Vencimiento más antiguo: @fila.PrimerVencimiento.ToString("dd/MM/yyyy")</small>
+                                </td>
+                                <td><span class="deudas-chip">@fila.CuotasVencidas @(fila.CuotasVencidas == 1 ? "cuota" : "cuotas")</span></td>
+                                <td class="deudas-periodos">@fila.Periodos</td>
+                                <td><strong class="deudas-monto">@Moneda(fila.Deuda)</strong></td>
+                                <td>
+                                    <strong>@(fila.Responsable ?? "Sin contacto habilitado")</strong>
+                                    <small>@(fila.Telefono is null ? "Sin WhatsApp autorizado" : "WhatsApp disponible")</small>
+                                </td>
+                                <td>
+                                    @if (fila.ConciliacionPendiente)
+                                    {
+                                        <span class="deudas-chip warning" title="Revisar la conciliación histórica antes de reclamar">Revisar histórico</span>
+                                    }
+                                    @if (fila.SaldoSinImputar > 0)
+                                    {
+                                        <span class="deudas-chip warning" title="Tiene pagos registrados sin aplicar a cuotas">Saldo sin imputar: @Moneda(fila.SaldoSinImputar)</span>
+                                    }
+                                    <button type="button" class="deudas-button whatsapp"
+                                            disabled="@(fila.Telefono is null || fila.ConciliacionPendiente || fila.SaldoSinImputar > 0)"
+                                            title="@(fila.ConciliacionPendiente || fila.SaldoSinImputar > 0 ? "Verificá el estado de cuenta antes de enviar" : fila.Telefono is null ? "No hay un responsable con WhatsApp autorizado" : "Abrir WhatsApp con el mensaje preparado")"
+                                            @onclick="() => RecordarAsync(fila)">
+                                        <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small"/> Recordar pago
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            <p class="deudas-footnote">Los importes se calculan sobre cuotas vencidas menos pagos imputados. Si existe una conciliación histórica pendiente, se deshabilita el recordatorio hasta revisar el caso. Abrir WhatsApp no significa que se haya enviado el mensaje.</p>
+        </section>
+    }
+</div>
+
+@code {
+    private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
+    private readonly List<FilaDeuda> _filas = [];
+    private bool _cargando = true;
+    private bool _incluirInactivos;
+    private string _busqueda = string.Empty;
+    private string? _error;
+
+    private List<FilaDeuda> FilasVisibles => _filas
+        .Where(x => (_incluirInactivos || x.Activo) &&
+            (string.IsNullOrWhiteSpace(_busqueda) ||
+             x.Bebe.Contains(_busqueda.Trim(), StringComparison.OrdinalIgnoreCase) ||
+             (x.Responsable?.Contains(_busqueda.Trim(), StringComparison.OrdinalIgnoreCase) ?? false)))
+        .ToList();
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            var hoy = FechaArgentina.Hoy;
+            var periodoActual = new DateOnly(hoy.Year, hoy.Month, 1);
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            // MISMA REGLA QUE PAGOS: solo cuotas vencidas y períodos hasta el mes actual.
+            // Incluimos todas las imputaciones para calcular el saldo real, incluso pagos parciales.
+            var cuotas = await db.Cuotas.AsNoTracking()
+                .Include(x => x.Imputaciones)
+                .Include(x => x.Inscripcion).ThenInclude(x => x.Bebe)
+                .Where(x => x.Estado != EstadoCuota.Anulada &&
+                    x.FechaVencimiento < hoy && x.Periodo <= periodoActual)
+                .ToListAsync();
+
+            var pendientes = cuotas.Select(x => new
+            {
+                Cuota = x,
+                Saldo = Math.Max(0m, x.Importe - x.Imputaciones.Sum(i => i.Importe))
+            }).Where(x => x.Saldo > 0).ToList();
+
+            var ids = pendientes.Select(x => x.Cuota.Inscripcion.BebeId).Distinct().ToList();
+
+            var contactos = await db.BebesResponsables.AsNoTracking()
+                .Include(x => x.Responsable)
+                .Where(x => ids.Contains(x.BebeId))
+                .ToListAsync();
+
+            var conciliaciones = await db.ConciliacionesFinancierasBebes.AsNoTracking()
+                .Where(x => ids.Contains(x.BebeId) && x.MesesVencidosSinConciliar > 0)
+                .Select(x => x.BebeId).ToListAsync();
+            var idsConConciliacion = conciliaciones.ToHashSet();
+
+            // Un cobro sin imputar puede explicar parte de la deuda aparente.
+            // Los anticipos de reserva de un ciclo futuro NO son saldo disponible.
+            var pagos = await db.Pagos.AsNoTracking()
+                .Include(x => x.Imputaciones)
+                .Where(x => ids.Contains(x.BebeId) && !x.AnuladoUtc.HasValue)
+                .ToListAsync();
+            var anticiposIds = (await db.ReservasVacantesCiclo.AsNoTracking()
+                .Where(x => ids.Contains(x.BebeId) && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+                .Select(x => x.PagoId)
+                .ToListAsync()).Where(x => x.HasValue).Select(x => x!.Value).ToHashSet();
+            var saldoSinImputar = pagos
+                .Where(x => !anticiposIds.Contains(x.Id))
+                .GroupBy(x => x.BebeId)
+                .ToDictionary(x => x.Key,
+                    x => x.Sum(p => Math.Max(0m, p.Importe - p.Imputaciones.Sum(i => i.Importe))));
+
+            _filas.Clear();
+            foreach (var grupo in pendientes.GroupBy(x => x.Cuota.Inscripcion.BebeId))
+            {
+                var bebe = grupo.First().Cuota.Inscripcion.Bebe;
+                var contacto = contactos
+                    .Where(x => x.BebeId == grupo.Key && x.AutorizaComunicaciones && x.Responsable.Activo &&
+                                !string.IsNullOrWhiteSpace(x.Responsable.WhatsApp))
+                    .OrderByDescending(x => x.EsContactoPrincipal)
+                    .FirstOrDefault();
+                var periodos = grupo.Select(x => x.Cuota.Periodo).Distinct().OrderBy(x => x).ToList();
+
+                _filas.Add(new FilaDeuda(
+                    grupo.Key,
+                    $"{bebe.Nombre} {bebe.Apellido}".Trim(),
+                    bebe.Estado == EstadoBebe.Activo,
+                    grupo.Sum(x => x.Saldo),
+                    grupo.Count(),
+                    grupo.Min(x => x.Cuota.FechaVencimiento),
+                    string.Join(", ", periodos.Select(p => p.ToString("MM/yyyy"))),
+                    contacto is null ? null : $"{contacto.Responsable.Nombre} {contacto.Responsable.Apellido}".Trim(),
+                    contacto?.Responsable.WhatsApp,
+                    idsConConciliacion.Contains(grupo.Key),
+                    saldoSinImputar.GetValueOrDefault(grupo.Key)));
+            }
+            _filas.Sort((a, b) => b.Deuda.CompareTo(a.Deuda));
+        }
+        catch (Exception)
+        {
+            _error = "No fue posible consultar las cuotas vencidas. Revisá los logs de la aplicación.";
+        }
+        finally { _cargando = false; }
+    }
+
+    private async Task RecordarAsync(FilaDeuda fila)
+    {
+        if (string.IsNullOrWhiteSpace(fila.Telefono) || fila.ConciliacionPendiente || fila.SaldoSinImputar > 0)
+            return;
+
+        var nombre = fila.Responsable?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
+            ?? "familia";
+        var mensaje = $"Buen día {nombre}, ¿cómo estás? Te escribimos de Bebés Nadadores porque registramos " +
+            $"un saldo pendiente de {Moneda(fila.Deuda)} correspondiente a " +
+            $"{(fila.CuotasVencidas == 1 ? "la cuota" : "las cuotas")} de {fila.Periodos} " +
+            $"de {fila.Bebe}. Te pedimos por favor que regularicen el pago a la brevedad. " +
+            "Si ya abonaron, pueden enviarnos el comprobante para que lo verifiquemos. " +
+            "Muchas gracias. Bebés Nadadores.";
+
+        try
+        {
+            var url = WhatsAppService.CrearUrl(fila.Telefono, mensaje);
+            await JS.InvokeVoidAsync("open", url, "_blank", "noopener,noreferrer");
+        }
+        catch (Exception)
+        {
+            _error = "No pudimos abrir WhatsApp. Revisá que el responsable tenga un número válido.";
+        }
+    }
+
+    private static string Moneda(decimal valor) => valor.ToString("C2", Cultura);
+
+    private sealed record FilaDeuda(
+        Guid BebeId, string Bebe, bool Activo, decimal Deuda,
+        int CuotasVencidas, DateOnly PrimerVencimiento, string Periodos,
+        string? Responsable, string? Telefono, bool ConciliacionPendiente, decimal SaldoSinImputar);
+}

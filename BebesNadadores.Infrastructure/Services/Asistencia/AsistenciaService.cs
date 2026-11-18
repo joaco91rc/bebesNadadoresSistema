@@ -5,6 +5,7 @@ using BebesNadadores.Domain.Enums;
 using BebesNadadores.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using BebesNadadores.Application.Configuracion;
+using BebesNadadores.Domain.Common;
 using BebesNadadores.Infrastructure.Services.Turnera;
 
 namespace BebesNadadores.Infrastructure.Services.Asistencias;
@@ -64,7 +65,30 @@ public sealed class AsistenciaService(
                     x.TurnoId == sesion.TurnoId)
                 .ToListAsync(ct);
 
+        // No incluir Inscripcion.Turnos desde InscripcionTurno:
+        // esa navegación vuelve sobre la misma relación y en una consulta
+        // AsNoTracking EF Core puede lanzar un error por ciclo de Include.
+        // Solo necesitamos los días de la semana, no todo el grafo.
+        var inscripcionesIds = relaciones
+            .Select(x => x.InscripcionId)
+            .Distinct()
+            .ToArray();
 
+        var horariosInscripciones = await db.InscripcionesTurnos
+            .AsNoTracking()
+            .Where(x => inscripcionesIds.Contains(x.InscripcionId))
+            .Select(x => new { x.InscripcionId, x.Turno.DiaSemana })
+            .ToListAsync(ct);
+
+        var diasPorInscripcion = horariosInscripciones
+            .GroupBy(x => x.InscripcionId)
+            .ToDictionary(
+                x => x.Key,
+                x => x.Select(t => (int)t.DiaSemana).ToArray());
+
+
+        // La primera clase puede realizarse en un horario excepcional.
+        // Hasta entonces no se espera al alumno en su horario habitual.
         var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
             db, relaciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
 
@@ -81,10 +105,10 @@ public sealed class AsistenciaService(
 
 
             if (PrimeraClaseExcepcional.TodaviaNoComenzo(
-                primerasExcepcionales, relacion.InscripcionId, sesion.Fecha)
+                    primerasExcepcionales, relacion.InscripcionId, sesion.Fecha)
                 || !InscripcionValidaEnFecha(
-                inscripcion,
-                sesion.Fecha))
+                    inscripcion,
+                    sesion.Fecha))
             {
                 continue;
             }
@@ -95,7 +119,9 @@ public sealed class AsistenciaService(
                     inscripcion.BebeId,
                     inscripcion.Id,
                     $"{inscripcion.Bebe.Nombre} {inscripcion.Bebe.Apellido}".Trim(),
-                    false);
+                    false,
+                    diasPorInscripcion.TryGetValue(inscripcion.Id, out var dias)
+                        && EsPrimeraClaseEnHorarioFijo(inscripcion.FechaInicio, dias, sesion.Fecha));
         }
 
 
@@ -118,6 +144,12 @@ var reservasIniciales =
                 EstadoReservaSesion.Activa)
 
         .ToListAsync(ct);
+
+// La primera clase reservada también puede coincidir con el turno habitual.
+var primeraClaseReservadaIds = reservasIniciales
+    .Where(x => x.Tipo == TipoReservaSesion.InscripcionInicial)
+    .Select(x => x.BebeId)
+    .ToHashSet();
 
 
 foreach (var reserva in
@@ -146,7 +178,8 @@ foreach (var reserva in
             $"{reserva.Bebe.Nombre} " +
             $"{reserva.Bebe.Apellido}",
 
-            false);
+            false,
+            reserva.Tipo == TipoReservaSesion.InscripcionInicial);
 }
 
         // =====================================================
@@ -272,7 +305,9 @@ foreach (var reserva in
                     recuperoVigente,
                     recuperoVigente
                         ? recuperacion!.FechaVencimiento
-                        : null));
+                        : null,
+                    !esperado.EsRecupero &&
+                        (esperado.EsPrimeraClase || primeraClaseReservadaIds.Contains(esperado.BebeId))));
         }
 
 
@@ -937,6 +972,18 @@ if (reservaInicial is not null)
                 "La clase indicada no existe.");
 
 
+        // REGLA DE NEGOCIO: solo se permite registrar asistencia del día
+        // operativo actual de Argentina. También protege contra llamadas
+        // directas al servicio, cambios en el navegador o varios usuarios.
+        var hoyArgentina = FechaArgentina.Hoy;
+        if (sesion.Fecha != hoyArgentina)
+        {
+            throw new InvalidOperationException(
+                sesion.Fecha < hoyArgentina
+                    ? "Esta clase es de una fecha anterior. Su asistencia está cerrada y es solo de consulta."
+                    : "No se puede tomar asistencia anticipada. Solo se registra durante el día de la clase.");
+        }
+
         if (sesion.Estado ==
             EstadoSesionClase.Cancelada)
         {
@@ -972,6 +1019,24 @@ if (reservaInicial is not null)
         }
     }
 
+
+    // Primera asistencia real del alumno: la fecha del primer turno semanal
+    // configurado a partir del inicio, salvo una primera clase puntual.
+    private static bool EsPrimeraClaseEnHorarioFijo(
+        DateOnly fechaInicio, IReadOnlyCollection<int> diasSemana, DateOnly fecha)
+    {
+        if (diasSemana.Count == 0 || fecha < fechaInicio)
+            return false;
+
+        var inicioSemana = (int)fechaInicio.DayOfWeek;
+        if (inicioSemana == 0) inicioSemana = 7;
+
+        var primeraFecha = diasSemana
+            .Select(dia => fechaInicio.AddDays((dia - inicioSemana + 7) % 7))
+            .Min();
+
+        return fecha == primeraFecha;
+    }
 
     private static bool InscripcionValidaEnFecha(
         Inscripcion inscripcion,
@@ -1015,7 +1080,7 @@ public async Task<IReadOnlyList<AsistenciaClaseDiaDto>>
         CancellationToken ct = default)
 {
     List<Guid> sesionesIds;
-    var hoy = DateOnly.FromDateTime(DateTime.Today);
+    var hoy = FechaArgentina.Hoy;
 
     await using (
         var db =
@@ -1089,5 +1154,6 @@ public async Task<IReadOnlyList<AsistenciaClaseDiaDto>>
         Guid BebeId,
         Guid InscripcionId,
         string NombreCompleto,
-        bool EsRecupero);
+        bool EsRecupero,
+        bool EsPrimeraClase = false);
 }

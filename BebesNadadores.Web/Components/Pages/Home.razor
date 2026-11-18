@@ -22,6 +22,7 @@
 @inject IServiceScopeFactory ScopeFactory
 
 @inject IWhatsAppService WhatsAppService
+@inject BebesNadadores.Web.Services.Cumpleanos.TarjetaCumpleanosService TarjetasCumpleanos
 @inject IDashboardService DashboardService
 @inject PermisosUsuario Permisos
 @inject ISnackbar Snackbar
@@ -537,10 +538,10 @@
                     @foreach (var cumpleHoy in CumpleaniosHoy)
                     {
                         <button type="button" class="birthday-whatsapp-button"
-                                title="Preparar saludo de cumpleaños en WhatsApp"
+                                title="Abrir WhatsApp con el enlace a la tarjeta animada de cumpleaños"
                                 @onclick="() => SaludarCumpleaniosAsync(cumpleHoy)">
                             <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
-                            Saludar a @cumpleHoy.Nombre
+                            Enviar tarjeta web a @cumpleHoy.Nombre
                         </button>
                     }
                 </div>

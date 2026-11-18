@@ -260,7 +260,11 @@ public sealed class RecuperosService(
         var ocupacion =
             ocupaciones[sesion.Id];
 
-        if (ocupacion.Libres == 0)
+        // Para recuperos se permite sobrecupo operativo hasta 14 asistentes.
+        // Las clases llenas según cupo base siguen siendo seleccionables.
+        var libresParaRecupero = Math.Max(0,
+            14 - (ocupacion.Esperados - ocupacion.AusentesConAviso));
+        if (libresParaRecupero == 0)
         {
             continue;
         }
@@ -310,9 +314,10 @@ public sealed class RecuperosService(
         ocupacion.Recuperos,
         ocupacion.VacantesFijas,
         ocupacion.AusentesConAviso,
-        ocupacion.Libres,
+        libresParaRecupero,
         profesores,
-        ocupacion.ClaseInicial));
+        ocupacion.ClaseInicial,
+        ocupacion.Esperados - ocupacion.AusentesConAviso));
     }
 
 
@@ -688,7 +693,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
                 ct);
 
 
-        if (ocupacion.Libres <= 0)
+        if (ocupacion.Esperados - ocupacion.AusentesConAviso >= 14)
         {
             continue;
         }
@@ -731,9 +736,10 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
                 ocupacion.Recuperos,
                 ocupacion.VacantesFijas,
                 ocupacion.AusentesConAviso,
-                ocupacion.Libres,
+                Math.Max(0, 14 - (ocupacion.Esperados - ocupacion.AusentesConAviso)),
                 profesores,
-                ocupacion.ClaseInicial));
+                ocupacion.ClaseInicial,
+                ocupacion.Esperados - ocupacion.AusentesConAviso));
     }
 
 
@@ -1269,10 +1275,10 @@ private static string ObtenerPreferenciaListaEsperaTexto(
                 ct);
 
 
-        if (ocupacion.Libres <= 0)
+        if (ocupacion.Esperados - ocupacion.AusentesConAviso >= 14)
         {
             throw new InvalidOperationException(
-                "La clase ya no tiene lugares disponibles para recupero.");
+                "La clase ya tiene 14 alumnos. No se permite inscribir un 15.º recupero.");
         }
 
 

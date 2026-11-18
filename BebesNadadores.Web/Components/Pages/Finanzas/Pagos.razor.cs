@@ -17,6 +17,8 @@ namespace BebesNadadores.Web.Components.Pages.Finanzas;
 
 public partial class Pagos : ComponentBase
 {
+    [Inject] private BebesNadadores.Web.Services.Comprobantes.EnlaceComprobantePagoService EnlacesComprobantes { get; set; } = default!;
+
     // =========================================================
     // DATOS
     // =========================================================
@@ -73,32 +75,53 @@ public partial class Pagos : ComponentBase
     protected string _vistaCuenta =
     "resumen";
 
-    // Compartir un comprobante ya registrado. Web Share permite adjuntar PDF
-    // en móviles; en escritorio se descarga para adjuntarlo manualmente.
+    // En lugar de descargar el PDF o abrir el menú nativo de Windows,
+    // generamos un enlace público con vencimiento de 30 días.
     protected async Task CompartirComprobanteAsync(PagoCuentaCorrienteDto pago)
     {
         if (pago.Anulado) return;
+
         try
         {
-            await using var modulo = await JS.InvokeAsync<Microsoft.JSInterop.IJSObjectReference>(
+            _error = null;
+            _mensaje = null;
+
+            var enlace = EnlacesComprobantes.CrearEnlace(pago.Id, Navigation.BaseUri);
+            var responsable = ObtenerNombreResponsableParaWhatsApp();
+            var mensaje = $"Buen día {responsable}, te compartimos el comprobante del pago abonado.\n\n" +
+                          $"📄 Descargalo desde este enlace (válido por 30 días):\n{enlace}\n\n" +
+                          "Muchas gracias. Bebés Nadadores 💙";
+
+            await using var modulo = await JS.InvokeAsync<IJSObjectReference>(
                 "import", "/js/comprobantes-pagos.js");
-            var estado = await modulo.InvokeAsync<string>(
-                "compartirComprobante", new object?[]
-                {
-                    $"/pagos/comprobante/{pago.Id:D}",
-                    $"BebesNadadores_Recibo_{pago.Id:N}.pdf"
-                });
-            if (estado == "descargado")
-                _mensaje = "Comprobante descargado. Adjuntalo en tu conversación de WhatsApp Web.";
+
+            var abierto = await modulo.InvokeAsync<bool>(
+                "abrirWhatsAppComprobante", mensaje);
+
+            _mensaje = abierto
+                ? "Se abrió WhatsApp con el enlace de descarga. Revisá el destinatario y enviá el mensaje."
+                : "El navegador bloqueó la pestaña. El mensaje quedó copiado; habilitá ventanas emergentes para este sitio.";
         }
-        catch (Microsoft.JSInterop.JSException)
+        catch (JSException)
         {
-            _error = "No se pudo compartir el comprobante. Podés descargarlo desde el botón Comprobante.";
+            _error = "No se pudo abrir WhatsApp. Probá habilitando las ventanas emergentes.";
         }
         catch (InvalidOperationException)
         {
-            _error = "No se pudo abrir el diálogo para compartir. Descargá el comprobante PDF.";
+            _error = "No fue posible preparar el enlace del comprobante.";
         }
+    }
+
+    protected string ObtenerNombreResponsableParaWhatsApp()
+    {
+        var responsable = _cuenta?.Responsables?
+            .FirstOrDefault(x => x.EsPrincipal)?.NombreCompleto
+            ?? _cuenta?.Responsables?.FirstOrDefault()?.NombreCompleto;
+
+        if (!string.IsNullOrWhiteSpace(responsable))
+            return responsable.Trim();
+
+        return "familia";
     }
 
 

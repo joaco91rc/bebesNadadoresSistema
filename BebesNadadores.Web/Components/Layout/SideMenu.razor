@@ -133,9 +133,13 @@
                 @if (Collapsed || _grupoAbierto == "finanzas")
                 {
                     <div class="menu-group-body">
-                        <NavLink href="/pagos" class="menu-link" ActiveClass="active" title="Pagos">
+                        <NavLink href="/pagos" Match="NavLinkMatch.All" class="menu-link" ActiveClass="active" title="Pagos">
                             <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.CreditCard" /></span>
                             @if (!Collapsed) { <span class="menu-text">Pagos</span> }
+                        </NavLink>
+                        <NavLink href="/pagos/cuotas-vencidas" class="menu-link" ActiveClass="active" title="Cuotas vencidas">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.NotificationImportant" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Cuotas vencidas</span> }
                         </NavLink>
                         <NavLink href="/caja" class="menu-link" ActiveClass="active" title="Caja">
                             <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.PointOfSale" /></span>

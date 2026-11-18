@@ -35,7 +35,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 800;
 
     letter-spacing: 1.6px;
@@ -94,7 +94,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -173,7 +173,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -222,7 +222,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
 
     cursor: pointer;
@@ -300,7 +300,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 800;
 
     letter-spacing: 1px;
@@ -325,7 +325,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 11px;
 }
 
 
@@ -422,7 +422,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 10px;
 }
 
 
@@ -443,7 +443,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 14px;
+    font-size: 12px;
 
     white-space: nowrap;
 
@@ -459,7 +459,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 10px;
 
     white-space: nowrap;
 
@@ -482,7 +482,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 10px;
 }
 
 
@@ -557,7 +557,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 9px;
     font-weight: 800;
 
     letter-spacing: .7px;
@@ -622,7 +622,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 14px;
+    font-size: 12px;
 }
 
 
@@ -656,7 +656,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
 
     cursor: pointer;
@@ -746,7 +746,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 11px;
 }
 
 
@@ -800,14 +800,14 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 14px;
+    font-size: 12px;
 }
 
 
 .cancelled-warning span {
     margin-top: 2px;
 
-    font-size: 13px;
+    font-size: 11px;
 }
 
 
@@ -874,7 +874,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 14px;
+    font-size: 13px;
 }
 
 
@@ -895,7 +895,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 10px;
 }
 
 
@@ -1032,7 +1032,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 800;
 }
 
@@ -1062,7 +1062,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 14px;
+    font-size: 13px;
 
     white-space: nowrap;
 
@@ -1076,7 +1076,7 @@
     color:
         var(--mud-palette-text-secondary);
 
-    font-size: 13px;
+    font-size: 11px;
 }
 
 
@@ -1093,7 +1093,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 8px;
     font-weight: 800;
 }
 
@@ -1134,7 +1134,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 12px;
+    font-size: 9px;
     font-weight: 700;
 
     cursor: pointer;
@@ -1228,7 +1228,7 @@
     font-family:
         var(--bn-font-body);
 
-    font-size: 13px;
+    font-size: 11px;
 }
 
 
@@ -1284,7 +1284,7 @@
     background:
         rgba(52, 200, 232, .05);
 
-    font-size: 13px;
+    font-size: 10px;
 }
 
 
@@ -1294,7 +1294,7 @@
     font-family:
         var(--bn-font-title);
 
-    font-size: 13px;
+    font-size: 10px;
 }
 
 
@@ -1353,7 +1353,7 @@
 
     margin: 0;
 
-    font-size: 14px;
+    font-size: 12px;
 }
 
 
@@ -1392,7 +1392,7 @@
 
     border-radius: 10px;
 
-    font-size: 14px;
+    font-size: 12px;
 }
 
 
@@ -1547,4 +1547,47 @@
         display: none;
     }
 
+}
+
+/* Asistencias anteriores o futuras: consulta sin edición. */
+.attendance-readonly-warning {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    border: 1px solid rgba(232, 155, 66, .32);
+    border-radius: 14px;
+    background: rgba(232, 155, 66, .10);
+    color: var(--mud-palette-text-primary);
+}
+.attendance-readonly-warning > div { flex: 1; min-width: 0; }
+.attendance-readonly-warning strong { display: block; font-size: 15px; margin-bottom: 3px; }
+.attendance-readonly-warning span { display: block; font-size: 13px; line-height: 1.45; }
+.attendance-readonly-warning .today-button { flex-shrink: 0; }
+@media (max-width: 700px) {
+    .attendance-readonly-warning { flex-wrap: wrap; }
+}
+
+
+/* Primera clase: destacada y diferenciada del estado financiero. */
+.student-name .first-class-attendee {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    color: #8ceaff;
+    background: rgba(37, 180, 230, .16);
+    border: 1px solid rgba(92, 220, 249, .36);
+    font-family: var(--bn-font-title, 'Montserrat', sans-serif);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .05em;
+}
+.student-name .first-class-attendee ::deep .mud-icon-root {
+    font-size: 15px;
+    color: #ffe29b;
 }

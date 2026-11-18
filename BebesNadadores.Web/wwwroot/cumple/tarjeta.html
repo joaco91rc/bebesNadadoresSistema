@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f5f8f">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="¡Feliz cumpleaños, __NOMBRE__! | Bebés Nadadores">
+  <meta property="og:description" content="Una tarjeta especial para __NOMBRE__ 💙">
+  <meta property="og:image" content="__OG_IMAGE__">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>¡Feliz cumpleaños, __NOMBRE__! | Bebés Nadadores</title>
+  <link rel="stylesheet" href="/cumple/tarjeta.css">
+  <script defer src="/cumple/tarjeta.js"></script>
+</head>
+<body data-hay-musica="__MUSICA__">
+  <div class="page-confetti" id="confetti" aria-hidden="true"></div>
+
+  <main class="birthday-shell">
+    <article class="birthday-card">
+      <section class="hero-photo">
+        <img src="/cumple/foto-cumple.jpg" alt="Tarjeta de cumpleaños de Bebés Nadadores">
+      </section>
+
+      <section class="bottom-band">
+        <p class="message main-message"><strong>__NOMBRE__</strong>, todos tus amigos de Bebés Nadadores te deseamos un súper cumple.</p>
+        <div class="age-badge">__EDAD__</div>
+      </section>
+
+      <button type="button" id="musicBtn" class="music-btn" hidden aria-pressed="false">♫ Activar música</button>
+      <audio id="birthdayAudio" preload="none" loop src="/audio/cumpleanos.mp3"></audio>
+    </article>
+  </main>
+</body>
+</html>
