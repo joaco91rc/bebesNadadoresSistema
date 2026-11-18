@@ -1324,7 +1324,7 @@ public sealed class BebeService(
         return bebes
             .Select(x =>
             {
-                var fechaCumple = new DateOnly(anio, mes, x.FechaNacimiento.Day);
+                var fechaCumple = new DateOnly(anio, mes, Math.Min(x.FechaNacimiento.Day, DateTime.DaysInMonth(anio, mes)));
 
                 var edadQueCumple = anio - x.FechaNacimiento.Year;
 

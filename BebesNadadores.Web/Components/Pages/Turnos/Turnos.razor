@@ -352,6 +352,12 @@
     }
     else
     {
+        <div class="turnera-header-actions" style="justify-content:flex-start;margin:12px 0;gap:10px;flex-wrap:wrap">
+            <input type="search" placeholder="Buscar bebé en las clases de esta semana" style="min-width:260px;padding:10px;background:transparent;color:inherit;border:1px solid #4685aa;border-radius:8px" @bind="_buscarAlumnoAgenda" />
+            <button class="secondary-action" disabled="@_buscandoAlumno" @onclick="BuscarAlumnoAgendaAsync">Buscar clase</button>
+            <button class="secondary-action" @onclick='() => { _buscarAlumnoAgenda = ""; _sesionesAlumno = null; }'>Limpiar</button>
+            @if (_sesionesAlumno is not null) { <span>@_sesionesAlumno.Count clases encontradas en esta semana</span> }
+        </div>
         <section class="week-calendar">
 
             @foreach (var dia in DiasSemana)
@@ -864,6 +870,26 @@
             </div>
 
 
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+                @foreach (var prof in _sesionDetalle.Sesion.Profesores)
+                {
+                    <button class="secondary-action" @onclick="() => { _profesorHorario = prof.ProfesorId; _profesorNivelFiltro = _sesionDetalle.Sesion.NivelId.ToString(); }">@prof.NombreCompleto · Horarios</button>
+                }
+            </div>
+            @if (_profesorHorario is Guid profesorId)
+            {
+                var clasesProfesor = _agenda.Where(s => s.Estado != EstadoSesionClase.Cancelada && s.Profesores.Any(p => p.ProfesorId == profesorId)).OrderBy(s => s.Fecha).ThenBy(s => s.HoraInicio).ToList();
+                var nivelesProfesor = clasesProfesor.Select(s => new { s.NivelId, s.Nivel }).Distinct().OrderBy(n => n.Nivel).ToList();
+                var clasesFiltradas = clasesProfesor.Where(s => string.IsNullOrEmpty(_profesorNivelFiltro) || s.NivelId.ToString() == _profesorNivelFiltro).ToList();
+                <div class="prof-schedule-panel">
+                    <div class="prof-schedule-header"><div><small>AGENDA SEMANAL</small><strong>@_sesionDetalle.Sesion.Profesores.First(p => p.ProfesorId == profesorId).NombreCompleto</strong></div><button class="secondary-action" @onclick="() => _profesorHorario = null">Cerrar</button></div>
+                    <label class="prof-filter">Nivel<select @bind="_profesorNivelFiltro"><option value="">Todos los niveles</option>@foreach (var n in nivelesProfesor) { <option value="@n.NivelId.ToString()">@n.Nivel</option> }</select></label>
+                    <div class="prof-schedule-count">@clasesFiltradas.Count clases en la semana</div>
+                    @foreach (var s in clasesFiltradas)
+                    { <div class="prof-schedule-row"><div><strong>@s.Fecha.ToString("dd/MM/yyyy")</strong><small>@s.Nivel</small></div><span>@s.HoraInicio.ToString("HH:mm") – @s.HoraFin.ToString("HH:mm")</span></div> }
+                    @if (clasesFiltradas.Count == 0) { <p>No hay clases de este nivel en la semana visualizada.</p> }
+                </div>
+            }
             <div class="session-modal-actions">
 
                 @if (_sesionDetalle.Sesion.Estado ==
@@ -1028,6 +1054,7 @@
 
                             </div>
 
+                            <AuthorizeView Policy="@PoliticasSistema.GestionCaja"><Authorized><a class="secondary-action" href="@($"/pagos?bebe={bebe.BebeId}")">Pagos</a></Authorized></AuthorizeView>
                             <IndicadorFinancieroBadge Estado="@ObtenerIndicadorFinanciero(bebe.BebeId)" />
 
                             @if (bebe.EsRecupero)
@@ -1926,6 +1953,12 @@
 
 </div>
 
+                <div class="turnera-header-actions" style="justify-content:flex-start;margin:12px 0;gap:10px;flex-wrap:wrap">
+                    <input type="search" placeholder="Buscar bebé por horario fijo" style="min-width:240px;padding:10px;background:transparent;color:inherit;border:1px solid #4685aa;border-radius:8px" @bind="_buscarAlumnoGrilla" />
+                    <button class="secondary-action" disabled="@_buscandoAlumno" @onclick="BuscarAlumnoGrillaAsync">Buscar horario</button>
+                    <button class="secondary-action" @onclick='() => { _buscarAlumnoGrilla = ""; _turnosAlumno = null; }'>Limpiar</button>
+                    @if (_turnosAlumno is not null) { <span>@_turnosAlumno.Count horarios fijos encontrados</span> }
+                </div>
                 <div class="weekly-template-grid">
 
                     @foreach (var dia in Enum.GetValues<DiaSemana>())
@@ -2332,6 +2365,29 @@ private string? _errorQuitarTurno;
 
 private bool _quitandoTurno;
 
+    private string _buscarAlumnoAgenda = "";
+    private string _buscarAlumnoGrilla = "";
+    private HashSet<Guid>? _sesionesAlumno;
+    private HashSet<Guid>? _turnosAlumno;
+    private bool _buscandoAlumno;
+    private async Task BuscarAlumnoAgendaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_buscarAlumnoAgenda)) { _sesionesAlumno = null; return; }
+        _buscandoAlumno = true;
+        try { _sesionesAlumno = (await TurneraService.BuscarSesionesAlumnoAsync(_buscarAlumnoAgenda, _agenda.Select(s => s.Id).ToArray())).ToHashSet(); }
+        catch (Exception ex) { _sesionesAlumno = null; _error = Errores.Mensaje(ex); }
+        finally { _buscandoAlumno = false; }
+    }
+    private async Task BuscarAlumnoGrillaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_buscarAlumnoGrilla)) { _turnosAlumno = null; return; }
+        _buscandoAlumno = true;
+        try { _turnosAlumno = (await TurneraService.BuscarTurnosAlumnoAsync(_buscarAlumnoGrilla, _turnosConfigurados.Select(t => t.Id).ToArray())).ToHashSet(); }
+        catch (Exception ex) { _turnosAlumno = null; _error = Errores.Mensaje(ex); }
+        finally { _buscandoAlumno = false; }
+    }
+    private Guid? _profesorHorario;
+    private string _profesorNivelFiltro = "";
     private List<SesionClaseDto> _agenda = [];
 
     private IReadOnlyList<NivelTurneraDto> _niveles =
@@ -2801,6 +2857,7 @@ private async Task CargarGrillaSemanalAsync()
             .ThenBy(x =>
                 x.HoraInicio)
             .ToList();
+        await BuscarAlumnoGrillaAsync();
     }
     catch (Exception ex)
     {
@@ -2819,7 +2876,7 @@ private List<TurnoDto> ObtenerTurnosConfiguradosDia(
 {
     return _turnosConfigurados
         .Where(x =>
-            x.DiaSemana == dia)
+            x.DiaSemana == dia && (_turnosAlumno == null || _turnosAlumno.Contains(x.Id)))
         .OrderBy(x =>
             x.HoraInicio)
         .ToList();
@@ -3424,6 +3481,7 @@ if (cicloActual is not null)
                         _inicioSemana,
                         _inicioSemana.AddDays(6)))
                     .ToList();
+            await BuscarAlumnoAgendaAsync();
         }
         catch (Exception ex)
         {
@@ -3471,7 +3529,7 @@ if (cicloActual is not null)
     {
         return _agenda
             .Where(x =>
-                x.Fecha == fecha)
+                x.Fecha == fecha && (_sesionesAlumno == null || _sesionesAlumno.Contains(x.Id)))
             .OrderBy(x =>
                 x.HoraInicio)
             .ToList();
@@ -3893,6 +3951,7 @@ if (_volverAGrillaDespuesDeGuardar)
 
     private async Task AbrirSesion(Guid sesionId)
     {
+        _profesorHorario = null;
         _error = null;
         _sesionDetalle = null;
         _indicadoresFinancieros = new Dictionary<Guid, IndicadorFinancieroDto>();

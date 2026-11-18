@@ -1,3 +1,4 @@
+using BebesNadadores.Infrastructure.Services.Turnera;
 using BebesNadadores.Application.Bebes;
 using BebesNadadores.Application.Bebes.Dtos;
 using BebesNadadores.Domain.Entities;
@@ -13,7 +14,7 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
     {
         await using var db = await factory.CreateDbContextAsync(ct);
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         // =====================================================
         // BEBÉ
@@ -86,7 +87,7 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
         // PRÓXIMA CLASE
         // =====================================================
 
-        var proximaClase = inscripcion is null ? null : ObtenerProximaClase(inscripcion, hoy);
+        var proximaClase = await ObtenerProximaClaseRealAsync(db, bebeId, inscripciones, hoy, ct);
 
         // =====================================================
         // APTOS MÉDICOS
@@ -335,77 +336,21 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
     // PRÓXIMA CLASE RECURRENTE
     // =========================================================
 
-    private static ProximaClaseLegajoDto? ObtenerProximaClase(Inscripcion inscripcion, DateOnly hoy)
+    private static async Task<ProximaClaseLegajoDto?> ObtenerProximaClaseRealAsync(AppDbContext db, Guid bebeId, IReadOnlyList<Inscripcion> inscripciones, DateOnly hoy, CancellationToken ct)
     {
-        var ahora = TimeOnly.FromDateTime(DateTime.Now);
-
-        ProximaClaseLegajoDto? mejor = null;
-
-        DateTime? mejorFechaHora = null;
-
-        foreach (var relacion in inscripcion.Turnos)
-        {
-            var turno = relacion.Turno;
-
-            if (turno.Estado != EstadoTurno.Activo)
-            {
-                continue;
-            }
-
-            for (var i = 0; i <= 8; i++)
-            {
-                var fecha = hoy.AddDays(i);
-
-                if (turno.VigenteDesde > fecha)
-                {
-                    continue;
-                }
-
-                if (turno.VigenteHasta.HasValue && turno.VigenteHasta.Value < fecha)
-                {
-                    continue;
-                }
-
-                if (ConvertirDiaSemana(fecha.DayOfWeek) != turno.DiaSemana)
-                {
-                    continue;
-                }
-
-                if (i == 0 && turno.HoraFin < ahora)
-                {
-                    continue;
-                }
-
-                var fechaHora = fecha.ToDateTime(turno.HoraInicio);
-
-                if (mejorFechaHora.HasValue && fechaHora >= mejorFechaHora.Value)
-                {
-                    break;
-                }
-
-                mejorFechaHora = fechaHora;
-
-                mejor = new ProximaClaseLegajoDto(
-                    turno.Id,
-                    fecha,
-                    turno.DiaSemana,
-                    turno.HoraInicio,
-                    turno.HoraFin,
-                    turno.Nivel.Nombre,
-                    turno.Sector,
-                    turno
-                        .Profesores.OrderByDescending(x => x.EsPrincipal)
-                        .ThenBy(x => x.Profesor.Apellido)
-                        .ThenBy(x => x.Profesor.Nombre)
-                        .Select(x => $"{x.Profesor.Nombre} {x.Profesor.Apellido}".Trim())
-                        .ToList()
-                );
-
-                break;
-            }
-        }
-
-        return mejor;
+        var ahora = TimeOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-3)).DateTime);
+        var vigentes = inscripciones.Where(x => x.Estado == EstadoInscripcion.Activa && (x.FechaFin == null || x.FechaFin >= hoy)).ToList();
+        var turnos = vigentes.SelectMany(x => x.Turnos).Select(x => x.TurnoId).Distinct().ToArray();
+        var primeras = await PrimeraClaseExcepcional.ObtenerFechasAsync(db, vigentes.Select(x => x.Id), hoy, ct);
+        var reservas = await db.ReservasSesionesClase.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado == EstadoReservaSesion.Activa && x.SesionClase.Fecha >= hoy).Select(x => x.SesionClaseId).ToListAsync(ct);
+        var recuperos = await db.Recuperaciones.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado == EstadoRecuperacion.Reservada && x.SesionUsoId != null && x.SesionUso!.Fecha >= hoy).Select(x => x.SesionUsoId!.Value).ToListAsync(ct);
+        var especiales = reservas.Concat(recuperos).ToHashSet();
+        var sesiones = await db.SesionesClase.AsNoTracking().Include(x => x.Nivel).Include(x => x.Profesores).ThenInclude(x => x.Profesor)
+            .Where(x => x.Estado == EstadoSesionClase.Programada && x.Turno.Estado != EstadoTurno.Baja && x.Fecha >= hoy && (x.Fecha > hoy || x.HoraInicio >= ahora) && (turnos.Contains(x.TurnoId) || especiales.Contains(x.Id)))
+            .OrderBy(x => x.Fecha).ThenBy(x => x.HoraInicio).ToListAsync(ct);
+        var sesion = sesiones.FirstOrDefault(s => especiales.Contains(s.Id) || vigentes.Any(i => i.FechaInicio <= s.Fecha && (i.FechaFin == null || i.FechaFin >= s.Fecha) && i.Turnos.Any(t => t.TurnoId == s.TurnoId) && !PrimeraClaseExcepcional.TodaviaNoComenzo(primeras, i.Id, s.Fecha)));
+        if (sesion is null) return null;
+        return new ProximaClaseLegajoDto(sesion.TurnoId, sesion.Fecha, ConvertirDiaSemana(sesion.Fecha.DayOfWeek), sesion.HoraInicio, sesion.HoraFin, sesion.Nivel.Nombre, sesion.Sector, sesion.Profesores.OrderByDescending(p => p.EsPrincipal).Select(p => $"{p.Profesor.Nombre} {p.Profesor.Apellido}".Trim()).ToList());
     }
 
     private static DiaSemana ConvertirDiaSemana(DayOfWeek dia)

@@ -80,6 +80,7 @@ public partial class Home
     private AsistenciaSesionDto? _claseActual;
     private Guid? _usuarioId;
 
+    private bool _cumplesMes;
     private List<CumpleaniosBebeDto> _cumpleanios = [];
     private DashboardDto _dashboard = new();
     private int CantidadPresentes =>
@@ -357,9 +358,9 @@ public partial class Home
             }
 
 
-            var linkTarjeta = TarjetasCumpleanos.CrearEnlace(bebe.Id, Navigation.BaseUri);
+            var linkTarjeta = await TarjetasCumpleanos.CrearEnlaceDescriptivoAsync(bebe.Id, Navigation.BaseUri, bebe.NombreCompleto, cumple.EdadQueCumple);
             var mensaje =
-                $"¡Hola {responsable.Nombre}! 🎉💙\n\n" +
+                $"¡Hola! 🎉💙\n\n" +
                 $"¡Hoy es el cumple de {bebe.Nombre}! Desde Bebés Nadadores " +
                 "le preparamos una sorpresa muy especial. 🎂🐠\n\n" +
                 $"Abrí su tarjeta de cumpleaños acá: {linkTarjeta}\n\n" +
@@ -470,7 +471,7 @@ public partial class Home
         CumpleaniosHoy =>
             _cumpleanios
                 .Where(x => x.FechaNacimiento.Month == _ahora.Month
-                    && x.FechaNacimiento.Day == _ahora.Day)
+                    && Math.Min(x.FechaNacimiento.Day, DateTime.DaysInMonth(_ahora.Year, _ahora.Month)) == _ahora.Day)
                 .ToList();
 
 

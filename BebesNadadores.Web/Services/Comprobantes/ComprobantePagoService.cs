@@ -30,6 +30,7 @@ public sealed class ComprobantePagoService(
         await using var db = await factory.CreateDbContextAsync(ct);
         var pago = await db.Pagos.AsNoTracking()
             .Include(p => p.Bebe)
+            .Include(p => p.Imputaciones).ThenInclude(x => x.Cuota)
             .FirstOrDefaultAsync(p => p.Id == pagoId, ct);
 
         if (pago is null || pago.AnuladoUtc.HasValue)
@@ -128,7 +129,47 @@ public sealed class ComprobantePagoService(
             });
         });
         documento.GeneratePdf(archivo);
-        return (archivo.ToArray(), $"BebesNadadores_Recibo_{pago.Id:N}.pdf");
+        return (archivo.ToArray(), NombreRecibo(nombreAlumno, pago.Imputaciones.Select(x => x.Cuota.Periodo)) + ".pdf");
+    }
+
+    public static string NombreRecibo(string nombre, IEnumerable<DateOnly> periodos)
+    {
+        var meses = periodos.Distinct().OrderBy(x => x).Select(x => x.ToString("MM-yyyy")).ToArray();
+        var texto = nombre.Trim() + " Comprobante Pago " + (meses.Length == 0 ? "sin periodo imputado" : "periodo " + string.Join("_", meses));
+        var prohibidos = "<>:\"/\\|?*";
+        return string.Concat(texto.Select(c => char.IsControl(c) || prohibidos.Contains(c) ? '_' : c)).Trim();
+    }
+
+    public async Task<(FileStream Contenido, string NombreArchivo)> GenerarMesAsync(CancellationToken ct = default)
+    {
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+        var inicio = new DateTimeOffset(hoy.Year, hoy.Month, 1, 0, 0, 0, TimeSpan.FromHours(-3)).ToUniversalTime();
+        var fin = inicio.ToOffset(TimeSpan.FromHours(-3)).AddMonths(1).ToUniversalTime();
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var ids = await db.Pagos.AsNoTracking().Where(x => x.AnuladoUtc == null && x.FechaUtc >= inicio && x.FechaUtc < fin)
+            .OrderBy(x => x.FechaUtc).Select(x => x.Id).ToListAsync(ct);
+        var stream = new FileStream(Path.Combine(Path.GetTempPath(), $"bbn-recibos-{Guid.NewGuid():N}.zip"), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 65536, FileOptions.Asynchronous | FileOptions.DeleteOnClose);
+        try
+        {
+        using (var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            var usados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var id in ids)
+            {
+                ct.ThrowIfCancellationRequested();
+                var archivo = await GenerarAsync(id, ct);
+                if (archivo is null) continue;
+                var nombre = archivo.Value.NombreArchivo;
+                for (var n = 2; !usados.Add(nombre); n++) nombre = Path.GetFileNameWithoutExtension(archivo.Value.NombreArchivo) + $" ({n}).pdf";
+                var entry = zip.CreateEntry(nombre);
+                await using var destino = entry.Open();
+                await destino.WriteAsync(archivo.Value.Contenido, ct);
+            }
+        }
+        stream.Position = 0;
+        return (stream, $"Comprobantes {hoy:MM-yyyy}.zip");
+        }
+        catch { await stream.DisposeAsync(); throw; }
     }
 
     private static TimeZoneInfo ZonaArgentina()

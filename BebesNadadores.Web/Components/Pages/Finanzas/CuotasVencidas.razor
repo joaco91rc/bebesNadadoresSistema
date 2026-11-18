@@ -2,6 +2,11 @@
 @attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using System.Globalization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using BebesNadadores.Web.Authorization
+@inject AuthenticationStateProvider EstadoAuth
+@inject PermisosUsuario PermisosRevision
 @using BebesNadadores.Domain.Common
 @using BebesNadadores.Domain.Enums
 @using BebesNadadores.Infrastructure.Persistence
@@ -10,6 +15,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.JSInterop
 
+@using BebesNadadores.Web.Services.Finanzas
+@inject IIndicadorFinancieroService IndicadoresOperativos
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject IWhatsAppService WhatsAppService
 @inject IJSRuntime JS
@@ -84,10 +91,12 @@
                                     <strong>@(fila.Responsable ?? "Sin contacto habilitado")</strong>
                                     <small>@(fila.Telefono is null ? "Sin WhatsApp autorizado" : "WhatsApp disponible")</small>
                                 </td>
-                                <td>
+                                <td class="deudas-cell-actions">
+                                    <div class="deudas-row-actions">
+                                    <a class="deudas-button secondary" href="@($"/pagos?bebe={fila.BebeId}")">Ver cuenta</a>
                                     @if (fila.ConciliacionPendiente)
                                     {
-                                        <span class="deudas-chip warning" title="Revisar la conciliación histórica antes de reclamar">Revisar histórico</span>
+                                        <button type="button" class="deudas-button review" disabled="@(_revisando != null)" @onclick="() => AbrirRevision(fila)"><MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small"/> Revisar histórico</button>
                                     }
                                     @if (fila.SaldoSinImputar > 0)
                                     {
@@ -99,6 +108,9 @@
                                             @onclick="() => RecordarAsync(fila)">
                                         <MudIcon Icon="@Icons.Material.Filled.Send" Size="Size.Small"/> Recordar pago
                                     </button>
+                                    </div>
+                                    @if (fila.ConciliacionPendiente || fila.SaldoSinImputar > 0 || fila.Telefono is null)
+                                    { <small class="deudas-block-reason">@(fila.ConciliacionPendiente ? "Pendiente de revisión histórica" : fila.SaldoSinImputar > 0 ? "Hay pagos sin imputar" : "Sin WhatsApp autorizado")</small> }
                                 </td>
                             </tr>
                         }
@@ -111,7 +123,46 @@
     }
 </div>
 
+@if (_revisionFila is not null)
+{
+    <div class="deudas-modal-backdrop" @onclick="CerrarRevision">
+        <section class="deudas-modal" role="dialog" aria-label="Revisar cuenta" @onclick:stopPropagation="true">
+            <span class="deudas-eyebrow">CONCILIACIÓN FINANCIERA</span>
+            <h2>@_revisionFila.Bebe</h2>
+            <p>Deuda vencida registrada: <strong>@Moneda(_revisionFila.Deuda)</strong> · @_revisionFila.Periodos</p>
+            <p>Revisá la cuenta y el historial de pagos antes de confirmar. Esta acción no cancela cuotas, no imputa dinero y no elimina la deuda.</p>
+            <a class="deudas-button secondary" href="@($"/pagos?bebe={_revisionFila.BebeId}")">Abrir cuenta corriente</a>
+            <label class="deudas-check revision-check"><input type="checkbox" @bind="_revisionVerificada" disabled="@(_revisando != null)"/> Confirmo que revisé todos los períodos pendientes hasta hoy.</label>
+            <div class="deudas-row-actions"><button class="deudas-button secondary" type="button" disabled="@(_revisando != null)" @onclick="CerrarRevision">Cancelar</button><button class="deudas-button primary" type="button" disabled="@(!_revisionVerificada || _revisando != null)" @onclick="ConfirmarRevisionAsync">Quitar marca Revisar</button></div>
+        </section>
+    </div>
+}
+
 @code {
+    private FilaDeuda? _revisionFila;
+    private Guid? _revisando;
+    private bool _revisionVerificada;
+    private void AbrirRevision(FilaDeuda fila) { _revisionFila = fila; _revisionVerificada = false; }
+    private void CerrarRevision() { if (_revisando is null) { _revisionFila = null; _revisionVerificada = false; } }
+    private async Task ConfirmarRevisionAsync()
+    {
+        if (_revisionFila is null || !_revisionVerificada || _revisando != null) return;
+        var id = _revisionFila.BebeId;
+        _revisando = id;
+        try
+        {
+            await PermisosRevision.ExigirAsync(PoliticasSistema.GestionCaja);
+            var auth = await EstadoAuth.GetAuthenticationStateAsync();
+            if (!Guid.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier), out var usuario)) throw new InvalidOperationException("Usuario no identificado.");
+            await IndicadoresOperativos.ConfirmarRevisionAsync(id, usuario);
+            _revisionFila = null;
+            _revisionVerificada = false;
+            await CargarAsync();
+        }
+        catch { _revisionFila = null; _error = "No fue posible registrar la revisión. Verificá tu permiso y los logs del sistema."; }
+        finally { _revisando = null; }
+    }
+
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
     private readonly List<FilaDeuda> _filas = [];
     private bool _cargando = true;
@@ -160,10 +211,8 @@
                 .Where(x => ids.Contains(x.BebeId))
                 .ToListAsync();
 
-            var conciliaciones = await db.ConciliacionesFinancierasBebes.AsNoTracking()
-                .Where(x => ids.Contains(x.BebeId) && x.MesesVencidosSinConciliar > 0)
-                .Select(x => x.BebeId).ToListAsync();
-            var idsConConciliacion = conciliaciones.ToHashSet();
+            var indicadores = await IndicadoresOperativos.ObtenerAsync(ids);
+            var idsConConciliacion = indicadores.Where(x => x.Value.Tipo == IndicadorFinancieroTipo.Revisar).Select(x => x.Key).ToHashSet();
 
             // Un cobro sin imputar puede explicar parte de la deuda aparente.
             // Los anticipos de reserva de un ciclo futuro NO son saldo disponible.
@@ -219,14 +268,7 @@
         if (string.IsNullOrWhiteSpace(fila.Telefono) || fila.ConciliacionPendiente || fila.SaldoSinImputar > 0)
             return;
 
-        var nombre = fila.Responsable?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()
-            ?? "familia";
-        var mensaje = $"Buen día {nombre}, ¿cómo estás? Te escribimos de Bebés Nadadores porque registramos " +
-            $"un saldo pendiente de {Moneda(fila.Deuda)} correspondiente a " +
-            $"{(fila.CuotasVencidas == 1 ? "la cuota" : "las cuotas")} de {fila.Periodos} " +
-            $"de {fila.Bebe}. Te pedimos por favor que regularicen el pago a la brevedad. " +
-            "Si ya abonaron, pueden enviarnos el comprobante para que lo verifiquemos. " +
-            "Muchas gracias. Bebés Nadadores.";
+        var mensaje = "Familia, se envía este mensaje automático luego de los días 10 de cada mes cuando en nuestro registro aún falta abonar la cuota, recuerden que el lugar de su pequeño está siendo reservado durante todo el mes y las clases ausentes con aviso previo  pueden reprogramarlas para no perderlas. Si les es más cómodo soliciten CBU para realizar transferencia.\nSi usted ha pactado otra fecha de pago desestime este aviso. Muchas gracias!!!!";
 
         try
         {

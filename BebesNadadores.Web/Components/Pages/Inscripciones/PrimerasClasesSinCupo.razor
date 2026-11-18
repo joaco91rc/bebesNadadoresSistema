@@ -60,7 +60,7 @@
                     {
                         <a href="@($"/asistencia?sesionId={fila.SesionId}")">Ver clase</a>
                     }
-                    @if (fila.Fecha == Hoy && fila.Estado != EstadoAsistencia.Presente && !_guardando) {
+                    @if (fila.Estado != EstadoAsistencia.Presente && !_guardando) {
                         <button class="bn-btn" @onclick="() => RegistrarPresenteAsync(fila)">Se presentó</button>
                     }
                 </td></tr>

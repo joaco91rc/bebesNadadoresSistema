@@ -12,6 +12,11 @@
 @using BebesNadadores.Application.Anulaciones
 @using BebesNadadores.Web.Components.Shared.Utils
 
+@inject BebesNadadores.Application.Bebes.IBebeLegajoService LegajosOperativos
+@using BebesNadadores.Web.Services.Finanzas
+@using BebesNadadores.Web.Components.Shared
+@inject IIndicadorFinancieroService IndicadoresOperativos
+@inject PermisosUsuario PermisosRevision
 @inject IPagoService PagoService
 @inject IAnulacionService AnulacionService
 @inject ICuentaBancariaService CuentaBancariaService
@@ -75,8 +80,14 @@
             </button>
 
 
+            <a href="/pagos/comprobantes/mes" class="secondary-action" data-enhance-nav="false">Descargar recibos del mes (ZIP)</a>
             @if (_cuenta is not null)
             {
+                if (_estadoOperativo?.Tipo == IndicadorFinancieroTipo.Revisar)
+                {
+                    <button type="button" class="secondary-action" disabled="@_confirmandoRevision" @onclick="ConfirmarRevisionOperativaAsync">Quitar marca Revisar</button>
+                }
+                <button type="button" class="secondary-action" @onclick="AbrirFichaOperativaAsync">Ficha y asistencia</button>
                 <button type="button"
                         class="primary-action"
                         @onclick="AbrirRegistrarPagoAsync">
@@ -240,6 +251,10 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                 </div>
 
 
+                <div style="padding:8px 14px;display:flex;gap:8px;align-items:center">
+                    <input id="solo-revisar" type="checkbox" @bind="_soloRevisar" @bind:after="CargarEstadosOperativosAsync" />
+                    <label for="solo-revisar">Solo cuentas a revisar</label>
+                </div>
                 <div class="family-list">
 
                     @if (BebesFiltrados.Count == 0)
@@ -391,6 +406,8 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                     @_cuenta.NombreCompleto
                                 </h2>
 
+                                @if (_estadoOperativo is not null)
+                                { <IndicadorFinancieroBadge Estado="@_estadoOperativo" /> }
                                 @if (_cuenta.Responsables.Count > 0)
                                 {
                                     <small>
@@ -799,14 +816,15 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                             @if (!pago.Anulado)
                                             {
                                                 <div class="payment-receipt-actions">
+                                                    <button type="button" class="receipt-share" @onclick="AbrirFichaOperativaAsync">Ficha del bebé</button>
                                                     <a class="receipt-download"
-                                                       href="@($"/pagos/comprobante/{pago.Id:D}")"
+                                                       href="@($"/pagos/comprobante/{pago.Id:D}")" data-enhance-nav="false"
                                                        title="Descargar comprobante PDF del pago recibido">
                                                         <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small" />
                                                         Descargar PDF
                                                     </a>
                                                     <button type="button" class="receipt-share"
-                                                            title="Descarga el PDF y abre WhatsApp con el texto sugerido. En celular intenta compartir el comprobante directamente."
+                                                            title="Abre WhatsApp con el enlace seguro al comprobante de pago."
                                                             @onclick="() => CompartirComprobanteAsync(pago)">
                                                         <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
                                                         Enviar comprobante
@@ -1028,6 +1046,52 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                   OnConfirmar="ConfirmarAnulacionAsync"
                   OnCerrar="CerrarAnulacion" />
 
+
+@if (_fichaOperativa is not null)
+{
+    <div class="modal-overlay" @onclick="() => _fichaOperativa = null">
+        <section class="payment-modal ficha-premium" @onclick:stopPropagation="true" role="dialog" aria-label="Ficha del alumno">
+            <header class="modal-header ficha-header">
+                <div class="ficha-avatar"><MudIcon Icon="@Icons.Material.Filled.Person" /></div>
+                <div class="ficha-heading"><span class="ficha-kicker">FICHA DEL ALUMNO</span><h2>@_fichaOperativa.NombreCompleto</h2><p>@(_fichaOperativa.NivelActual ?? "Sin nivel asignado")</p></div>
+                <button type="button" class="modal-close" aria-label="Cerrar ficha" @onclick="() => _fichaOperativa = null">✕</button>
+            </header>
+            <div class="modal-body ficha-body">
+                <div class="ficha-tabs">
+                    <button type="button" class="@(!_fichaAsistencia ? "selected" : "")" @onclick="() => _fichaAsistencia = false"><MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small"/> Datos y horarios</button>
+                    <button type="button" class="@(_fichaAsistencia ? "selected" : "")" @onclick="() => _fichaAsistencia = true"><MudIcon Icon="@Icons.Material.Filled.EventAvailable" Size="Size.Small"/> Asistencia</button>
+                </div>
+                @if (!_fichaAsistencia)
+                {
+                    <div class="ficha-grid"><div class="ficha-tile"><small>FECHA DE NACIMIENTO</small><strong>@_fichaOperativa.FechaNacimiento.ToString("dd/MM/yyyy")</strong></div><div class="ficha-tile"><small>DNI</small><strong>@(_fichaOperativa.Dni ?? "No informado")</strong></div></div>
+                    <div class="ficha-block"><h3><MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small"/> Horario fijo</h3>
+                        @if (_fichaOperativa.InscripcionActual?.Turnos.Count > 0)
+                        {
+                            @foreach (var t in _fichaOperativa.InscripcionActual.Turnos)
+                            { <div class="ficha-schedule"><div><strong>@t.DiaSemana</strong><small>@t.Nivel</small></div><span>@t.HoraInicio.ToString("HH:mm") – @t.HoraFin.ToString("HH:mm")</span></div> }
+                        }
+                        else { <div class="ficha-empty">Sin horario fijo vigente.</div> }
+                    </div>
+                    <div class="ficha-next"><MudIcon Icon="@Icons.Material.Filled.EventAvailable"/><div><small>PRÓXIMA CLASE</small>
+                    @if (_fichaOperativa.ProximaClase is { } proxima) { <strong>@proxima.Fecha.ToString("dd/MM/yyyy") · @proxima.HoraInicio.ToString("HH:mm")</strong><span>@proxima.Nivel</span> }
+                    else { <strong>No hay una próxima clase programada.</strong> }</div></div>
+                }
+                else
+                {
+                    <div class="ficha-section-label">ASISTENCIAS · ÚLTIMOS 90 DÍAS</div>
+                    <div class="ficha-stats"><div class="ficha-tile"><small>Presentes</small><strong class="ficha-green">@_fichaOperativa.AsistenciaResumen.Presentes</strong></div><div class="ficha-tile"><small>Con aviso</small><strong class="ficha-amber">@_fichaOperativa.AsistenciaResumen.AusentesConAviso</strong></div><div class="ficha-tile"><small>Sin aviso</small><strong class="ficha-red">@_fichaOperativa.AsistenciaResumen.Ausentes</strong></div><div class="ficha-tile"><small>Pendientes</small><strong>@_fichaOperativa.AsistenciaResumen.Pendientes</strong></div></div>
+                    <div class="ficha-block"><h3>Historial de clases</h3>
+                    @foreach (var a in _fichaOperativa.Asistencias.OrderByDescending(a => a.Fecha).ThenByDescending(a => a.HoraInicio))
+                    {
+                        <div class="ficha-history"><div><strong>@a.Fecha.ToString("dd/MM/yyyy") · @a.HoraInicio.ToString("HH:mm")</strong><small>@a.Nivel @(a.EsRecupero ? "· Recupero" : "")</small>@if (!string.IsNullOrWhiteSpace(a.Observaciones)) { <small>@a.Observaciones</small> }</div><span class="ficha-status @(a.Estado == EstadoAsistencia.Presente ? "ok" : a.Estado == EstadoAsistencia.AusenteConAviso ? "warn" : a.Estado == EstadoAsistencia.Ausente ? "bad" : "neutral")">@(a.Estado == EstadoAsistencia.AusenteConAviso ? "Ausente con aviso" : a.Estado == EstadoAsistencia.Ausente ? "Ausente sin aviso" : a.Estado.ToString())</span></div>
+                    }
+                    @if (!_fichaOperativa.Asistencias.Any()) { <div class="ficha-empty">No hay asistencias registradas en este período.</div> }
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+}
 
 @if (_modalPago &&
      _cuenta is not null)

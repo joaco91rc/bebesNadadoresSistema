@@ -18,8 +18,15 @@ public sealed record IndicadorFinancieroDto(
     decimal SaldoVencido,
     string Motivo);
 
+public sealed class RevisionFinancieraManualDto
+{
+    public Guid BebeId { get; set; }
+    public DateOnly FechaCorte { get; set; }
+}
+
 public interface IIndicadorFinancieroService
 {
+    Task ConfirmarRevisionAsync(Guid bebeId, Guid usuarioId, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, IndicadorFinancieroDto>> ObtenerAsync(
         IReadOnlyCollection<Guid> bebeIds,
         CancellationToken ct = default);
@@ -46,6 +53,17 @@ public sealed class IndicadorFinancieroService(
         }
     }
 
+    public async Task ConfirmarRevisionAsync(Guid bebeId, Guid usuarioId, CancellationToken ct = default)
+    {
+        if (bebeId == Guid.Empty || usuarioId == Guid.Empty) throw new InvalidOperationException("Debe informarse el alumno y usuario revisor.");
+        await using var db = await factory.CreateDbContextAsync(ct);
+        if (!await db.Bebes.AnyAsync(x => x.Id == bebeId, ct)) throw new InvalidOperationException("No se encontró el alumno.");
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "RevisionesFinancierasManuales" ("Id", "BebeId", "FechaCorte", "UsuarioId")
+            VALUES ({Guid.NewGuid()}, {bebeId}, {HoyArgentina()}, {usuarioId})
+            """, ct);
+    }
+
     public async Task<IReadOnlyDictionary<Guid, IndicadorFinancieroDto>> ObtenerAsync(
         IReadOnlyCollection<Guid> bebeIds,
         CancellationToken ct = default)
@@ -59,6 +77,10 @@ public sealed class IndicadorFinancieroService(
             .AsNoTracking()
             .Where(x => ids.Contains(x.BebeId))
             .ToDictionaryAsync(x => x.BebeId, ct);
+        var revisiones = (await db.Database.SqlQuery<RevisionFinancieraManualDto>($"""
+            SELECT "BebeId", MAX("FechaCorte") AS "FechaCorte"
+            FROM "RevisionesFinancierasManuales" WHERE "BebeId" = ANY({ids}) GROUP BY "BebeId"
+            """).ToListAsync(ct)).ToDictionary(x => x.BebeId, x => x.FechaCorte);
         var cuotas = await db.Cuotas.AsNoTracking()
             .Where(c => ids.Contains(c.Inscripcion.BebeId) && c.Estado != EstadoCuota.Anulada)
             .Select(c => new
@@ -76,13 +98,8 @@ public sealed class IndicadorFinancieroService(
 
         foreach (var id in ids)
         {
-            if (!snapshots.TryGetValue(id, out var snapshot))
-            {
-                resultado[id] = new(IndicadorFinancieroTipo.Revisar, 0, 0m,
-                    "Sin conciliación histórica validada para este alumno.");
-                continue;
-            }
-
+            snapshots.TryGetValue(id, out var snapshot);
+            var hayRevision = revisiones.TryGetValue(id, out var fechaRevision) && (snapshot is null || fechaRevision >= snapshot.FechaCorte);
             porBebe.TryGetValue(id, out var filas);
             filas ??= [];
             var vencidas = filas
@@ -94,15 +111,20 @@ public sealed class IndicadorFinancieroService(
 
             // La conciliación V4.8 no incorpora períodos sin evidencia. Si alguno
             // ya era incierto al corte, nunca deducimos "Al día" de las cuotas faltantes.
-            bool requiereRevision = snapshot.MesesVencidosSinConciliar > 0;
+            if (snapshot is null && !hayRevision)
+            {
+                resultado[id] = new(IndicadorFinancieroTipo.Revisar, cantidad, saldo, "Sin conciliación histórica validada para este alumno.");
+                continue;
+            }
+            bool requiereRevision = !hayRevision && snapshot!.MesesVencidosSinConciliar > 0;
+            var corte = hayRevision ? fechaRevision : snapshot!.FechaCorte;
 
-            // Luego del corte también pueden vencer meses sin cuota registrada.
-            // Solo se revisan meses posteriores al corte, sin inventar saldos.
-            var periodo = new DateOnly(snapshot.FechaCorte.Year, snapshot.FechaCorte.Month, 1);
+            // Los meses vencidos posteriores a la última revisión siguen bajo control.
+            var periodo = new DateOnly(corte.Year, corte.Month, 1);
             while (periodo <= new DateOnly(hoy.Year, hoy.Month, 1))
             {
                 var vence = new DateOnly(periodo.Year, periodo.Month, Math.Min(15, DateTime.DaysInMonth(periodo.Year, periodo.Month)));
-                if (vence > snapshot.FechaCorte && vence < hoy &&
+                if (vence > corte && vence < hoy &&
                     !filas.Any(x => x.Periodo == periodo))
                 {
                     requiereRevision = true;

@@ -41,6 +41,9 @@ Task<GeneracionSesionesDto> GenerarSesionesFaltantesCicloAsync(
         CancellationToken ct = default);
 
 
+    Task<IReadOnlyList<Guid>> BuscarSesionesAlumnoAsync(string nombre, IReadOnlyCollection<Guid> sesionesIds, CancellationToken ct = default);
+    Task<IReadOnlyList<Guid>> BuscarTurnosAlumnoAsync(string nombre, IReadOnlyCollection<Guid> turnosIds, CancellationToken ct = default);
+
     Task<IReadOnlyList<SesionClaseDto>> ObtenerAgendaAsync(
         DateOnly desde,
         DateOnly hasta,

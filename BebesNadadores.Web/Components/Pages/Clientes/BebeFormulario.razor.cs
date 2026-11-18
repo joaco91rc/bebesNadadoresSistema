@@ -15,6 +15,25 @@ namespace BebesNadadores.Web.Components.Pages.Clientes;
 
 public partial class BebeFormulario : ComponentBase
 {
+    private string? _bienvenidaUrl;
+    private bool _altaFinalizada;
+    [Inject] private BebesNadadores.Application.Comunicaciones.IWhatsAppService WhatsAppBienvenida { get; set; } = default!;
+
+    private string? PrepararBienvenida()
+    {
+        var contacto = _form.Responsables.Where(r => r.AutorizaComunicaciones && !string.IsNullOrWhiteSpace(r.WhatsApp))
+            .OrderByDescending(r => r.EsContactoPrincipal).FirstOrDefault();
+        if (contacto is null) return null;
+        var texto = $"Bienvenidos {_form.NombreYApellido} a Bebés Nadadores!! Te enviamos tu horario reserva. Nos alegramos se conviertan en pequeños nadadores!!!";
+        var primera = _sesionesIniciales.FirstOrDefault(s => s.Id == _form.SesionInicialId);
+        if (primera is not null) texto += $"\n\nTu primera clase es el día {primera.Fecha:dd/MM/yyyy} a las {primera.HoraInicio:HH:mm} · {primera.Nivel}.";
+        var fijos = _turnosDisponibles.Where(t => _form.DefinirHorarioHabitualAhora && _form.TurnosIds.Contains(t.TurnoId)).OrderBy(t => t.DiaSemana).ThenBy(t => t.HoraInicio).ToArray();
+        if (fijos.Length > 0) texto += "\n\nTu horario fijo elegido es: " + string.Join("; ", fijos.Select(t => $"{t.DiaSemana} {t.HoraInicio:HH:mm} · {t.Nivel}")) + ".";
+        else if (primera is not null) texto += "\n\nRecordá enviarnos luego un mensaje con el horario definitivo.";
+        else return null;
+        return WhatsAppBienvenida.CrearUrl(contacto.WhatsApp, texto);
+    }
+
     // =========================================================
     // SERVICIOS
     // =========================================================
@@ -681,7 +700,7 @@ public partial class BebeFormulario : ComponentBase
     protected async Task GuardarAsync()
     {
         // Evita doble alta (bebé + pago) por doble click.
-        if (_guardando)
+        if (_guardando || _altaFinalizada)
         {
             return;
         }
@@ -912,6 +931,12 @@ public partial class BebeFormulario : ComponentBase
             else
             {
                 await BebeService.CrearAsync(_form);
+                _altaFinalizada = true;
+                // El alta ya se confirmó: un fallo de WhatsApp no debe repetirla.
+                try { _bienvenidaUrl = PrepararBienvenida(); }
+                catch (Exception) { _bienvenidaUrl = null; }
+                if (_bienvenidaUrl is not null) return;
+
             }
 
             Navigation.NavigateTo("/clientes");

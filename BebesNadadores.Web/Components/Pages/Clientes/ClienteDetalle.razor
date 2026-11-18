@@ -1730,6 +1730,7 @@ else if (_legajo is not null)
 
     private string? _error;
 
+    [SupplyParameterFromQuery(Name = "tab")] public string? TabInicial { get; set; }
     private TabLegajo _tab =
         TabLegajo.Resumen;
 
@@ -1847,6 +1848,7 @@ else if (_legajo is not null)
 
     protected override async Task OnParametersSetAsync()
     {
+        if (string.Equals(TabInicial, "asistencia", StringComparison.OrdinalIgnoreCase)) _tab = TabLegajo.Asistencia;
         await CargarAsync();
     }
 

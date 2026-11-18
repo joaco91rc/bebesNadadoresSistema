@@ -1,0 +1,53 @@
+@page "/configuracion/comunicaciones"
+@attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
+@using BebesNadadores.Web.Services.Automatizaciones
+@inject ComunicacionesService Servicio
+<PageTitle>Comunicaciones automáticas | Bebés Nadadores</PageTitle>
+<div class="comunicaciones">
+    <a class="comm-back" href="/configuracion"><MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"/> Volver a Configuración</a>
+    <header class="comm-header"><div><span class="comm-kicker">ADMINISTRACIÓN · AUTOMATIZACIONES</span><h1>Comunicaciones automáticas</h1><p>Organizá los correos que se envían a las familias a través de n8n.</p></div><button class="comm-refresh" disabled="@_ocupado" @onclick="Cargar"><MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"/> Actualizar</button></header>
+    <div class="comm-provider"><div class="comm-icon"><MudIcon Icon="@Icons.Material.Filled.Email"/></div><div><small>REMITENTE INSTITUCIONAL</small><strong>administracion@bebesnadadores.com</strong><span>Zoho Mail · n8n · Royal Tech</span></div><span class="comm-pill @(Servicio.HabilitadaGlobal ? "on" : "off")">@(Servicio.HabilitadaGlobal ? "Envíos habilitados" : "Envíos bloqueados")</span></div>
+    @if (!Servicio.HabilitadaGlobal) { <div class="aviso"><MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small"/> Envíos bloqueados desde el servidor. Activar una regla no enviará mensajes mientras persista este bloqueo.</div> }
+    @if (_error != null) { <div class="aviso">@_error</div> }
+    <div class="comm-section-title"><h2>Reglas de comunicación</h2><span>@_reglas.Count(r => r.Habilitada) de @_reglas.Count configuradas como activas</span></div>
+    @foreach (var regla in _reglas)
+    {
+        <div class="regla"><div class="comm-icon"><MudIcon Icon="@Icono(regla.Tipo)"/></div><div class="comm-rule-text"><strong>@Nombre(regla.Tipo)</strong><div class="detalle">@Detalle(regla.Tipo)</div></div><span class="comm-rule-state">@(regla.Habilitada ? "Activada" : "Desactivada")</span><button type="button" role="switch" aria-checked="@(regla.Habilitada ? "true" : "false")" aria-label="@Nombre(regla.Tipo)" disabled="@_ocupado" class="comm-toggle @(regla.Habilitada ? "activo" : "inactivo")" @onclick="() => Cambiar(regla)"><span></span></button></div>
+    }
+    <div class="comm-section-title"><h2>Historial de envíos</h2><span>Últimos 100 registros</span></div>
+    <div class="comm-stats"><div><small>Enviados</small><strong class="comm-green">@_historial.Count(x => x.Estado == "Enviado")</strong></div><div><small>En proceso</small><strong class="comm-amber">@_historial.Count(x => x.Estado == "EnProceso")</strong></div><div><small>Errores</small><strong class="comm-red">@_historial.Count(x => x.Estado == "Error")</strong></div></div>
+    <div class="comm-history-panel"><div class="comm-filters"><input type="search" placeholder="Buscar destinatario..." @bind="_buscar" @bind:event="oninput"/><select @bind="_estadoFiltro"><option value="">Todos los estados</option><option value="Enviado">Enviado</option><option value="EnProceso">En proceso</option><option value="Error">Error</option></select><select @bind="_tipoFiltro"><option value="">Todos los tipos</option>@foreach(var tipo in ComunicacionesService.Tipos){<option value="@tipo">@Nombre(tipo)</option>}</select></div>
+    <div class="tabla"><table><thead><tr><th>Fecha (Argentina)</th><th>Tipo</th><th>Destinatario</th><th>Estado</th></tr></thead><tbody>
+        @foreach (var fila in HistorialVisible) { <tr><td>@fila.CreadoUtc.ToOffset(TimeSpan.FromHours(-3)).ToString("dd/MM/yyyy HH:mm")</td><td>@Nombre(fila.Tipo)</td><td>@fila.Destinatario</td><td><span class="comm-pill @(fila.Estado == "Enviado" ? "on" : fila.Estado == "Error" ? "error" : "off")">@(fila.Estado == "EnProceso" ? "En proceso" : fila.Estado)</span></td></tr> }
+    </tbody></table></div>
+    @if (!HistorialVisible.Any()) { <div class="comm-empty"><MudIcon Icon="@Icons.Material.Filled.Inbox"/><strong>No hay comunicaciones para mostrar</strong><span>Los registros aparecerán aquí cuando n8n procese los envíos.</span></div> }
+    <p class="comm-note">Enviado: aceptado por SMTP, no confirma lectura. En proceso: reservado por n8n. Error: revisar antes de reenviar.</p></div>
+</div>
+@code {
+    private List<ConfigComunicacion> _reglas = [];
+    private List<RegistroComunicacion> _historial = [];
+    private string _buscar = "";
+    private string _estadoFiltro = "";
+    private string _tipoFiltro = "";
+    private IEnumerable<RegistroComunicacion> HistorialVisible => _historial.Where(x => (string.IsNullOrEmpty(_estadoFiltro) || x.Estado == _estadoFiltro) && (string.IsNullOrEmpty(_tipoFiltro) || x.Tipo == _tipoFiltro) && (string.IsNullOrWhiteSpace(_buscar) || x.Destinatario.Contains(_buscar.Trim(), StringComparison.OrdinalIgnoreCase)));
+    private static string Icono(string tipo) => tipo switch { "ausencias" => Icons.Material.Filled.PersonOff, "pagos" => Icons.Material.Filled.Receipt, "morosos" => Icons.Material.Filled.Payments, "cumpleanos" => Icons.Material.Filled.Cake, "recuperos" => Icons.Material.Filled.EventAvailable, _ => Icons.Material.Filled.Email };
+    private bool _ocupado;
+    private string? _error;
+    protected override Task OnInitializedAsync() => Cargar();
+    private async Task Cargar()
+    {
+        _ocupado = true;
+        try { _error = null; _reglas = await Servicio.ConfiguracionAsync(); _historial = await Servicio.HistorialAsync(); }
+        catch { _error = "No se pudo cargar la configuración. Verificá que se haya aplicado el SQL de comunicaciones."; }
+        finally { _ocupado = false; }
+    }
+    private async Task Cambiar(ConfigComunicacion regla)
+    {
+        _ocupado = true;
+        try { await Servicio.CambiarAsync(regla.Tipo, !regla.Habilitada); await Cargar(); }
+        catch { _error = "No se pudo guardar la configuración."; }
+        finally { _ocupado = false; }
+    }
+    private static string Nombre(string tipo) => tipo switch { "ausencias" => "Ausentes sin aviso", "pagos" => "Comprobantes de pago", "morosos" => "Cuotas impagas", "cumpleanos" => "Cumpleaños", "recuperos" => "Recuperos disponibles", _ => tipo };
+    private static string Detalle(string tipo) => tipo switch { "ausencias" => "Después de finalizar la clase", "pagos" => "Pagos nuevos desde la activación", "morosos" => "Desde el día 16, una vez por mes", "cumpleanos" => "Desde las 09:00 del día del cumpleaños", "recuperos" => "Un aviso por semana, desde las 10:00", _ => "" };
+}

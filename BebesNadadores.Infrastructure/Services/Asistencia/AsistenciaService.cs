@@ -258,7 +258,7 @@ foreach (var reserva in
                 .GroupBy(x => x.BebeId)
                 .ToDictionary(
                     x => x.Key,
-                    x => x.First());
+                    x => x.OrderBy(r => r.Estado == EstadoRecuperacion.Anulada).First());
 
 
         // =====================================================
@@ -512,28 +512,10 @@ foreach (var reserva in
                     ct);
 
 
-        var estadoAnterior =
-            asistencia?.Estado
-            ?? EstadoAsistencia.Pendiente;
-
-
-        // =====================================================
-        // SI ESTABA AUSENTE CON AVISO Y LO CAMBIAN
-        // =====================================================
-
-        if (
-            estadoAnterior ==
-                EstadoAsistencia.AusenteConAviso
-            &&
-            estado !=
-                EstadoAsistencia.AusenteConAviso
-        )
+        // Reconciliar incluso al guardar nuevamente una asistencia ya corregida.
+        if (estado != EstadoAsistencia.AusenteConAviso)
         {
-            await AnularRecuperoPorCambioAsistenciaAsync(
-                db,
-                sesion,
-                bebeId,
-                ct);
+            await AnularRecuperoPorCambioAsistenciaAsync(db, sesion, bebeId, ct);
         }
 
 
@@ -730,8 +712,10 @@ var configuracion =
          * Si ya fue utilizado, no hacemos nada:
          * el beneficio ya fue consumido.
          */
-        if (recuperacion.Estado ==
-            EstadoRecuperacion.Utilizada)
+        if (recuperacion.Estado is EstadoRecuperacion.Utilizada
+            or EstadoRecuperacion.Reservada
+            or EstadoRecuperacion.Disponible
+            or EstadoRecuperacion.Vencida)
         {
             return;
         }
@@ -776,46 +760,42 @@ var configuracion =
             Guid bebeId,
             CancellationToken ct)
     {
-        var recuperacion =
-            await db.Recuperaciones
-                .FirstOrDefaultAsync(
-                    x =>
-                        x.BebeId ==
-                            bebeId
-                        &&
-                        x.SesionOrigenId ==
-                            sesion.Id
-                        &&
-                        x.Tipo ==
-                            TipoRecuperacion
-                                .AusenciaConAviso,
-                    ct);
+        var recuperaciones = await db.Recuperaciones
+            .Where(x => x.BebeId == bebeId
+                && x.SesionOrigenId == sesion.Id
+                && x.Tipo == TipoRecuperacion.AusenciaConAviso
+                && x.Estado != EstadoRecuperacion.Anulada)
+            .ToListAsync(ct);
 
-
-        if (recuperacion is null)
-            return;
-
-
-        /*
-         * Si ya usó el recupero, no permitimos
-         * modificar el hecho que le dio origen.
-         */
-        if (recuperacion.Estado ==
-            EstadoRecuperacion.Utilizada)
-        {
+        if (recuperaciones.Any(x => x.Estado == EstadoRecuperacion.Utilizada))
             throw new InvalidOperationException(
                 "No puede modificar esta ausencia porque el recupero generado ya fue utilizado.");
+
+        foreach (var recuperacion in recuperaciones)
+        {
+            if (recuperacion.SesionUsoId is Guid sesionUsoId &&
+                await db.Asistencias.AnyAsync(x => x.SesionClaseId == sesionUsoId
+                    && x.BebeId == bebeId && x.EsRecupero
+                    && x.Estado != EstadoAsistencia.Pendiente, ct))
+            {
+                throw new InvalidOperationException(
+                    "El recupero tiene una asistencia registrada. Revisá esa clase antes de corregir la ausencia original.");
+            }
+
+            var solicitudes = await db.ListaEspera
+                .Where(x => x.RecuperacionId == recuperacion.Id
+                    && (x.Estado == EstadoListaEspera.Activa
+                        || x.Estado == EstadoListaEspera.Notificada
+                        || x.Estado == EstadoListaEspera.Asignada))
+                .ToListAsync(ct);
+
+            foreach (var solicitud in solicitudes)
+                solicitud.Estado = EstadoListaEspera.Cancelada;
+
+            recuperacion.Estado = EstadoRecuperacion.Anulada;
+            recuperacion.SesionUsoId = null;
+            recuperacion.UtilizadaUtc = null;
         }
-
-
-        recuperacion.Estado =
-            EstadoRecuperacion.Anulada;
-
-        recuperacion.SesionUsoId =
-            null;
-
-        recuperacion.UtilizadaUtc =
-            null;
     }
 
 
@@ -971,18 +951,6 @@ if (reservaInicial is not null)
             ?? throw new InvalidOperationException(
                 "La clase indicada no existe.");
 
-
-        // REGLA DE NEGOCIO: solo se permite registrar asistencia del día
-        // operativo actual de Argentina. También protege contra llamadas
-        // directas al servicio, cambios en el navegador o varios usuarios.
-        var hoyArgentina = FechaArgentina.Hoy;
-        if (sesion.Fecha != hoyArgentina)
-        {
-            throw new InvalidOperationException(
-                sesion.Fecha < hoyArgentina
-                    ? "Esta clase es de una fecha anterior. Su asistencia está cerrada y es solo de consulta."
-                    : "No se puede tomar asistencia anticipada. Solo se registra durante el día de la clase.");
-        }
 
         if (sesion.Estado ==
             EstadoSesionClase.Cancelada)

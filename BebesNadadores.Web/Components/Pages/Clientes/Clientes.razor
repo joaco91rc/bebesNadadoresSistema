@@ -7,6 +7,8 @@
 @using BebesNadadores.Application.Bebes.Dtos
 @using BebesNadadores.Domain.Enums
 
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<BebesNadadores.Infrastructure.Persistence.AppDbContext> DbHorarios
 @inject IBebeService BebeService
 @inject NavigationManager Navigation
 @inject PermisosUsuario Permisos
@@ -626,6 +628,7 @@
                        FOOTER
                        ========================================= *@
 
+                    <div class="baby-schedule"><span class="baby-schedule-icon"><MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small"/></span><div><small>HORARIO FIJO</small><strong>@(_horariosHabituales.GetValueOrDefault(bebe.Id) ?? "Sin horario fijo vigente")</strong></div></div>
                     <div class="baby-card-footer">
 
                         <button type="button" class="profile-button" @onclick="() => AbrirFicha(bebe.Id)">
@@ -637,6 +640,8 @@
                         </button>
 
 
+                        <AuthorizeView Policy="@PoliticasSistema.GestionCaja"><Authorized><a class="profile-button" href="@($"/pagos?bebe={bebe.Id}")">Pagos</a></Authorized></AuthorizeView>
+                        <a class="profile-button" href="@($"/clientes/{bebe.Id}?tab=asistencia")">Asistencia</a>
                         @if (!_puedeGestionar)
                         {
                             @* Solo lectura: sin acciones de alta / baja. *@
@@ -839,6 +844,7 @@
     private void ReiniciarPagina() => _pagina = 1;
     private void CambiarPagina(int pagina) => _pagina = Math.Clamp(pagina, 1, TotalPaginas);
 
+    private Dictionary<Guid, string> _horariosHabituales = new();
     private readonly List<BebeDto> _bebes = [];
 
 
@@ -1048,6 +1054,17 @@
         _bebes.AddRange(
             datos);
         _pagina = 1;
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+        await using var db = await DbHorarios.CreateDbContextAsync();
+        var ids = datos.Select(x => x.Id).ToArray();
+        var horarios = await db.InscripcionesTurnos.AsNoTracking().Where(x => ids.Contains(x.Inscripcion.BebeId) && x.Inscripcion.Estado == EstadoInscripcion.Activa && (x.Inscripcion.FechaFin == null || x.Inscripcion.FechaFin >= hoy) && x.Turno.Estado == EstadoTurno.Activo && (x.Turno.VigenteHasta == null || x.Turno.VigenteHasta >= hoy))
+            .Select(x => new { x.Inscripcion.BebeId, x.Turno.DiaSemana, x.Turno.HoraInicio, Desde = x.Inscripcion.FechaInicio > x.Turno.VigenteDesde ? x.Inscripcion.FechaInicio : x.Turno.VigenteDesde, HastaInscripcion = x.Inscripcion.FechaFin, HastaTurno = x.Turno.VigenteHasta }).ToListAsync();
+        _horariosHabituales = horarios.Where(x => (x.HastaInscripcion == null || x.Desde <= x.HastaInscripcion) && (x.HastaTurno == null || x.Desde <= x.HastaTurno)).GroupBy(x => x.BebeId).ToDictionary(g => g.Key, g =>
+        {
+            var fecha = g.Min(x => x.Desde) <= hoy ? hoy : g.Min(x => x.Desde);
+            var texto = string.Join(" · ", g.Where(x => x.Desde <= fecha).OrderBy(x => x.DiaSemana).ThenBy(x => x.HoraInicio).Select(x => $"{x.DiaSemana} {x.HoraInicio:HH:mm}").Distinct());
+            return fecha > hoy ? $"Desde {fecha:dd/MM}: {texto}" : texto;
+        });
     }
 
 

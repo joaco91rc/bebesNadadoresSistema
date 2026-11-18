@@ -1,3 +1,4 @@
+using BebesNadadores.Web.Authorization;
 using System.Globalization;
 using System.Security.Claims;
 using BebesNadadores.Application.Anulaciones;
@@ -18,6 +19,53 @@ namespace BebesNadadores.Web.Components.Pages.Finanzas;
 public partial class Pagos : ComponentBase
 {
     [Inject] private BebesNadadores.Web.Services.Comprobantes.EnlaceComprobantePagoService EnlacesComprobantes { get; set; } = default!;
+
+    private bool _soloRevisar;
+    private bool _confirmandoRevision;
+    private IReadOnlyDictionary<Guid, BebesNadadores.Web.Services.Finanzas.IndicadorFinancieroDto> _estadosOperativos = new Dictionary<Guid, BebesNadadores.Web.Services.Finanzas.IndicadorFinancieroDto>();
+    private BebesNadadores.Web.Services.Finanzas.IndicadorFinancieroDto? _estadoOperativo;
+    private async Task CargarEstadosOperativosAsync()
+    {
+        if (!_soloRevisar) return;
+        try { _estadosOperativos = await IndicadoresOperativos.ObtenerAsync(_bebes.Select(b => b.BebeId).Distinct().ToArray()); }
+        catch (Exception ex) { _soloRevisar = false; _error = Errores.Mensaje(ex); }
+    }
+    private async Task ActualizarEstadoOperativoAsync(Guid id)
+    {
+        var estados = await IndicadoresOperativos.ObtenerAsync(new[] { id });
+        _estadoOperativo = estados.GetValueOrDefault(id);
+    }
+    private async Task ConfirmarRevisionOperativaAsync()
+    {
+        if (_cuenta is null || _confirmandoRevision || _estadoOperativo?.Tipo != BebesNadadores.Web.Services.Finanzas.IndicadorFinancieroTipo.Revisar) return;
+        var id = _cuenta.BebeId;
+        _confirmandoRevision = true;
+        try
+        {
+            await PermisosRevision.ExigirAsync(PoliticasSistema.GestionCaja);
+            if (!await JS.InvokeAsync<bool>("confirm", new object?[] { "¿Confirmás que verificaste la cuenta y todos los períodos pendientes hasta hoy? Esto no modifica pagos ni cuotas; las deudas reales seguirán visibles." })) return;
+            await IndicadoresOperativos.ConfirmarRevisionAsync(id, await ObtenerUsuarioIdAsync());
+            await CargarCuentaAsync(id);
+            await CargarEstadosOperativosAsync();
+            _mensaje = "Revisión registrada. Se conservan los saldos de deuda reales.";
+        }
+        catch (Exception ex) { _error = Errores.Mensaje(ex); }
+        finally { _confirmandoRevision = false; }
+    }
+
+    private BebesNadadores.Application.Bebes.Dtos.BebeLegajoDto? _fichaOperativa;
+    private bool _fichaAsistencia;
+    private async Task AbrirFichaOperativaAsync()
+    {
+        if (_cuenta is null) return;
+        try
+        {
+            _fichaAsistencia = false;
+            _fichaOperativa = await LegajosOperativos.ObtenerAsync(_cuenta.BebeId);
+            if (_fichaOperativa is null) _error = "No se encontró la ficha.";
+        }
+        catch (Exception ex) { _error = Errores.Mensaje(ex); }
+    }
 
     // =========================================================
     // DATOS
@@ -86,9 +134,8 @@ public partial class Pagos : ComponentBase
             _error = null;
             _mensaje = null;
 
-            var enlace = EnlacesComprobantes.CrearEnlace(pago.Id, Navigation.BaseUri);
-            var responsable = ObtenerNombreResponsableParaWhatsApp();
-            var mensaje = $"Buen día {responsable}, te compartimos el comprobante del pago abonado.\n\n" +
+            var enlace = await EnlacesComprobantes.CrearEnlaceDescriptivoAsync(pago.Id, Navigation.BaseUri);
+            var mensaje = $"Buen día, te compartimos el comprobante del pago abonado.\n\n" +
                           $"📄 Descargalo desde este enlace (válido por 30 días):\n{enlace}\n\n" +
                           "Muchas gracias. Bebés Nadadores 💙";
 
@@ -480,6 +527,7 @@ protected sealed class MovimientoCuentaViewModel
 
    protected List<BebePagoResumenDto> BebesFiltrados =>
     _bebes
+        .Where(x => !_soloRevisar || _estadosOperativos.GetValueOrDefault(x.BebeId)?.Tipo == BebesNadadores.Web.Services.Finanzas.IndicadorFinancieroTipo.Revisar)
         .OrderByDescending(x =>
             x.Deuda > 0)
 
@@ -580,7 +628,7 @@ protected sealed class MovimientoCuentaViewModel
 
             _bebes =
                 bebes.ToList();
-
+            await CargarEstadosOperativosAsync();
 
             _cuentasBancarias =
                 (await CuentaBancariaService
@@ -649,6 +697,7 @@ protected sealed class MovimientoCuentaViewModel
         {
             _cargandoCuenta =
                 true;
+            _estadoOperativo = null;
 
             _error =
                 null;
@@ -665,6 +714,7 @@ protected sealed class MovimientoCuentaViewModel
                 _error =
                     "No se encontró la cuenta corriente seleccionada.";
             }
+            else await ActualizarEstadoOperativoAsync(bebeId);
         }
         catch (Exception ex)
         {
@@ -946,6 +996,7 @@ protected async Task BuscarCambioAsync(
 
         _bebes =
             datos.ToList();
+        await CargarEstadosOperativosAsync();
     }
     catch (OperationCanceledException)
     {
@@ -993,6 +1044,7 @@ protected async Task LimpiarBusquedaAsync()
 
         _bebes =
             datos.ToList();
+        await CargarEstadosOperativosAsync();
     }
     catch (Exception ex)
     {
@@ -1372,6 +1424,8 @@ protected async Task LimpiarBusquedaAsync()
                     bebeId);
 
 
+        await ActualizarEstadoOperativoAsync(bebeId);
+        await CargarEstadosOperativosAsync();
         _cajaHoy =
             await CajaService
                 .ObtenerHoyAsync();

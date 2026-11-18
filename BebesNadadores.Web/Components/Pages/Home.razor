@@ -484,7 +484,7 @@
                 </span>
 
                 <h2>
-                    Cumpleaños de hoy
+                    Cumpleaños
                 </h2>
                 <p class="birthdays-date">@_ahora.ToString("dddd d 'de' MMMM", new System.Globalization.CultureInfo("es-AR"))</p>
             </div>
@@ -496,6 +496,27 @@
         </div>
 
 
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+            <MudButton Variant="@(!_cumplesMes ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(() => _cumplesMes = false)">Cumples del día</MudButton>
+            <MudButton Variant="@(_cumplesMes ? Variant.Filled : Variant.Outlined)" Color="Color.Primary" OnClick="@(() => _cumplesMes = true)">Cumples del mes</MudButton>
+        </div>
+        @if (_cumplesMes)
+        {
+            <div>
+                @if (_puedeGestionar)
+                { <a class="birthday-whatsapp-button" href="@($"/reportes/cumpleanos/excel?anio={_ahora.Year}&mes={_ahora.Month}")" data-enhance-nav="false">Exportar Excel</a> }
+            </div>
+            @if (!_cumpleanios.Any()) { <p>No hay cumpleaños este mes.</p> }
+            @foreach (var c in _cumpleanios.OrderBy(x => x.FechaNacimiento.Day).ThenBy(x => x.NombreCompleto))
+            {
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:10px;border-bottom:1px solid #3c708555">
+                    <strong>@c.NombreCompleto</strong><span>@($"{Math.Min(c.FechaNacimiento.Day, DateTime.DaysInMonth(_ahora.Year, _ahora.Month)):00}/{_ahora.Month:00}")</span>
+                </div>
+            }
+        }
+        else
+        {
+        <div>
         @if (CumpleaniosHoy.Any())
         {
             <div class="birthday-today">
@@ -556,7 +577,8 @@
                 Hoy no hay cumpleaños de bebés registrados.
             </div>
         }
-
+        </div>
+        }
     </section>
 
     @* =========================================================

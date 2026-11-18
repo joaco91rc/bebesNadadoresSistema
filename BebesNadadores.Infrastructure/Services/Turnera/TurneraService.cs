@@ -58,7 +58,15 @@ public sealed class TurneraService(
                 .ThenInclude(x => x.Profesor)
             .FirstOrDefaultAsync(x => x.Id == turnoId, ct);
 
-        return turno is null ? null : MapearTurno(turno);
+        if (turno is null) return null;
+        var detalle = MapearTurno(turno);
+        if (detalle.VigenteHasta is null && turno.CicloLectivoId is Guid cicloId)
+        {
+            var fin = await db.CiclosLectivos.AsNoTracking().Where(c => c.Id == cicloId)
+                .Select(c => (DateOnly?)c.FechaFin).FirstOrDefaultAsync(ct);
+            detalle = detalle with { VigenteHasta = fin };
+        }
+        return detalle;
     }
 
     public async Task<Guid> CrearTurnoAsync(CrearTurnoDto dto, CancellationToken ct = default)
@@ -280,6 +288,23 @@ public sealed class TurneraService(
         var turno =
             await db.Turnos.Include(x => x.Profesores).FirstOrDefaultAsync(x => x.Id == turnoId, ct)
             ?? throw new InvalidOperationException("El turno indicado no existe.");
+
+        // Una fecha "hasta" vacía en el editor no debe alargar accidentalmente
+        // un turno versionado a otro ciclo lectivo.
+        if (!dto.VigenteHasta.HasValue)
+            dto.VigenteHasta = turno.VigenteHasta;
+        if (turno.CicloLectivoId is Guid cicloId)
+        {
+            var finCiclo = await db.CiclosLectivos.AsNoTracking().Where(c => c.Id == cicloId).Select(c => (DateOnly?)c.FechaFin).FirstOrDefaultAsync(ct);
+            if (finCiclo.HasValue)
+            {
+                if (dto.VigenteHasta.HasValue && dto.VigenteHasta > finCiclo)
+                    throw new InvalidOperationException($"La vigencia del turno no puede superar el cierre del ciclo ({finCiclo:dd/MM/yyyy}).");
+                dto.VigenteHasta ??= finCiclo;
+                if (dto.AplicarDesde > dto.VigenteHasta.Value)
+                    throw new InvalidOperationException("La fecha de aplicación no puede ser posterior al cierre del ciclo.");
+            }
+        }
 
         if (dto.AplicarDesde < turno.VigenteDesde)
         {
@@ -941,6 +966,7 @@ public sealed class TurneraService(
         var query = db
             .Turnos.AsNoTracking()
             .Include(x => x.Profesores)
+            .Include(x => x.CicloLectivo)
             .Where(x =>
                 x.Estado == EstadoTurno.Activo
                 && x.VigenteDesde <= hasta
@@ -1151,6 +1177,37 @@ public sealed class TurneraService(
     // =========================================================
     // DETALLE DE SESIÓN
     // =========================================================
+
+    public async Task<IReadOnlyList<Guid>> BuscarSesionesAlumnoAsync(string nombre, IReadOnlyCollection<Guid> sesionesIds, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(nombre) || sesionesIds.Count == 0) return [];
+        var texto = nombre.Trim().ToLowerInvariant();
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var ids = await db.Bebes.AsNoTracking().Where(b => (b.Nombre + " " + b.Apellido).ToLower().Contains(texto) || (b.Apellido + " " + b.Nombre).ToLower().Contains(texto)).Select(b => b.Id).ToListAsync(ct);
+        if (ids.Count == 0) return [];
+        var candidatos = await db.SesionesClase.AsNoTracking().Where(s => sesionesIds.Contains(s.Id) && (
+            db.InscripcionesTurnos.Any(t => t.TurnoId == s.TurnoId && ids.Contains(t.Inscripcion.BebeId) && t.Inscripcion.FechaInicio <= s.Fecha && (t.Inscripcion.FechaFin == null || t.Inscripcion.FechaFin >= s.Fecha))
+            || db.ReservasSesionesClase.Any(r => r.SesionClaseId == s.Id && r.Estado == EstadoReservaSesion.Activa && ids.Contains(r.BebeId))
+            || db.Recuperaciones.Any(r => r.SesionUsoId == s.Id && ids.Contains(r.BebeId) && (r.Estado == EstadoRecuperacion.Reservada || r.Estado == EstadoRecuperacion.Utilizada))))
+            .Select(s => s.Id).ToListAsync(ct);
+        var resultado = new List<Guid>();
+        foreach (var id in candidatos)
+        {
+            var clase = await ObtenerSesionAsync(id, ct);
+            if (clase is not null && clase.Bebes.Any(b => ids.Contains(b.BebeId))) resultado.Add(id);
+        }
+        return resultado;
+    }
+
+    public async Task<IReadOnlyList<Guid>> BuscarTurnosAlumnoAsync(string nombre, IReadOnlyCollection<Guid> turnosIds, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(nombre) || turnosIds.Count == 0) return [];
+        var texto = nombre.Trim().ToLowerInvariant();
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+        return await db.InscripcionesTurnos.AsNoTracking().Where(t => turnosIds.Contains(t.TurnoId) && t.Turno.Estado == EstadoTurno.Activo && (t.Turno.VigenteHasta == null || t.Turno.VigenteHasta >= hoy) && t.Inscripcion.Estado == EstadoInscripcion.Activa && (t.Inscripcion.FechaFin == null || t.Inscripcion.FechaFin >= hoy) && ((t.Inscripcion.Bebe.Nombre + " " + t.Inscripcion.Bebe.Apellido).ToLower().Contains(texto) || (t.Inscripcion.Bebe.Apellido + " " + t.Inscripcion.Bebe.Nombre).ToLower().Contains(texto)))
+            .Select(t => t.TurnoId).Distinct().ToListAsync(ct);
+    }
 
     public async Task<SesionClaseDetalleDto?> ObtenerSesionAsync(
         Guid sesionId,
@@ -1826,12 +1883,16 @@ public sealed class TurneraService(
 
         foreach (var existente in candidatos)
         {
+            var hastaExistente = existente.VigenteHasta;
+            if (existente.CicloLectivo is { } ciclo && (!hastaExistente.HasValue || hastaExistente > ciclo.FechaFin))
+                hastaExistente = ciclo.FechaFin;
             if (
                 !PeriodosSeSuperponen(
                     vigenteDesde,
                     vigenteHasta,
                     existente.VigenteDesde,
-                    existente.VigenteHasta
+                    hastaExistente,
+                    diaSemana
                 )
             )
             {
@@ -1850,8 +1911,10 @@ public sealed class TurneraService(
 
             if (profesoresConflicto.Count > 0)
             {
+                var nombres = await db.Profesores.AsNoTracking().Where(p => profesoresConflicto.Contains(p.Id))
+                    .Select(p => p.Nombre + " " + p.Apellido).ToListAsync(ct);
                 throw new InvalidOperationException(
-                    "Uno de los profesores ya tiene otro turno superpuesto en ese horario."
+                    $"Profesor(es) {string.Join(", ", nombres)}: superposición con «{existente.Nombre}» ({existente.DiaSemana} {existente.HoraInicio:HH:mm}–{existente.HoraFin:HH:mm}), vigente {existente.VigenteDesde:dd/MM/yyyy} a {existente.VigenteHasta?.ToString("dd/MM/yyyy") ?? "sin fecha fin"}."
                 );
             }
         }
@@ -1861,14 +1924,19 @@ public sealed class TurneraService(
         DateOnly inicio1,
         DateOnly? fin1,
         DateOnly inicio2,
-        DateOnly? fin2
+        DateOnly? fin2,
+        DiaSemana diaSemana
     )
     {
+        var desde = inicio1 > inicio2 ? inicio1 : inicio2;
         var final1 = fin1 ?? DateOnly.MaxValue;
-
         var final2 = fin2 ?? DateOnly.MaxValue;
-
-        return inicio1 <= final2 && inicio2 <= final1;
+        var hasta = final1 < final2 ? final1 : final2;
+        if (desde > hasta) return false;
+        var dia = (int)desde.DayOfWeek;
+        if (dia == 0) dia = 7;
+        var diasHastaClase = ((int)diaSemana - dia + 7) % 7;
+        return hasta.DayNumber - desde.DayNumber >= diasHastaClase;
     }
 
     private static bool HorariosSeSuperponen(

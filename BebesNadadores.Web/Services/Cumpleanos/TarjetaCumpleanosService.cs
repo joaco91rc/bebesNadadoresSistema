@@ -25,6 +25,13 @@ public sealed class TarjetaCumpleanosService(
         return new Uri(new Uri(baseUri), "cumple/" + Uri.EscapeDataString(token)).AbsoluteUri;
     }
 
+    public async Task<string> CrearEnlaceDescriptivoAsync(Guid bebeId, string baseUri, string nombre, int edad, CancellationToken ct = default)
+    {
+        var etiqueta = string.Concat(nombre.Select(c => char.IsLetterOrDigit(c) ? c : '-')).Trim('-');
+        var token = _protector.Protect(bebeId.ToString("N"), TimeSpan.FromDays(7));
+        return await BebesNadadores.Web.Services.EnlacesCortos.CrearAsync(factory, baseUri, $"{etiqueta}-cumple-{edad}", "/cumple/" + Uri.EscapeDataString(token), 7, ct);
+    }
+
     public async Task<IResult> MostrarAsync(string token, HttpContext http, CancellationToken ct)
     {
         Guid bebeId;

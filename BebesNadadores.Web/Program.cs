@@ -1,3 +1,4 @@
+using BebesNadadores.Web.Services.Automatizaciones;
 using Microsoft.AspNetCore.DataProtection;
 using BebesNadadores.Infrastructure;
 using BebesNadadores.Infrastructure.Identity;
@@ -56,6 +57,7 @@ try
     builder.Services.AddScoped<ComprobantePagoService>();
     builder.Services.AddScoped<EnlaceComprobantePagoService>();
     builder.Services.AddScoped<TarjetaCumpleanosService>();
+    builder.Services.AddScoped<ComunicacionesService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Recuperos.RegularizacionHistoricaService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Migracion.MigracionCargaService>();
     builder.Services.AddSingleton<BebesNadadores.Web.Services.Migracion.MigracionEjecucionService>();
@@ -126,6 +128,7 @@ try
     app.UseAuthorization();
     app.UseAntiforgery();
 
+    app.MapComunicaciones();
     app.MapStaticAssets();
     app.MapRazorPages();
 
@@ -169,6 +172,37 @@ try
         })
         .RequireAuthorization(PoliticasSistema.ConsultaGeneral);
 
+    app.MapGet("/reportes/cumpleanos/excel", async (int anio, int mes,
+        BebesNadadores.Application.Bebes.IBebeService bebes, HttpContext http, CancellationToken ct) =>
+    {
+        if (mes is < 1 or > 12 || anio is < 1900 or > 9999) return Results.BadRequest();
+        http.Response.Headers.CacheControl = "private, no-store";
+        var datos = await bebes.ObtenerCumpleaniosMesAsync(anio, mes, ct);
+        using var libro = new ClosedXML.Excel.XLWorkbook();
+        var hoja = libro.Worksheets.Add("Cumpleaños");
+        hoja.Cell(1, 1).Value = "Fecha de cumpleaños";
+        hoja.Cell(1, 2).Value = "Nombre y apellido";
+        hoja.Range("A1:B1").Style.Font.Bold = true;
+        var fila = 2;
+        foreach (var c in datos.OrderBy(x => x.FechaNacimiento.Day).ThenBy(x => x.NombreCompleto))
+        {
+            hoja.Cell(fila, 1).Value = new DateTime(anio, mes, Math.Min(c.FechaNacimiento.Day, DateTime.DaysInMonth(anio, mes)));
+            hoja.Cell(fila, 1).Style.DateFormat.Format = "dd/MM/yyyy";
+            hoja.Cell(fila++, 2).Value = c.NombreCompleto;
+        }
+        hoja.Columns().AdjustToContents();
+        using var stream = new MemoryStream();
+        libro.SaveAs(stream);
+        return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Cumpleanos {mes:00}-{anio}.xlsx");
+    }).RequireAuthorization(PoliticasSistema.GestionAdministrativa);
+
+    app.MapGet("/pagos/comprobantes/mes", async (ComprobantePagoService comprobantes, HttpContext http, CancellationToken ct) =>
+    {
+        http.Response.Headers.CacheControl = "private, no-store";
+        var archivo = await comprobantes.GenerarMesAsync(ct);
+        return Results.File(archivo.Contenido, "application/zip", archivo.NombreArchivo);
+    }).RequireAuthorization(PoliticasSistema.GestionCaja);
+
     // Recibos individuales: requerir acceso a Caja. Impedir caché de datos personales.
     app.MapGet(
         "/pagos/comprobante/{pagoId:guid}",
@@ -186,7 +220,7 @@ try
     // No se expone el GUID del pago ni se requiere iniciar sesión para descargar.
     app.MapGet(
         "/comprobantes/descargar/{token}",
-        async (string token, HttpContext http, EnlaceComprobantePagoService enlaces,
+        async (string token, string? t, HttpContext http, EnlaceComprobantePagoService enlaces,
             ComprobantePagoService comprobantes, CancellationToken ct) =>
         {
             http.Response.Headers.CacheControl = "private, no-store, no-cache, max-age=0";
@@ -194,7 +228,7 @@ try
             http.Response.Headers["Referrer-Policy"] = "no-referrer";
             http.Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-            if (!enlaces.IntentarValidar(token, out var pagoId))
+            if (!enlaces.IntentarValidar(t ?? token, out var pagoId))
                 return Results.NotFound();
 
             var archivo = await comprobantes.GenerarAsync(pagoId, ct);
@@ -204,9 +238,11 @@ try
         });
 
     // Tarjeta individual: pública solo con token firmado que caduca a los siete días.
-    app.MapGet("/cumple/{token}", (string token, HttpContext http,
+    app.MapGet("/cumple/{token}", (string token, string? t, HttpContext http,
             TarjetaCumpleanosService tarjetas, CancellationToken ct) =>
-        tarjetas.MostrarAsync(token, http, ct));
+        tarjetas.MostrarAsync(t ?? token, http, ct));
+
+    app.MapGet("/e/{slug}", BebesNadadores.Web.Services.EnlacesCortos.ResolverAsync).AllowAnonymous();
 
     app.MapRazorComponents<App>()
         .AddInteractiveServerRenderMode();

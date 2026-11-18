@@ -154,18 +154,6 @@
     </section>
 
 
-    @if (_fecha != FechaArgentina.Hoy)
-    {
-        <div class="attendance-readonly-warning" role="status">
-            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Medium" />
-            <div>
-                <strong>@(_fecha < FechaArgentina.Hoy ? "Asistencia histórica · Solo lectura" : "Clase futura · Solo consulta")</strong>
-                <span>Podés consultar los presentes, ausentes y recuperos, pero solo se permite registrar o modificar asistencias durante el día de la clase (hora de Argentina).</span>
-            </div>
-            <button type="button" class="today-button" @onclick="IrHoy">Ir a hoy</button>
-        </div>
-    }
-
     @if (_cargando)
     {
         <section class="attendance-loading">
@@ -409,8 +397,7 @@
                         <button type="button"
                                 class="mass-present-button"
                                 disabled="@(
-                                    EsSoloConsulta
-                                    || _guardandoMasivo
+                                    _guardandoMasivo
                                     ||
                                     _sesion.EstadoSesion ==
                                         EstadoSesionClase.Cancelada
@@ -749,7 +736,6 @@
                                         <input type="text"
                                                maxlength="1000"
                                                disabled="@(
-                                                    EsSoloConsulta ||
                                                     _sesion.EstadoSesion ==
                                                     EstadoSesionClase.Cancelada)"
                                                placeholder="Observación opcional..."
@@ -866,13 +852,6 @@
 
 
     private AsistenciaSesionDto? _sesion;
-
-    // También deja navegar por el historial, pero evita cualquier edición
-    // fuera del día actual argentino.
-    private bool EsSoloConsulta =>
-        _sesion is null
-        ? _fecha != FechaArgentina.Hoy
-        : _sesion.Fecha != FechaArgentina.Hoy;
 
     private Guid? _usuarioId;
 
@@ -1218,14 +1197,7 @@
         if (_sesion is null)
             return;
 
-        if (EsSoloConsulta)
-        {
-            _error = "Solo se puede registrar asistencia durante el día de la clase. Esta fecha es de consulta.";
-            return;
-        }
-
-
-        try
+try
         {
             _error =
                 null;
@@ -1297,14 +1269,7 @@
         if (_sesion is null)
             return;
 
-        if (EsSoloConsulta)
-        {
-            _error = "Solo se puede registrar asistencia durante el día de la clase. Esta fecha es de consulta.";
-            return;
-        }
-
-
-        try
+try
         {
             _error =
                 null;
@@ -1362,14 +1327,7 @@
         if (_sesion is null)
             return;
 
-        if (EsSoloConsulta)
-        {
-            _error = "Solo se puede registrar asistencia durante el día de la clase. Esta fecha es de consulta.";
-            return;
-        }
-
-
-        var pendientes =
+var pendientes =
             _sesion.Alumnos
                 .Where(x =>
                     x.Estado ==
@@ -1510,8 +1468,7 @@
         AsistenciaAlumnoDto alumno)
     {
         return
-            EsSoloConsulta
-            || _sesion?.EstadoSesion ==
+            _sesion?.EstadoSesion ==
                 EstadoSesionClase.Cancelada
             ||
             _guardandoAlumnos.Contains(

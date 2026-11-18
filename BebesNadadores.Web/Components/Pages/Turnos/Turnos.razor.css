@@ -4107,3 +4107,11 @@
 }
 .session-footer{flex-wrap:wrap}
 .vacancy-text{white-space:normal;text-align:right;overflow-wrap:break-word}
+
+.session-student{flex-wrap:wrap;}
+.session-student .student-name{flex:1 1 110px;}
+.session-student a.secondary-action{min-height:28px;padding:4px 8px;font-size:12px;text-decoration:none;}
+
+
+.prof-schedule-panel{margin:12px 20px 18px;padding:16px;border:1px solid var(--mud-palette-divider);border-radius:14px;background:var(--mud-palette-background);display:grid;gap:12px}.prof-schedule-header{display:flex;justify-content:space-between;align-items:center;gap:10px}.prof-schedule-header small,.prof-schedule-header strong{display:block}.prof-schedule-header small{font-size:10px;letter-spacing:1px;color:#21addb;font-weight:800;margin-bottom:5px}.prof-filter{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;font-weight:700}.prof-filter select{flex:1;min-width:140px;padding:9px;border:1px solid var(--mud-palette-divider);background:var(--mud-palette-surface);color:var(--mud-palette-text-primary);border-radius:8px;font:inherit}.prof-schedule-count{font-size:12px;color:var(--mud-palette-text-secondary)}.prof-schedule-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--mud-palette-divider);padding:10px 0 0;font-size:13px}.prof-schedule-row small{display:block;color:var(--mud-palette-text-secondary);margin-top:3px}.prof-schedule-row span{color:#22b1db;font-weight:700;white-space:nowrap}
+

@@ -308,7 +308,7 @@ public partial class Recuperos : ComponentBase
                 .DefaultIfEmpty(DateOnly.MaxValue).Min();
             var textoVencimiento = proximoVencimiento == DateOnly.MaxValue
                 ? "" : $"\n📅 El recupero más próximo vence el {proximoVencimiento:dd/MM/yyyy}.";
-            var mensaje = $"¡Hola {contacto.Nombre}! 👋\n\n" +
+            var mensaje = $"¡Hola! 👋\n\n" +
                 $"Desde Bebés Nadadores te recordamos que {disponibles[0].Bebe} tiene {textoCantidad}." +
                 textoVencimiento +
                 "\n\n🏊 Escribinos para coordinar un horario con cupo y aprovechar los recuperos pendientes.\n\n¡Muchas gracias!\nBebés Nadadores";

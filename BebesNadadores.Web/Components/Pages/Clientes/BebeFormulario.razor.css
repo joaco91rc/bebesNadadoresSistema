@@ -2320,3 +2320,8 @@
 
 .initial-payment-choice{display:flex!important;align-items:center;gap:10px;cursor:pointer;font-weight:700}
 .initial-payment-choice input{width:19px;height:19px;accent-color:#28afe2}
+
+.welcome-overlay {position:fixed;inset:0;z-index:1600;display:grid;place-items:center;padding:16px;background:#061521aa;}
+.welcome-modal {width:min(540px,100%);padding:28px;border-radius:18px;background:var(--mud-palette-surface,#0d2c41);color:var(--mud-palette-text-primary,#fff);border:1px solid #4292b5;box-shadow:0 20px 60px #0005;}
+.welcome-actions{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0;}
+.welcome-actions a{text-decoration:none;}

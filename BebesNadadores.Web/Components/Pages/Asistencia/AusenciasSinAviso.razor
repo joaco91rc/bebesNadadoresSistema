@@ -107,7 +107,7 @@
         string Alumno, DateOnly Fecha, string Horario, string Responsable, string? Telefono);
 
     private const string MensajeWhatsApp =
-        "Hola como están!! Figura en el grupo que estuvieron ausentes, siempre recuerden avisarnos por favor para poder  poner la clase en la lista de recuperación y así reprogramarla otro día. No obstante puede haberles sucedido algo de último momento por lo tanto la próxima clase personalmente tratamos de darle algún lugar para recuperarla.!! Esperamos estén bien un abrazoooo";
+        "Hola como están!! Figura en el grupo que {bebe} estuvo ausente, siempre recuerden avisarnos por favor para poder  poner la clase en la lista de recuperación y así reprogramarla otro día. No obstante puede haberles sucedido algo de último momento por lo tanto la próxima clase personalmente tratamos de darle algún lugar para recuperarla.!! Esperamos estén bien un abrazoooo";
 
     // La API wa.me no informa al sistema si la persona envió el mensaje.
     // La confirmación se hace manualmente y se guarda en PostgreSQL.
@@ -229,7 +229,7 @@
         try
         {
             // Solo se abre el mensaje: no se marca como enviado automáticamente.
-            var url = WhatsAppService.CrearUrl(item.Telefono, MensajeWhatsApp);
+            var url = WhatsAppService.CrearUrl(item.Telefono, MensajeWhatsApp.Replace("{bebe}", item.Alumno));
             await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
             _mensaje = "Se abrió WhatsApp para " + item.Alumno + ". Después de enviarlo, pulsá «Ya lo envié» para guardar el check.";
         }

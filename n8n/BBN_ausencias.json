@@ -1,0 +1,221 @@
+{
+  "name": "BBN | Ausentes sin aviso",
+  "nodes": [
+    {
+      "id": "87a4bd3e-7eeb-46d9-b054-98c808217f0d",
+      "name": "Cada minuto",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d6daee69-cce7-4e8c-a8f1-558bd65b73b0",
+      "name": "Tomar mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bebesnadadores.com/api/automatizaciones/ausencias/tomar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "ab3c8835-c992-474a-b132-c7f1b3377745",
+      "name": "Hay mensaje",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "62f81fa9-375e-4988-adc3-0e2a68bfc100",
+              "leftValue": "={{ !!$json.mensaje }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "64ea8294-789d-4cad-bd05-9b4bb12ff47e",
+      "name": "Preparar correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -80
+      ],
+      "parameters": {
+        "jsCode": "const m = $json.mensaje;\nconst esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\nif (!m || !m.id || !m.destinatario) throw new Error('Mensaje inválido');\nconst boton = m.enlace && m.enlace.startsWith('https://bebesnadadores.com/') ? `<p><a style=\"display:inline-block;padding:12px 20px;background:#11668f;color:#fff;border-radius:8px;text-decoration:none\" href=\"${esc(m.enlace)}\">${esc(m.textoEnlace)}</a></p>` : '';\nreturn [{json:{...m,html:`<div style=\"background:#eaf5fa;padding:24px;font-family:Arial,sans-serif;color:#15384e\"><div style=\"max-width:560px;margin:auto;background:white;border-radius:16px;overflow:hidden\"><div style=\"background:#103d60;padding:22px;color:white;text-align:center\"><img src=\"https://bebesnadadores.com/images/logoBebesTransparente.png\" width=\"100\" alt=\"Bebés Nadadores\"><h2>${esc(m.asunto)}</h2></div><div style=\"padding:26px;line-height:1.6\"><p>Hola, familia de ${esc(m.nombre)}:</p><p>${esc(m.mensaje)}</p>${boton}<p>Un saludo,<br>Equipo de Bebés Nadadores</p></div><div style=\"padding:16px;background:#f2f7fa;font-size:12px;text-align:center\">administracion@bebesnadadores.com</div></div></div>`}}];"
+      }
+    },
+    {
+      "id": "b6b13b55-91f5-4379-a0fb-e4b4afde03fb",
+      "name": "Enviar correo",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -80
+      ],
+      "parameters": {
+        "fromEmail": "Bebés Nadadores <administracion@bebesnadadores.com>",
+        "toEmail": "={{ $json.destinatario }}",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "6f088a3b-ba8e-4d0e-8de6-90fa5a05fcfd",
+      "name": "Confirmar envío",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        -180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bebesnadadores.com/api/automatizaciones/resultado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({id: $(\"Preparar correo\").first().json.id, enviado: true}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "7ff01b07-8614-407b-89d8-130b02fcc87b",
+      "name": "Registrar error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bebesnadadores.com/api/automatizaciones/resultado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({id: $(\"Preparar correo\").first().json.id, enviado: false}) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Cada minuto": {
+      "main": [
+        [
+          {
+            "node": "Tomar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tomar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Hay mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay mensaje": {
+      "main": [
+        [
+          {
+            "node": "Preparar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar correo": {
+      "main": [
+        [
+          {
+            "node": "Enviar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar correo": {
+      "main": [
+        [
+          {
+            "node": "Confirmar envío",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "pinData": {}
+}

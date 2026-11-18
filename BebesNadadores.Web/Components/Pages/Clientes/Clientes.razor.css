@@ -1605,3 +1605,12 @@
 }
 .babies-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:24px 0 12px;padding:16px 19px;background:var(--mud-palette-surface);border:1px solid var(--mud-palette-lines-default);border-radius:13px;color:var(--mud-palette-text-primary)}
 .babies-pagination>div{display:flex;gap:15px;align-items:center;flex-wrap:wrap}.babies-pagination button{border:1px solid var(--mud-palette-primary);border-radius:9px;padding:10px 18px;font-weight:750;background:transparent;color:var(--mud-palette-primary);cursor:pointer}.babies-pagination button:disabled{cursor:not-allowed;opacity:.4}
+
+/* Accesos operativos */
+.baby-card-footer{flex-wrap:wrap;}
+.baby-card-footer .profile-button{margin-right:0;text-decoration:none;}
+.baby-card-footer .toggle-status{margin-left:auto;}
+
+
+.baby-card{display:flex;flex-direction:column}.baby-schedule{display:flex;align-items:center;gap:10px;margin:12px 14px 14px;padding:11px 12px;border-radius:10px;border:1px solid var(--mud-palette-divider);background:#21ace50b}.baby-schedule-icon{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:9px;background:#21ace51c;color:#21ace5}.baby-schedule>div{min-width:0}.baby-schedule small{display:block;font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--mud-palette-text-secondary);margin-bottom:4px}.baby-schedule strong{display:block;font-size:13px;color:var(--mud-palette-text-primary);line-height:1.45;overflow-wrap:anywhere}.baby-card-footer{margin-top:auto}
+
