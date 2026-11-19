@@ -1072,6 +1072,10 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                         }
                         else { <div class="ficha-empty">Sin horario fijo vigente.</div> }
                     </div>
+                    @if (_fichaOperativa.PrimeraClaseReservada is { } primera)
+                    { <div class="ficha-next"><MudIcon Icon="@Icons.Material.Filled.Star"/><div><small>PRIMERA CLASE PENDIENTE</small><strong>@primera.Fecha.ToString("dd/MM/yyyy") · @primera.HoraInicio.ToString("HH:mm")</strong><span>@primera.Nivel</span></div></div> }
+                    @if (_fichaOperativa.PrimeraClaseReservada is null && _fichaOperativa.InscripcionActual is null && _fichaOperativa.PrimeraClaseRealizada is { } realizada)
+                    { <div class="ficha-next"><MudIcon Icon="@Icons.Material.Filled.Schedule"/><div><small>PENDIENTE DE DEFINIR HORARIO</small><strong>Primera clase realizada el @realizada.ToString("dd/MM/yyyy")</strong></div></div> }
                     <div class="ficha-next"><MudIcon Icon="@Icons.Material.Filled.EventAvailable"/><div><small>PRÓXIMA CLASE</small>
                     @if (_fichaOperativa.ProximaClase is { } proxima) { <strong>@proxima.Fecha.ToString("dd/MM/yyyy") · @proxima.HoraInicio.ToString("HH:mm")</strong><span>@proxima.Nivel</span> }
                     else { <strong>No hay una próxima clase programada.</strong> }</div></div>

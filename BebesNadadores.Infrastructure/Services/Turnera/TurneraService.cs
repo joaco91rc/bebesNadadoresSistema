@@ -1254,7 +1254,7 @@ public sealed class TurneraService(
         var texto = nombre.Trim().ToLowerInvariant();
         await using var db = await factory.CreateDbContextAsync(ct);
         var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
-        return await db.InscripcionesTurnos.AsNoTracking().Where(t => turnosIds.Contains(t.TurnoId) && t.Turno.Estado == EstadoTurno.Activo && (t.Turno.VigenteHasta == null || t.Turno.VigenteHasta >= hoy) && t.Inscripcion.Estado == EstadoInscripcion.Activa && (t.Inscripcion.FechaFin == null || t.Inscripcion.FechaFin >= hoy) && ((t.Inscripcion.Bebe.Nombre + " " + t.Inscripcion.Bebe.Apellido).ToLower().Contains(texto) || (t.Inscripcion.Bebe.Apellido + " " + t.Inscripcion.Bebe.Nombre).ToLower().Contains(texto)))
+        return await db.InscripcionesTurnos.AsNoTracking().Where(t => turnosIds.Contains(t.TurnoId) && t.Turno.Estado == EstadoTurno.Activo && (t.Turno.VigenteHasta == null || t.Turno.VigenteHasta >= hoy) && t.Inscripcion.Bebe.Estado == EstadoBebe.Activo && t.Inscripcion.Estado == EstadoInscripcion.Activa && (t.Inscripcion.FechaFin == null || t.Inscripcion.FechaFin >= hoy) && ((t.Inscripcion.Bebe.Nombre + " " + t.Inscripcion.Bebe.Apellido).ToLower().Contains(texto) || (t.Inscripcion.Bebe.Apellido + " " + t.Inscripcion.Bebe.Nombre).ToLower().Contains(texto)))
             .Select(t => t.TurnoId).Distinct().ToListAsync(ct);
     }
 
@@ -1374,7 +1374,7 @@ public sealed class TurneraService(
 
         var bebes = await db
             .Bebes.AsNoTracking()
-            .Where(x => bebeIds.Contains(x.Id))
+            .Where(x => bebeIds.Contains(x.Id) && (sesion.Fecha < BebesNadadores.Domain.Common.FechaArgentina.Hoy || x.Estado == EstadoBebe.Activo))
             .ToDictionaryAsync(x => x.Id, ct);
 
         var asistencias = await db

@@ -1066,6 +1066,18 @@ else if (_legajo is not null)
                 </div>
 
 
+                @if (_legajo.PrimeraClaseReservada is { } primera)
+                {
+                    <div class="initial-class-grid">
+                        @if (_legajo.InscripcionActual is null)
+                        { <div class="initial-class-tile"><small>HORARIO FIJO</small><strong>Sin horario fijo</strong></div> }
+                        <div class="initial-class-tile initial-class-highlight"><small>PRIMERA CLASE PENDIENTE</small><strong>@primera.Fecha.ToString("dd/MM/yyyy") · @primera.HoraInicio.ToString("HH:mm")</strong><span>@primera.Nivel</span></div>
+                    </div>
+                }
+                @if (_legajo.PrimeraClaseRealizada is { } realizada)
+                {
+                    <div class="initial-class-grid"><div class="initial-class-tile"><small>@(_legajo.InscripcionActual is null && _legajo.PrimeraClaseReservada is null ? "PENDIENTE DE DEFINIR HORARIO" : "HISTORIAL DE PRIMERA CLASE")</small><strong>Primera clase realizada el @realizada.ToString("dd/MM/yyyy")</strong></div></div>
+                }
                 @if (_legajo.InscripcionActual is null)
                 {
                     <div class="large-empty">

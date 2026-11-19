@@ -1614,3 +1614,7 @@
 
 .baby-card{display:flex;flex-direction:column}.baby-schedule{display:flex;align-items:center;gap:10px;margin:12px 14px 14px;padding:11px 12px;border-radius:10px;border:1px solid var(--mud-palette-divider);background:#21ace50b}.baby-schedule-icon{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:9px;background:#21ace51c;color:#21ace5}.baby-schedule>div{min-width:0}.baby-schedule small{display:block;font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--mud-palette-text-secondary);margin-bottom:4px}.baby-schedule strong{display:block;font-size:13px;color:var(--mud-palette-text-primary);line-height:1.45;overflow-wrap:anywhere}.baby-card-footer{margin-top:auto}
 
+
+.baby-schedule-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:12px 14px 14px}.baby-schedule-grid.has-first-class{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.baby-schedule-grid .baby-schedule{margin:0;min-width:0}.baby-first-class{border-color:#21ace566;background:#21ace512}.baby-first-class .baby-schedule-icon{color:#e8ba58}
+
+.baby-first-followup{border-color:#e8ba5866;background:#e8ba5812}.baby-first-followup small{color:#d2a94e}

@@ -62,6 +62,7 @@ public static class CalculadoraCupoSesion
             return new Dictionary<Guid, OcupacionSesion>();
         }
 
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
         var turnoIds =
             sesiones
                 .Select(x => x.TurnoId)
@@ -85,6 +86,7 @@ public static class CalculadoraCupoSesion
                     x.TurnoId,
                     x.InscripcionId,
                     x.Inscripcion.BebeId,
+                    EstadoBebe = x.Inscripcion.Bebe.Estado,
                     x.Inscripcion.Estado,
                     x.Inscripcion.FechaInicio,
                     x.Inscripcion.FechaFin
@@ -103,7 +105,7 @@ public static class CalculadoraCupoSesion
                 .Where(x =>
                     sesionIds.Contains(x.SesionClaseId)
                     && x.Estado == EstadoReservaSesion.Activa)
-                .Select(x => new { x.SesionClaseId, x.BebeId })
+                .Select(x => new { x.SesionClaseId, x.BebeId, EstadoBebe = x.Bebe.Estado })
                 .ToListAsync(ct);
 
         var recuperos =
@@ -114,7 +116,7 @@ public static class CalculadoraCupoSesion
                     && sesionIds.Contains(x.SesionUsoId.Value)
                     && (x.Estado == EstadoRecuperacion.Reservada
                         || x.Estado == EstadoRecuperacion.Utilizada))
-                .Select(x => new { SesionId = x.SesionUsoId!.Value, x.BebeId })
+                .Select(x => new { SesionId = x.SesionUsoId!.Value, x.BebeId, EstadoBebe = x.Bebe.Estado })
                 .ToListAsync(ct);
 
         // Reservas pagadas del ciclo futuro ocupan cupos FIJOS:
@@ -123,7 +125,7 @@ public static class CalculadoraCupoSesion
             .Include(x => x.CicloLectivo)
             .Where(x => turnoIds.Contains(x.TurnoId)
                 && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
-            .Select(x => new { x.TurnoId, x.BebeId,
+            .Select(x => new { x.TurnoId, x.BebeId, EstadoBebe = x.Bebe.Estado,
                 x.CicloLectivo.FechaInicio, x.CicloLectivo.FechaFin })
             .ToListAsync(ct);
 
@@ -146,6 +148,7 @@ public static class CalculadoraCupoSesion
                 inscripciones
                     .Where(x =>
                         x.TurnoId == sesion.TurnoId
+                        && (sesion.Fecha < hoy || x.EstadoBebe == EstadoBebe.Activo)
                         && InscripcionValidaEnFecha(
                             x.Estado,
                             x.FechaInicio,
@@ -160,12 +163,14 @@ public static class CalculadoraCupoSesion
                 reservasIniciales
                     .Where(x =>
                         x.SesionClaseId == sesion.Id
+                        && (sesion.Fecha < hoy || x.EstadoBebe == EstadoBebe.Activo)
                         && !regulares.Contains(x.BebeId))
                     .Select(x => x.BebeId)
                     .ToHashSet();
 
             var reservadosCiclo = reservasCiclo
                 .Where(x => x.TurnoId == sesion.TurnoId
+                    && (sesion.Fecha < hoy || x.EstadoBebe == EstadoBebe.Activo)
                     && x.FechaInicio <= sesion.Fecha && x.FechaFin >= sesion.Fecha
                     && !regulares.Contains(x.BebeId) && !claseInicial.Contains(x.BebeId))
                 .Select(x => x.BebeId).Distinct().ToHashSet();
@@ -174,6 +179,7 @@ public static class CalculadoraCupoSesion
                 recuperos
                     .Where(x =>
                         x.SesionId == sesion.Id
+                        && (sesion.Fecha < hoy || x.EstadoBebe == EstadoBebe.Activo)
                         && !regulares.Contains(x.BebeId)
                         && !claseInicial.Contains(x.BebeId))
                     .Select(x => x.BebeId)

@@ -157,4 +157,8 @@ public sealed record BebeLegajoDto(
     IReadOnlyList<RecuperacionLegajoDto> Recuperaciones,
 
     decimal PagadoMesActual,
-    IReadOnlyList<PagoLegajoDto> Pagos);
+    IReadOnlyList<PagoLegajoDto> Pagos)
+{
+    public ProximaClaseLegajoDto? PrimeraClaseReservada { get; init; }
+    public DateOnly? PrimeraClaseRealizada { get; init; }
+}

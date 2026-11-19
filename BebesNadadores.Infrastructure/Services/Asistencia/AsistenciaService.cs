@@ -265,6 +265,16 @@ foreach (var reserva in
         // ARMAR RESULTADO
         // =====================================================
 
+        if (sesion.Fecha >= FechaArgentina.Hoy)
+        {
+            var idsEsperados = esperados.Keys.ToArray();
+            var activos = (await db.Bebes.AsNoTracking()
+                .Where(b => idsEsperados.Contains(b.Id) && b.Estado == EstadoBebe.Activo)
+                .Select(b => b.Id).ToListAsync(ct)).ToHashSet();
+            foreach (var id in idsEsperados.Where(id => !activos.Contains(id)))
+                esperados.Remove(id);
+        }
+
         var alumnos =
             new List<AsistenciaAlumnoDto>();
 
@@ -906,6 +916,10 @@ var configuracion =
             Guid bebeId,
             CancellationToken ct)
     {
+        if (sesion.Fecha >= FechaArgentina.Hoy && !await db.Bebes.AsNoTracking()
+            .AnyAsync(b => b.Id == bebeId && b.Estado == EstadoBebe.Activo, ct))
+            return null;
+
         // -----------------------------------------------------
         // Primero buscamos inscripción regular.
         // -----------------------------------------------------

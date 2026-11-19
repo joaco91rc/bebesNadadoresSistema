@@ -77,17 +77,34 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
 
         var inscripcion = inscripciones.FirstOrDefault(x =>
             x.Estado == EstadoInscripcion.Activa
-            && x.FechaInicio <= hoy
             && (!x.FechaFin.HasValue || x.FechaFin.Value >= hoy)
+            && x.Turnos.Any(t => t.Turno.Estado == EstadoTurno.Activo && (t.Turno.VigenteHasta == null || t.Turno.VigenteHasta >= hoy))
         );
 
         var inscripcionDto = inscripcion is null ? null : MapearInscripcion(inscripcion, hoy);
+        // Una inscripción preliminar sin turnos no es un horario fijo.
+        if (inscripcionDto?.Turnos.Count == 0) inscripcionDto = null;
 
         // =====================================================
         // PRÓXIMA CLASE
         // =====================================================
 
         var proximaClase = await ObtenerProximaClaseRealAsync(db, bebeId, inscripciones, hoy, ct);
+        var primera = await db.ReservasSesionesClase.AsNoTracking()
+            .Where(x => x.BebeId == bebeId && x.Bebe.Estado == EstadoBebe.Activo
+                && x.Tipo == TipoReservaSesion.InscripcionInicial && x.Estado == EstadoReservaSesion.Activa
+                && x.SesionClase.Estado == EstadoSesionClase.Programada
+                && !db.Asistencias.Any(a => a.BebeId == bebeId && a.SesionClaseId == x.SesionClaseId && a.Estado != EstadoAsistencia.Pendiente))
+            .OrderBy(x => x.SesionClase.Fecha).ThenBy(x => x.SesionClase.HoraInicio)
+            .Select(x => new { x.SesionClase.TurnoId, x.SesionClase.Fecha, x.SesionClase.HoraInicio, x.SesionClase.HoraFin, Nivel = x.SesionClase.Nivel.Nombre, x.SesionClase.Sector })
+            .FirstOrDefaultAsync(ct);
+        var primeraRealizada = await db.ReservasSesionesClase.AsNoTracking()
+            .Where(x => x.BebeId == bebeId && x.Tipo == TipoReservaSesion.InscripcionInicial
+                && db.Asistencias.Any(a => a.BebeId == bebeId && a.SesionClaseId == x.SesionClaseId && a.Estado == EstadoAsistencia.Presente))
+            .OrderBy(x => x.SesionClase.Fecha)
+            .Select(x => (DateOnly?)x.SesionClase.Fecha).FirstOrDefaultAsync(ct);
+        var primeraDto = primera is null ? null : new ProximaClaseLegajoDto(primera.TurnoId, primera.Fecha,
+            ConvertirDiaSemana(primera.Fecha.DayOfWeek), primera.HoraInicio, primera.HoraFin, primera.Nivel, primera.Sector, Array.Empty<string>());
 
         // =====================================================
         // APTOS MÉDICOS
@@ -273,7 +290,7 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
             recuperacionesDto,
             pagadoMesActual,
             pagosDto
-        );
+        ) { PrimeraClaseReservada = primeraDto, PrimeraClaseRealizada = primeraRealizada };
     }
 
     // =========================================================
