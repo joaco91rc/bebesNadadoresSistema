@@ -2012,6 +2012,9 @@
                                         <div class="weekly-turn-name">
                                             @turno.Nombre
                                         </div>
+                                        <small style="display:block; margin:4px 0; opacity:.8">
+                                            Vigencia: @turno.VigenteDesde.ToString("dd/MM/yyyy") – @((turno.VigenteHasta ?? _cicloLectivoSeleccionado?.FechaFin)?.ToString("dd/MM/yyyy") ?? "Sin fin")
+                                        </small>
 
 
                                         <div class="weekly-turn-level">
@@ -2852,6 +2855,9 @@ private async Task CargarGrillaSemanalAsync()
             (await TurneraService
                 .ListarTurnosCicloAsync(
                     _cicloLectivoId.Value))
+            .Where(x => x.Estado == EstadoTurno.Activo &&
+                (!x.VigenteHasta.HasValue || x.VigenteHasta.Value >= FechaReferenciaGrilla()) &&
+                (_cicloLectivoSeleccionado is null || x.VigenteDesde <= _cicloLectivoSeleccionado.FechaFin))
             .OrderBy(x =>
                 x.DiaSemana)
             .ThenBy(x =>
@@ -2869,6 +2875,16 @@ private async Task CargarGrillaSemanalAsync()
         _cargandoGrilla =
             false;
     }
+}
+
+// La grilla operativa no debe mostrar versiones ya vencidas.
+private DateOnly FechaReferenciaGrilla()
+{
+    var hoy = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(-3));
+    if (_cicloLectivoSeleccionado is not { } ciclo) return hoy;
+    if (hoy < ciclo.FechaInicio) return ciclo.FechaInicio;
+    if (hoy > ciclo.FechaFin) return ciclo.FechaFin;
+    return hoy;
 }
 
 private List<TurnoDto> ObtenerTurnosConfiguradosDia(
@@ -3643,7 +3659,16 @@ private void PrepararNuevoTurno(
             if (turno is null)
                 return;
 
+            var fechaAplicacion = ObtenerFechaAplicacionEdicion(turno);
+            var finVigencia = turno.VigenteHasta ?? _cicloLectivoSeleccionado?.FechaFin;
+            if (finVigencia.HasValue && fechaAplicacion > finVigencia.Value)
+            {
+                _error = $"Este horario finalizó el {finVigencia:dd/MM/yyyy}. Elegí la versión vigente en la grilla semanal.";
+                _volverAGrillaDespuesDeGuardar = false;
+                return;
+            }
 
+            _errorFormulario = null;
             _editandoId =
                 turno.Id;
 
@@ -3671,12 +3696,9 @@ private void PrepararNuevoTurno(
                         turno.Cupo,
 
 
-                    VigenteDesde =
-                        ObtenerFechaAplicacionEdicion(
-                            turno),
+                    VigenteDesde = fechaAplicacion,
 
-                    VigenteHasta =
-                        turno.VigenteHasta,
+                    VigenteHasta = finVigencia,
 
                     Estado =
                         turno.Estado,
@@ -4579,9 +4601,7 @@ private static string ObtenerClaseEstadoCiclo(
     private DateOnly ObtenerFechaAplicacionEdicion(
         TurnoDto turno)
     {
-        var hoy =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(-3));
 
         if (_cicloLectivoSeleccionado?.Estado ==
             EstadoCicloLectivo.Borrador)

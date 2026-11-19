@@ -373,6 +373,97 @@ foreach (var reserva in
     // MARCAR UN ALUMNO
     // =========================================================
 
+
+    private async Task<Guid> ValidarPrimeraClaseAsync(AppDbContext db, SesionClase origen, Guid bebeId, CancellationToken ct)
+    {
+        var detalle = await ObtenerSesionAsync(origen.Id, ct);
+        var alumno = detalle?.Alumnos.FirstOrDefault(x => x.BebeId == bebeId && x.EsPrimeraClase && !x.EsRecupero);
+        if (alumno is null)
+            throw new InvalidOperationException("El alumno ya no tiene una primera clase en este horario.");
+        if (alumno.Estado == EstadoAsistencia.Presente)
+            throw new InvalidOperationException("La primera clase ya figura como presente. Corregí primero ese estado.");
+        if (await db.Asistencias.AnyAsync(x => x.InscripcionId == alumno.InscripcionId && x.Estado == EstadoAsistencia.Presente, ct))
+            throw new InvalidOperationException("El alumno ya registra una clase realizada en esta inscripción.");
+        return alumno.InscripcionId;
+    }
+
+    public async Task<IReadOnlyList<OpcionPrimeraClaseDto>> ListarReprogramacionAsync(Guid sesionId, Guid bebeId, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var origen = await ObtenerSesionEditableAsync(db, sesionId, ct);
+        var inscripcionId = await ValidarPrimeraClaseAsync(db, origen, bebeId, ct);
+        var inscripcion = await db.Inscripciones.AsNoTracking().SingleAsync(x => x.Id == inscripcionId, ct);
+        var desde = FechaArgentina.Hoy > origen.Fecha ? FechaArgentina.Hoy : origen.Fecha;
+        var hasta = desde.AddDays(60);
+        if (inscripcion.FechaFin is DateOnly fin && fin < hasta) hasta = fin;
+        var sesiones = await db.SesionesClase.AsNoTracking().Include(x => x.Nivel)
+            .Where(x => x.Id != sesionId && x.NivelId == origen.NivelId && x.Fecha >= desde && x.Fecha <= hasta
+                && x.Estado == EstadoSesionClase.Programada && x.Turno.Estado == EstadoTurno.Activo
+                && (x.Fecha > origen.Fecha || x.HoraInicio > origen.HoraInicio))
+            .OrderBy(x => x.Fecha).ThenBy(x => x.HoraInicio).ToListAsync(ct);
+        var ocupaciones = await CalculadoraCupoSesion.CalcularAsync(db, sesiones, ct);
+        var ocupadas = await db.Asistencias.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado != EstadoAsistencia.Pendiente)
+            .Select(x => x.SesionClaseId).ToListAsync(ct);
+        var reservas = await db.ReservasSesionesClase.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado == EstadoReservaSesion.Activa)
+            .Select(x => x.SesionClaseId).ToListAsync(ct);
+        return sesiones.Where(x => ocupaciones[x.Id].Libres > 0 && !ocupadas.Contains(x.Id) && !reservas.Contains(x.Id))
+            .Select(x => new OpcionPrimeraClaseDto(x.Id, x.Fecha, x.HoraInicio, x.Nivel.Nombre, ocupaciones[x.Id].Libres)).ToList();
+    }
+
+    public async Task ReprogramarPrimeraClaseAsync(Guid sesionId, Guid bebeId, Guid destinoId, string? observaciones, Guid? usuarioId, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var origen = await ObtenerSesionEditableAsync(db, sesionId, ct);
+        var inscripcionId = await ValidarPrimeraClaseAsync(db, origen, bebeId, ct);
+        var destino = await ObtenerSesionEditableAsync(db, destinoId, ct);
+        var inscripcion = await db.Inscripciones.SingleAsync(x => x.Id == inscripcionId, ct);
+        if (destino.Id == origen.Id || destino.NivelId != origen.NivelId || destino.Estado != EstadoSesionClase.Programada
+            || destino.Turno.Estado != EstadoTurno.Activo || destino.Fecha < FechaArgentina.Hoy
+            || destino.Fecha < origen.Fecha || (destino.Fecha == origen.Fecha && destino.HoraInicio <= origen.HoraInicio)
+            || !InscripcionValidaEnFecha(inscripcion, destino.Fecha))
+            throw new InvalidOperationException("La nueva clase no está disponible para esta inscripción.");
+        if ((await CalculadoraCupoSesion.CalcularAsync(db, destino, ct)).Libres <= 0)
+            throw new InvalidOperationException("La clase elegida ya no tiene cupos disponibles.");
+        if (await db.Asistencias.AnyAsync(x => x.SesionClaseId == destinoId && x.BebeId == bebeId && x.Estado != EstadoAsistencia.Pendiente, ct))
+            throw new InvalidOperationException("El alumno ya registra asistencia en la clase elegida.");
+        var reservas = await db.ReservasSesionesClase.Where(x => x.BebeId == bebeId && (x.SesionClaseId == destinoId || (x.InscripcionId == inscripcionId && x.Estado == EstadoReservaSesion.Activa))).ToListAsync(ct);
+        if (reservas.Any(x => x.Estado == EstadoReservaSesion.Activa && x.SesionClaseId != sesionId))
+            throw new InvalidOperationException("Ya existe otra primera clase activa. Actualizá la pantalla.");
+        var nueva = reservas.FirstOrDefault(x => x.SesionClaseId == destinoId);
+        if (nueva is not null && nueva.InscripcionId != inscripcionId)
+            throw new InvalidOperationException("Existe otra reserva para este alumno en la clase elegida.");
+        await AnularRecuperoPorCambioAsistenciaAsync(db, origen, bebeId, ct);
+        var asistencia = await db.Asistencias.FirstOrDefaultAsync(x => x.SesionClaseId == sesionId && x.BebeId == bebeId, ct);
+        if (asistencia is null)
+        {
+            asistencia = new Domain.Entities.Asistencia { Id = Guid.NewGuid(), SesionClaseId = sesionId, BebeId = bebeId };
+            db.Asistencias.Add(asistencia);
+        }
+        asistencia.InscripcionId = inscripcionId;
+        asistencia.EsRecupero = false;
+        asistencia.Estado = EstadoAsistencia.AusenteConAviso;
+        asistencia.Observaciones = Normalizar($"{observaciones} | Primera clase reprogramada al {destino.Fecha:dd/MM/yyyy} {destino.HoraInicio:HH:mm}");
+        asistencia.RegistradaUtc = DateTimeOffset.UtcNow;
+        asistencia.RegistradaPorUsuarioId = usuarioId;
+        foreach (var reserva in reservas.Where(x => x.SesionClaseId == sesionId && x.InscripcionId == inscripcionId))
+        {
+            reserva.Estado = EstadoReservaSesion.Cancelada;
+            reserva.ModificadoUtc = DateTimeOffset.UtcNow;
+            reserva.ModificadoPorUsuarioId = usuarioId;
+        }
+        if (nueva is null)
+        {
+            nueva = new ReservaSesionClase { Id = Guid.NewGuid(), SesionClaseId = destinoId, BebeId = bebeId, InscripcionId = inscripcionId, Tipo = TipoReservaSesion.InscripcionInicial, CreadoPorUsuarioId = usuarioId };
+            db.ReservasSesionesClase.Add(nueva);
+        }
+        nueva.Estado = EstadoReservaSesion.Activa;
+        nueva.ModificadoUtc = DateTimeOffset.UtcNow;
+        nueva.ModificadoPorUsuarioId = usuarioId;
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+    }
+
     public async Task MarcarAsync(
         RegistrarAsistenciaDto dto,
         CancellationToken ct = default)
@@ -499,6 +590,11 @@ foreach (var reserva in
     "El bebé no pertenece a esta clase, no posee una reserva inicial ni tiene un recupero reservado.");
         }
 
+
+        if (estado == EstadoAsistencia.AusenteConAviso && !esperado.EsRecupero &&
+            await db.ReservasSesionesClase.AnyAsync(x => x.SesionClaseId == sesion.Id && x.BebeId == bebeId
+                && x.Tipo == TipoReservaSesion.InscripcionInicial && x.Estado == EstadoReservaSesion.Activa, ct))
+            throw new InvalidOperationException("Para una primera clase con aviso, elegí la nueva fecha desde Asistencia.");
 
         var asistencia =
             await db.Asistencias

@@ -79,3 +79,5 @@ public sealed class RegistrarAsistenciaMasivaDto
     public List<RegistrarAsistenciaAlumnoDto> Alumnos { get; set; }
         = [];
 }
+
+public sealed record OpcionPrimeraClaseDto(Guid SesionId, DateOnly Fecha, TimeOnly Hora, string Nivel, int Libres);

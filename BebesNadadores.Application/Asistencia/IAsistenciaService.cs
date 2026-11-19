@@ -9,6 +9,10 @@ public interface IAsistenciaService
         CancellationToken ct = default);
 
 
+    Task<IReadOnlyList<OpcionPrimeraClaseDto>> ListarReprogramacionAsync(Guid sesionId, Guid bebeId, CancellationToken ct = default);
+
+    Task ReprogramarPrimeraClaseAsync(Guid sesionId, Guid bebeId, Guid destinoId, string? observaciones, Guid? usuarioId, CancellationToken ct = default);
+
     Task MarcarAsync(
         RegistrarAsistenciaDto dto,
         CancellationToken ct = default);

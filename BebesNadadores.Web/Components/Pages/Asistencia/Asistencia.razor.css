@@ -1591,3 +1591,5 @@
     font-size: 15px;
     color: #ffe29b;
 }
+
+.reprogram-overlay{position:fixed;inset:0;z-index:1500;background:rgba(0,12,24,.7);display:grid;place-items:center;padding:20px}.reprogram-dialog{width:min(100%,620px);max-height:90vh;overflow:auto;background:var(--mud-palette-surface);color:var(--mud-palette-text-primary);border:1px solid var(--mud-palette-divider);border-radius:20px;padding:24px;box-shadow:0 24px 70px #0005;display:grid;gap:16px}.reprogram-dialog h2{margin:6px 0;font-size:1.5rem}.reprogram-dialog p{margin:0}.reprogram-dialog select{width:100%;min-height:46px;padding:10px;border-radius:10px;background:var(--mud-palette-surface);color:var(--mud-palette-text-primary);border:1px solid var(--mud-palette-divider)}.reprogram-dialog footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.reprogram-confirm{background:#1687b3;color:white;border:0;border-radius:10px;padding:12px 18px;font-weight:600}.reprogram-confirm:disabled{opacity:.45;cursor:not-allowed}.reprogram-error{color:var(--mud-palette-error)}

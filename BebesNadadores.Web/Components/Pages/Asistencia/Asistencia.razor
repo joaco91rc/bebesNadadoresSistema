@@ -800,8 +800,76 @@
 </div>
 
 
+
+@if (_alumnoReprogramar is not null)
+{
+    <div class="reprogram-overlay">
+        <section class="reprogram-dialog" role="dialog" aria-modal="true" aria-label="Reprogramar primera clase">
+            <header><span class="attendance-eyebrow">PRIMERA CLASE</span><h2>Reprogramar primera clase</h2><strong>@_alumnoReprogramar.NombreCompleto</strong></header>
+            <p>Elegí una nueva clase del mismo nivel. Se registrará la ausencia con aviso y se liberará el lugar original, sin generar recupero.</p>
+            @if (!string.IsNullOrWhiteSpace(_errorReprogramar)) { <p role="alert" class="reprogram-error">@_errorReprogramar</p> }
+            @if (_cargandoReprogramar) { <p>Consultando lugares disponibles...</p> }
+            else if (_opcionesReprogramar.Count == 0) { <p>No hay lugares disponibles en los próximos 60 días.</p> }
+            else
+            {
+                <label for="nueva-primera">Nueva fecha y horario</label>
+                <select id="nueva-primera" @bind="_destinoReprogramar" disabled="@_guardandoReprogramar">
+                    <option value="">Seleccioná una clase</option>
+                    @foreach (var opcion in _opcionesReprogramar)
+                    {
+                        <option value="@opcion.SesionId.ToString()">@opcion.Fecha.ToString("dd/MM/yyyy") · @opcion.Hora.ToString("HH:mm") · @opcion.Nivel · @opcion.Libres libres</option>
+                    }
+                </select>
+            }
+            <footer>
+                <button type="button" class="secondary-action" disabled="@_guardandoReprogramar" @onclick="CerrarReprogramar">Cancelar</button>
+                <button type="button" class="reprogram-confirm" disabled="@(_guardandoReprogramar || _cargandoReprogramar || !Guid.TryParse(_destinoReprogramar, out _))" @onclick="ConfirmarReprogramarAsync">Confirmar nueva clase</button>
+            </footer>
+        </section>
+    </div>
+}
+
 @code
 {
+
+    private AsistenciaAlumnoDto? _alumnoReprogramar;
+    private Guid _origenReprogramar;
+    private string _destinoReprogramar = "";
+    private string? _errorReprogramar;
+    private bool _cargandoReprogramar, _guardandoReprogramar;
+    private IReadOnlyList<OpcionPrimeraClaseDto> _opcionesReprogramar = Array.Empty<OpcionPrimeraClaseDto>();
+
+    private async Task AbrirReprogramarAsync(AsistenciaAlumnoDto alumno)
+    {
+        if (_sesion is null) return;
+        _origenReprogramar = _sesion.SesionClaseId;
+        _alumnoReprogramar = alumno;
+        _destinoReprogramar = "";
+        _errorReprogramar = null;
+        _opcionesReprogramar = Array.Empty<OpcionPrimeraClaseDto>();
+        _cargandoReprogramar = true;
+        try { _opcionesReprogramar = await AsistenciaService.ListarReprogramacionAsync(_origenReprogramar, alumno.BebeId); }
+        catch (Exception ex) { _errorReprogramar = Errores.Mensaje(ex); }
+        finally { _cargandoReprogramar = false; }
+    }
+    private void CerrarReprogramar() { if (!_guardandoReprogramar) _alumnoReprogramar = null; }
+    private async Task ConfirmarReprogramarAsync()
+    {
+        var alumno = _alumnoReprogramar;
+        if (alumno is null || _guardandoReprogramar || !Guid.TryParse(_destinoReprogramar, out var destino)) return;
+        _guardandoReprogramar = true;
+        _errorReprogramar = null;
+        try
+        {
+            await AsistenciaService.ReprogramarPrimeraClaseAsync(_origenReprogramar, alumno.BebeId, destino, ObtenerObservacion(alumno.BebeId), _usuarioId);
+            _alumnoReprogramar = null;
+            await RecargarSesionAsync();
+            _mensaje = $"{alumno.NombreCompleto}: primera clase reprogramada correctamente.";
+        }
+        catch (Exception ex) { if (_alumnoReprogramar is null) _error = Errores.Mensaje(ex); else _errorReprogramar = Errores.Mensaje(ex); }
+        finally { _guardandoReprogramar = false; }
+    }
+
     private IReadOnlyDictionary<Guid, IndicadorFinancieroDto> _indicadoresFinancieros =
         new Dictionary<Guid, IndicadorFinancieroDto>();
 
@@ -1196,6 +1264,12 @@
     {
         if (_sesion is null)
             return;
+
+        if (estado == EstadoAsistencia.AusenteConAviso && alumno.EsPrimeraClase && !alumno.EsRecupero)
+        {
+            await AbrirReprogramarAsync(alumno);
+            return;
+        }
 
 try
         {
