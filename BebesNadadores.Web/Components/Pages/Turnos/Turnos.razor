@@ -1,3 +1,4 @@
+@using BebesNadadores.Web.Components.Shared.Utils
 @using BebesNadadores.Web.Services.Finanzas
 @using BebesNadadores.Web.Components.Shared
 
@@ -645,10 +646,7 @@
                             : "Vigente desde")
                     </label>
 
-                    <input type="date"
-                           value="@(_form.VigenteDesde.ToString("yyyy-MM-dd"))"
-                           disabled="@(!PuedeCambiarFechaAplicacion)"
-                           @onchange="CambiarVigenteDesde" />
+                    <BnDatePicker Value="@_form.VigenteDesde" ValueChanged='@(d => CambiarVigenteDesde(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' Disabled="@(!PuedeCambiarFechaAplicacion)" />
 
                     @if (PuedeCambiarFechaAplicacion)
                     {
@@ -661,10 +659,7 @@
                 <div class="form-field">
                     <label>Vigente hasta</label>
 
-                    <input type="date"
-                           value="@ObtenerFechaNullable(_form.VigenteHasta)"
-                           disabled="@(!_editandoId.HasValue)"
-                           @onchange="CambiarVigenteHasta" />
+                    <BnNullableDatePicker Value="@_form.VigenteHasta" ValueChanged='@(d => CambiarVigenteHasta(new ChangeEventArgs { Value = d?.ToString("yyyy-MM-dd") }))' Disabled="@(!_editandoId.HasValue)" />
                 </div>
 
             </div>
@@ -1570,9 +1565,7 @@
                                 Fecha
                             </label>
 
-                            <input type="date"
-                                   value="@_diaForm.Fecha.ToString("yyyy-MM-dd")"
-                                   @onchange="CambiarFechaDiaNoLaborable" />
+                            <BnDatePicker Value="@_diaForm.Fecha" ValueChanged='@(d => CambiarFechaDiaNoLaborable(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' />
 
                         </div>
 
@@ -2208,9 +2201,7 @@
                 </label>
 
 
-                <input type="date"
-                       value="@_fechaQuitarTurno.ToString("yyyy-MM-dd")"
-                       @onchange="CambiarFechaQuitarTurno" />
+                <BnDatePicker Value="@_fechaQuitarTurno" ValueChanged='@(d => CambiarFechaQuitarTurno(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' />
 
 
                 <small>

@@ -1,3 +1,4 @@
+@using BebesNadadores.Web.Components.Shared.Utils
 @page "/ciclos-lectivos"
 
 @attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
@@ -491,9 +492,7 @@
                         Fecha de inicio
                     </label>
 
-                    <input type="date"
-                           value="@(_form.FechaInicio.ToString("yyyy-MM-dd"))"
-                           @onchange="CambiarFechaInicio" />
+                    <BnDatePicker Value="@_form.FechaInicio" ValueChanged='@(d => CambiarFechaInicio(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' />
 
                 </div>
 
@@ -504,9 +503,7 @@
                         Fecha de fin
                     </label>
 
-                    <input type="date"
-                           value="@(_form.FechaFin.ToString("yyyy-MM-dd"))"
-                           @onchange="CambiarFechaFin" />
+                    <BnDatePicker Value="@_form.FechaFin" ValueChanged='@(d => CambiarFechaFin(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' />
 
                 </div>
 

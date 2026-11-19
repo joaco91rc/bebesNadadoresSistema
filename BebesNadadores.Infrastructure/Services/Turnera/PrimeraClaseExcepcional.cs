@@ -33,6 +33,21 @@ public static class PrimeraClaseExcepcional
             .ToDictionary(x => x.Key, x => x.Min(y => y.Fecha));
     }
 
+    public static async Task<HashSet<Guid>> ObtenerInscripcionesConReservaAnteriorAsync(
+        AppDbContext db, IEnumerable<Guid> inscripcionesIds, DateOnly fechaSesion,
+        CancellationToken ct = default)
+    {
+        var ids = inscripcionesIds.Distinct().ToList();
+        if (ids.Count == 0) return new HashSet<Guid>();
+        var anteriores = await db.ReservasSesionesClase.AsNoTracking()
+            .Where(x => ids.Contains(x.InscripcionId)
+                && x.Tipo == TipoReservaSesion.InscripcionInicial
+                && x.Estado == EstadoReservaSesion.Activa
+                && x.SesionClase.Fecha < fechaSesion)
+            .Select(x => x.InscripcionId).Distinct().ToListAsync(ct);
+        return anteriores.ToHashSet();
+    }
+
     public static bool TodaviaNoComenzo(
         IReadOnlyDictionary<Guid, DateOnly> fechas,
         Guid inscripcionId,

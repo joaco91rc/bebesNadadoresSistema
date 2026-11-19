@@ -219,7 +219,7 @@
 
                         </label>
 
-                       <BnDatePicker Value="_form.FechaNacimiento" ValueChanged="FechaNacimientoCambiadaAsync" />
+                       <BnNullableDatePicker Value="@(_fechaNacimientoInformada ? (DateOnly?)_form.FechaNacimiento : null)" ValueChanged="FechaNacimientoCambiadaAsync" MaxDate="@(DateOnly.FromDateTime(DateTime.Today))" />
 
                     </div>
 
@@ -984,13 +984,14 @@
 
                         <label>
 
-                            Fecha de inicio *
+                            Fecha de inicio de inscripción y cuota *
 
                         </label>
 
                        <BnDatePicker Value="_form.FechaInicioInscripcion"
 
               ValueChanged="FechaInicioCambiadaAsync" />
+                       <small>Esta fecha define el mes de la primera cuota. La primera clase puede reservarse antes sin cambiar el período facturado.</small>
 
                        @* Del 15 en adelante: media cuota + recupero o arrancar el 1° del mes siguiente *@
                        <BnInicioMitadMes FechaElegida="FechaElegidaInicio"
@@ -1906,13 +1907,11 @@ else if (_form.MedioPagoInicial.IngresaACaja())
             <div class="discount-toggle-text">
 
                 <strong>
-                    Primera clase en un horario diferente al fijo
+                    Primera clase anticipada o en un horario diferente al fijo
                 </strong>
 
                 <span>
-                    El cupo semanal queda guardado desde hoy, pero su primera clase
-                    será en otro día u horario. A partir de la siguiente clase
-                    asistirá a su turno fijo.
+                    Podés reservar una clase antes del inicio de la inscripción, incluso en el mismo turno fijo, o elegir otro horario. El inicio de la cuota no cambia.
                 </span>
 
             </div>
@@ -1936,9 +1935,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
                         </h3>
 
                         <p>
-                            Elegí una clase de su mismo nivel pero de otro turno.
-                            En Turnera y Asistencia no figurará en su horario fijo
-                            hasta después de esta primera clase.
+                            Elegí una clase del mismo nivel. Si la fecha es anterior al inicio de inscripción, puede coincidir con el turno fijo. Se reserva una sola clase anticipada, sin generar una cuota del mes anterior.
                         </p>
 
                     </div>
@@ -2134,8 +2131,7 @@ else
                 </h3>
 
                 <p>
-                    Esta selección reserva solamente una clase concreta.
-                    No modifica por sí sola el horario habitual.
+                    Esta selección reserva solamente una clase concreta. Puede ser anterior al inicio de inscripción y no cambia el mes de la cuota ni define un horario habitual.
                 </p>
 
             </div>

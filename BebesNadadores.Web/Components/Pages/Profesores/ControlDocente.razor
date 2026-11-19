@@ -1,3 +1,4 @@
+@using BebesNadadores.Web.Components.Shared.Utils
 @page "/profesores/control-docente"
 
 @attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
@@ -56,9 +57,7 @@
 
         <div class="header-actions">
 
-            <input type="date"
-                   value="@(_fecha.ToString("yyyy-MM-dd"))"
-                   @onchange="CambiarFecha" />
+            <BnDatePicker Value="@_fecha" ValueChanged='@(d => CambiarFecha(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' />
 
 
             <button type="button"

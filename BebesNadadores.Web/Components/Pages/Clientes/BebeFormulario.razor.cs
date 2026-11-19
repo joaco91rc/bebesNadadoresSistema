@@ -9,6 +9,7 @@ using BebesNadadores.Application.Niveles.Dtos;
 using BebesNadadores.Application.Turnera;
 using BebesNadadores.Application.Turnera.Dtos;
 using BebesNadadores.Domain.Enums;
+using BebesNadadores.Domain.Common;
 using Microsoft.AspNetCore.Components;
 
 namespace BebesNadadores.Web.Components.Pages.Clientes;
@@ -106,10 +107,10 @@ public partial class BebeFormulario : ComponentBase
     private bool _cargandoSesionesIniciales;
 
     private bool _usarPrimeraClaseEspecial;
-    // Si el turno fijo ya está elegido, la primera clase debe ser en OTRO turno.
+    // Antes del inicio de la inscripción también puede coincidir con el turno fijo.
     private IEnumerable<SesionClaseDto> SesionesPrimeraClaseVisibles =>
         _usarPrimeraClaseEspecial && _form.DefinirHorarioHabitualAhora
-            ? _sesionesIniciales.Where(s => !_form.TurnosIds.Contains(s.TurnoId))
+            ? _sesionesIniciales.Where(s => s.Fecha < _form.FechaInicioInscripcion || !_form.TurnosIds.Contains(s.TurnoId))
             : _sesionesIniciales;
 
     protected string NombreBebeParaHorario =>
@@ -177,6 +178,7 @@ public partial class BebeFormulario : ComponentBase
             if (_editando)
             {
                 await CargarBebeAsync(BebeId!.Value);
+                _fechaNacimientoInformada = true;
 
                 return;
             }
@@ -187,6 +189,8 @@ public partial class BebeFormulario : ComponentBase
                 .ToList();
 
             _form = CrearFormularioNuevo();
+            _fechaNacimientoInformada = false;
+            _fechaElegidaInicio = null;
 
             await CargarPlanesAsync(_form.FechaInicioInscripcion);
         }
@@ -233,18 +237,22 @@ public partial class BebeFormulario : ComponentBase
         {
             _cargandoSesionesIniciales = true;
 
-            var desde = _form.FechaInicioInscripcion;
+            var inicio = _form.FechaInicioInscripcion;
+            // Admitimos adelantar una clase al mes anterior, sin alterar el período de cobro.
+            var desde = PrimeraClaseAnticipada.FechaMinima(inicio, FechaArgentina.Hoy);
 
             /*
              * Mostramos aproximadamente las próximas
              * seis semanas para elegir la primera clase.
              */
-            var hasta = desde.AddDays(45);
+            var hasta = inicio.AddDays(45);
 
             _sesionesIniciales = (await TurneraService.ObtenerAgendaAsync(desde, hasta))
                 .Where(x =>
                     x.NivelId == _form.NivelActualId.Value
                     && x.Estado == EstadoSesionClase.Programada
+                    && x.Fecha >= desde
+                    && x.Fecha >= _form.FechaNacimiento
                 )
                 .OrderBy(x => x.Fecha)
                 .ThenBy(x => x.HoraInicio)
@@ -456,9 +464,11 @@ public partial class BebeFormulario : ComponentBase
     // NIVEL
     // =========================================================
 
-    private async Task FechaNacimientoCambiadaAsync(DateOnly fecha)
+    private async Task FechaNacimientoCambiadaAsync(DateOnly? valor)
     {
-        _fechaNacimientoInformada = true;
+        _fechaNacimientoInformada = valor.HasValue;
+        if (!valor.HasValue) return;
+        var fecha = valor.Value;
         _form.FechaNacimiento = fecha;
         var meses = (_form.FechaInicioInscripcion.Year - fecha.Year) * 12
             + _form.FechaInicioInscripcion.Month - fecha.Month
@@ -626,7 +636,7 @@ public partial class BebeFormulario : ComponentBase
 
         _form.TurnosIds.Add(turno.TurnoId);
         if (_usarPrimeraClaseEspecial && _form.SesionInicialId.HasValue &&
-            _sesionesIniciales.Any(s => s.Id == _form.SesionInicialId && s.TurnoId == turno.TurnoId))
+            _sesionesIniciales.Any(s => s.Id == _form.SesionInicialId && s.TurnoId == turno.TurnoId && s.Fecha >= _form.FechaInicioInscripcion))
         {
             _form.SesionInicialId = null;
             _error = "Elegí una primera clase distinta del turno habitual seleccionado.";
@@ -719,7 +729,7 @@ public partial class BebeFormulario : ComponentBase
         }
 
 
-        if (!_editando && !_fechaNacimientoInformada)
+        if (!_fechaNacimientoInformada)
         {
             _error = "Debe seleccionar la fecha de nacimiento del bebé.";
             return;
@@ -830,6 +840,7 @@ public partial class BebeFormulario : ComponentBase
                 }
                 if (_usarPrimeraClaseEspecial &&
                     _sesionesIniciales.Any(s => s.Id == _form.SesionInicialId &&
+                                                s.Fecha >= _form.FechaInicioInscripcion &&
                                                 _form.TurnosIds.Contains(s.TurnoId)))
                 {
                     _error = "La primera clase excepcional debe ser en un horario distinto del fijo.";

@@ -5,6 +5,7 @@ using BebesNadadores.Application.Bebes;
 using BebesNadadores.Application.Bebes.Dtos;
 using BebesNadadores.Domain.Entities;
 using BebesNadadores.Domain.Enums;
+using BebesNadadores.Domain.Common;
 using BebesNadadores.Infrastructure.Persistence;
 using BebesNadadores.Infrastructure.Services.Pagos;
 using BebesNadadores.Infrastructure.Services.Turnera;
@@ -487,17 +488,18 @@ public sealed class BebeService(
             // FECHA
             // -----------------------------------------------------
 
-            if (sesionInicial.Fecha < hoy)
+            if (sesionInicial.Fecha < FechaArgentina.Hoy)
             {
                 throw new InvalidOperationException(
                     "La primera clase no puede ser una clase pasada."
                 );
             }
 
-            if (sesionInicial.Fecha < dto.FechaInicioInscripcion)
+            if (sesionInicial.Fecha < PrimeraClaseAnticipada.FechaMinima(dto.FechaInicioInscripcion, FechaArgentina.Hoy)
+                || sesionInicial.Fecha < dto.FechaNacimiento)
             {
                 throw new InvalidOperationException(
-                    "La primera clase no puede ser anterior a la fecha de inicio de la inscripción."
+                    "La primera clase puede anticiparse al mes anterior a la inscripción, pero no a una fecha pasada ni anterior al nacimiento."
                 );
             }
 
@@ -536,7 +538,9 @@ public sealed class BebeService(
              * O bien tiene horario habitual pero quiere comenzar
              * excepcionalmente en otra clase.
              */
-            crearReservaInicial = !perteneceAHorarioHabitual;
+            // Aunque coincida con el turno fijo, antes del inicio no es alumno regular.
+            // Guardar una reserva puntual conserva el cupo sin anticipar la inscripción ni la cuota.
+            crearReservaInicial = sesionInicial.Fecha < dto.FechaInicioInscripcion || !perteneceAHorarioHabitual;
 
             // -----------------------------------------------------
             // SI ES RESERVA PUNTUAL, CONTROLAMOS CUPO DE LA SESIÓN

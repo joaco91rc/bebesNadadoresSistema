@@ -644,10 +644,10 @@
 
             <div class="history-date-filters" aria-label="Filtrar cajas por fecha">
                 <label>Desde
-                    <input type="date" @bind="_historicoDesde" max="@(_historicoHasta.ToString("yyyy-MM-dd"))" />
+                    <BnDatePicker @bind-Value="_historicoDesde" MaxDate="@_historicoHasta" />
                 </label>
                 <label>Hasta
-                    <input type="date" @bind="_historicoHasta" min="@(_historicoDesde.ToString("yyyy-MM-dd"))" />
+                    <BnDatePicker @bind-Value="_historicoHasta" MinDate="@_historicoDesde" />
                 </label>
                 <button type="button" class="secondary-action" @onclick="CargarHistoricoAsync">
                     <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />

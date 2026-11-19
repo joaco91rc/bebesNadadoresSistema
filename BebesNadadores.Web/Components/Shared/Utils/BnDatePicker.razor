@@ -6,7 +6,7 @@
                    DateChanged="FechaCambiadaAsync"
                    DateFormat="dd/MM/yyyy"
                    Culture="@Cultura"
-                   Editable="false"
+                   Editable="true"
                    ShowToolbar="false"
                    Color="Color.Primary"
                    Variant="Variant.Outlined"
@@ -47,7 +47,7 @@
 
     [Parameter]
     public string Placeholder { get; set; }
-        = "Seleccionar fecha";
+        = "dd/MM/yyyy";
 
 
     private static readonly CultureInfo Cultura =
@@ -77,6 +77,14 @@
             return;
         }
 
+
+        if (fecha.HasValue)
+        {
+            var elegida = DateOnly.FromDateTime(fecha.Value);
+            if ((MinDate.HasValue && elegida < MinDate.Value) ||
+                (MaxDate.HasValue && elegida > MaxDate.Value))
+                return;
+        }
 
         Value =
             DateOnly.FromDateTime(

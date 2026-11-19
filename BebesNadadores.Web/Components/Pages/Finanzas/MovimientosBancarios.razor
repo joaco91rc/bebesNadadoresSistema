@@ -1,3 +1,4 @@
+@using BebesNadadores.Web.Components.Shared.Utils
 @page "/bancos/{CuentaId:guid}/movimientos"
 
 @attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
@@ -265,8 +266,7 @@
                     Desde
                 </label>
 
-                <input type="date"
-                       @bind="_desde" />
+                <BnNullableDatePicker @bind-Value="_desde" />
 
             </div>
 
@@ -277,8 +277,7 @@
                     Hasta
                 </label>
 
-                <input type="date"
-                       @bind="_hasta" />
+                <BnNullableDatePicker @bind-Value="_hasta" />
 
             </div>
 

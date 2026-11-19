@@ -92,6 +92,9 @@ public sealed class AsistenciaService(
         var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
             db, relaciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
 
+        var primerasAnteriores = await PrimeraClaseExcepcional.ObtenerInscripcionesConReservaAnteriorAsync(
+            db, inscripcionesIds, sesion.Fecha, ct);
+
         var esperados =
             new Dictionary<
                 Guid,
@@ -120,7 +123,8 @@ public sealed class AsistenciaService(
                     inscripcion.Id,
                     $"{inscripcion.Bebe.Nombre} {inscripcion.Bebe.Apellido}".Trim(),
                     false,
-                    diasPorInscripcion.TryGetValue(inscripcion.Id, out var dias)
+                    !primerasAnteriores.Contains(inscripcion.Id)
+                        && diasPorInscripcion.TryGetValue(inscripcion.Id, out var dias)
                         && EsPrimeraClaseEnHorarioFijo(inscripcion.FechaInicio, dias, sesion.Fecha));
         }
 
@@ -431,7 +435,12 @@ foreach (var reserva in
         if (destino.Id == origen.Id || destino.NivelId != origen.NivelId || destino.Estado != EstadoSesionClase.Programada
             || destino.Turno.Estado != EstadoTurno.Activo || destino.Fecha < FechaArgentina.Hoy
             || destino.Fecha < origen.Fecha || (destino.Fecha == origen.Fecha && destino.HoraInicio <= origen.HoraInicio)
-            || !InscripcionValidaEnFecha(inscripcion, destino.Fecha))
+            || !(InscripcionValidaEnFecha(inscripcion, destino.Fecha)
+                || (origen.Fecha < inscripcion.FechaInicio
+                    && destino.Fecha < inscripcion.FechaInicio
+                    && destino.Fecha >= PrimeraClaseAnticipada.FechaMinima(inscripcion.FechaInicio, FechaArgentina.Hoy)
+                    && inscripcion.Estado == EstadoInscripcion.Activa
+                    && (inscripcion.FechaFin == null || inscripcion.FechaFin >= destino.Fecha))))
             throw new InvalidOperationException("La nueva clase no está disponible para esta inscripción.");
         if ((await CalculadoraCupoSesion.CalcularAsync(db, destino, ct)).Libres <= 0)
             throw new InvalidOperationException("La clase elegida ya no tiene cupos disponibles.");

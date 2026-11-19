@@ -1311,6 +1311,9 @@ public sealed class TurneraService(
         var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
             db, inscripciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
 
+        var primerasAnteriores = await PrimeraClaseExcepcional.ObtenerInscripcionesConReservaAnteriorAsync(
+            db, inscripcionIds, sesion.Fecha, ct);
+
         var reservasIniciales = await db
             .ReservasSesionesClase.AsNoTracking()
             .Where(x => x.SesionClaseId == sesion.Id && x.Estado == EstadoReservaSesion.Activa)
@@ -1402,7 +1405,8 @@ public sealed class TurneraService(
                     esperado.Value.EsRecupero,
                     !esperado.Value.EsRecupero && (
                         primeraClaseBebeIds.Contains(bebe.Id) ||
-                        (primeraFechaPorInscripcion.TryGetValue(
+                        (!primerasAnteriores.Contains(esperado.Value.InscripcionId)
+                            && primeraFechaPorInscripcion.TryGetValue(
                             esperado.Value.InscripcionId, out var primeraFecha)
                             && primeraFecha == sesion.Fecha))
                 )

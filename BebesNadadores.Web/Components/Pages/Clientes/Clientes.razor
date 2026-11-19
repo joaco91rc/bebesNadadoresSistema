@@ -1,3 +1,4 @@
+@using BebesNadadores.Web.Components.Shared.Utils
 @page "/clientes"
 @page "/bebes"
 
@@ -776,7 +777,7 @@
                         Fecha de baja
                     </label>
 
-                    <input type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" @bind="_fechaBaja" />
+                    <BnDatePicker @bind-Value="_fechaBaja" MaxDate="@DateOnly.FromDateTime(DateTime.Today)" />
 
                 </div>
 

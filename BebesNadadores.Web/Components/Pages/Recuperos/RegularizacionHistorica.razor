@@ -1,3 +1,4 @@
+@using BebesNadadores.Web.Components.Shared.Utils
 @page "/recuperos/regularizacion"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
@@ -38,7 +39,7 @@
             <p class="muted">Nivel: @_seleccionado.Nivel. La carga se realiza una única vez por alumno y queda auditada.</p>
             <div class="fields">
                 <label>Cantidad de recuperos disponibles <input type="number" min="1" max="10" @bind="_cantidad" /></label>
-                <label>Vencimiento comprobado <input type="date" @bind="_vencimiento" @bind:format="yyyy-MM-dd" /></label>
+                <label>Vencimiento comprobado <BnDatePicker Value="@DateOnly.FromDateTime(_vencimiento)" ValueChanged="@(d => _vencimiento = d.ToDateTime(TimeOnly.MinValue))" /></label>
             </div>
             <label class="full-field">Detalle de verificación<textarea rows="3" @bind="_observaciones" placeholder="Ej.: consultado en el sistema anterior, 2 recuperos disponibles al 11/11/2026" /></label>
             <label class="confirm-check"><input type="checkbox" @bind="_verificado" /> Comprobé en el sistema anterior que estos recuperos siguen disponibles y no fueron utilizados.</label>
