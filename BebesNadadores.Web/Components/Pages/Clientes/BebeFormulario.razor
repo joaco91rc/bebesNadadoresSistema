@@ -165,6 +165,15 @@
 
            ===================================================== *@
 
+        @if (!_editando && _posibleDuplicado)
+        {
+            <div class="discount-summary initial-payment-summary">
+                <strong>Posible ficha duplicada</strong>
+                <p>Buscá primero al bebé en Clientes, incluyendo las bajas. Si es otra persona con los mismos datos, podés confirmarlo.</p>
+                <label><input type="checkbox" @bind="_form.ConfirmarPosibleDuplicado" /> Confirmo que es otra persona y corresponde crear una ficha nueva.</label>
+            </div>
+        }
+
         <div class="enrollment-layout">
 
             @* =================================================
@@ -206,7 +215,7 @@
                     <div class="form-field span-2">
                         <label>Nombre del bebé * (apellido opcional)</label>
                         <input type="text" maxlength="200" autocomplete="off"
-                               @bind="_form.NombreYApellido" />
+                               @bind="_form.NombreYApellido" @bind:after="LimpiarConfirmacionDuplicado" />
                     </div>
 
                     @* NACIMIENTO *@
@@ -219,7 +228,7 @@
 
                         </label>
 
-                       <BnNullableDatePicker Value="@(_fechaNacimientoInformada ? (DateOnly?)_form.FechaNacimiento : null)" ValueChanged="FechaNacimientoCambiadaAsync" MaxDate="@(DateOnly.FromDateTime(DateTime.Today))" />
+                       <BnNullableDatePicker Value="@(_fechaNacimientoInformada ? (DateOnly?)_form.FechaNacimiento : null)" ValueChanged="FechaNacimientoCambiadaAsync" MaxDate="@(BebesNadadores.Domain.Common.FechaArgentina.Hoy)" />
 
                     </div>
 
@@ -993,7 +1002,7 @@
               ValueChanged="FechaInicioCambiadaAsync" />
                        <small>Esta fecha define el mes de la primera cuota. La primera clase puede reservarse antes sin cambiar el período facturado.</small>
 
-                       @* Del 15 en adelante: media cuota + recupero o arrancar el 1° del mes siguiente *@
+                       @* Del 15 en adelante: media cuota sugerida o arrancar el 1° del mes siguiente *@
                        <BnInicioMitadMes FechaElegida="FechaElegidaInicio"
                                          FechaActual="_form.FechaInicioInscripcion"
                                          ImporteMensual="@(PlanSeleccionado?.PrecioMensual is decimal precioMes ? CalcularTotal(precioMes) : null)"
@@ -1225,7 +1234,7 @@
         <div class="form-field">
             <label>Tarifa del primer mes (la elige la administrativa)</label>
             <select @bind="_form.CobrarMediaCuotaPrimerMes">
-                <option value="">Sugerencia automática por fecha</option>
+                <option value="">Sugerida: @(ReglasCuota.EsInicioAMitadDeMes(_form.FechaInicioInscripcion) ? "Media tarifa" : "Tarifa completa")</option>
                 <option value="false">Tarifa completa</option>
                 <option value="true">Media tarifa (50%)</option>
             </select>

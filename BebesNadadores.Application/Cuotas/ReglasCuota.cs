@@ -14,17 +14,15 @@ namespace BebesNadadores.Application.Cuotas;
  *
  * Primer mes (regla del natatorio):
  *
- *   Arranca del 1 al 14   -> cuota completa.
- *   Arranca del 15 en adelante -> la administrativa elige:
- *       a) arrancar ese día: MEDIA cuota (se cobra completa en el
- *          alta) + 1 clase de recupero de regalo, o
- *       b) arrancar el 1° del mes siguiente: cuota completa desde
- *          ese mes.
+ *   Arranca del 1 al 14: sugiere cuota completa.
+ *   Arranca del 15 en adelante: sugiere media cuota.
+ *   La administrativa puede elegir cualquiera de las dos tarifas.
+ *   No se genera un recupero de regalo.
  */
 public static class ReglasCuota
 {
     /*
-     * Desde este día del mes, el primer mes se cobra media cuota.
+     * Desde este día del mes se sugiere media cuota.
      */
     public const int DiaDesdeMediaCuota = 15;
 

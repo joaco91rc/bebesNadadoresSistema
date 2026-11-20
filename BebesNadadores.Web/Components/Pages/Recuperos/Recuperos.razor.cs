@@ -5,6 +5,7 @@ using BebesNadadores.Domain.Enums;
 using Microsoft.AspNetCore.Components;
 using BebesNadadores.Application.Comunicaciones;
 using BebesNadadores.Infrastructure.Persistence;
+using BebesNadadores.Infrastructure.Services.Turnera;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 
@@ -39,6 +40,9 @@ public partial class Recuperos : ComponentBase
     protected DateOnly _inicioSemana;
 
     protected RecuperosPanelDto? _panel;
+
+    protected sealed record PrimeraPendienteItem(Guid BebeId, string Nombre, string Nivel, DateOnly Fecha, TimeOnly Hora);
+    protected List<PrimeraPendienteItem> _primerasPendientes = new();
 
     protected bool _cargando = true;
 
@@ -444,6 +448,13 @@ public partial class Recuperos : ComponentBase
                 _inicioSemana,
                 _inicioSemana.AddDays(6)
             );
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var pendientes = await PrimeraClasePendiente.Consultar(db)
+                .Select(x => new PrimeraPendienteItem(x.BebeId, x.Bebe.Nombre + " " + x.Bebe.Apellido,
+                    x.SesionClase.Nivel.Nombre, x.SesionClase.Fecha, x.SesionClase.HoraInicio)).ToListAsync();
+            _primerasPendientes = pendientes.GroupBy(x => x.BebeId)
+                .Select(g => g.OrderByDescending(x => x.Fecha).ThenByDescending(x => x.Hora).First())
+                .OrderBy(x => x.Fecha).ThenBy(x => x.Hora).ToList();
         }
         catch (Exception ex)
         {

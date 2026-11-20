@@ -170,6 +170,30 @@
 
     </header>
 
+    @if (!_cargando && _primerasPendientes.Count > 0)
+    {
+        <details class="primeras-pendientes-panel">
+            <summary>
+                <MudIcon Icon="@Icons.Material.Filled.EventRepeat" Size="Size.Small" />
+                <strong>Primeras clases pendientes de reprogramación (@_primerasPendientes.Count)</strong>
+            </summary>
+            <p>Estas clases no son recuperos habituales. Abrí el legajo para elegir una nueva fecha sin generar otra cuota.</p>
+            <div class="primeras-pendientes-list">
+                @foreach (var primeraPendiente in _primerasPendientes)
+                {
+                    <article class="primera-pendiente-row">
+                        <div>
+                            <strong>@primeraPendiente.Nombre</strong>
+                            <small>@primeraPendiente.Nivel · Ausente con aviso: @primeraPendiente.Fecha.ToString("dd/MM/yyyy") · @primeraPendiente.Hora.ToString("HH:mm")</small>
+                        </div>
+                        <a class="secondary-action" href="@($"/clientes/{primeraPendiente.BebeId}?tab=inscripcion")">Reprogramar desde legajo</a>
+                    </article>
+                }
+            </div>
+        </details>
+    }
+
+
 
 
 

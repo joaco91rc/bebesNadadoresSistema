@@ -1,5 +1,4 @@
 using BebesNadadores.Application.Cuotas;
-using BebesNadadores.Application.Recuperos;
 using Microsoft.Extensions.Logging;
 using BebesNadadores.Application.Bebes;
 using BebesNadadores.Application.Bebes.Dtos;
@@ -16,7 +15,6 @@ namespace BebesNadadores.Infrastructure.Services.Bebes;
 public sealed class BebeService(
     IDbContextFactory<AppDbContext> factory,
     RegistradorCobros registradorCobros,
-    IRecuperosInicioMitadMesService recuperosInicio,
     ILogger<BebeService> logger
 ) : IBebeService
 {
@@ -46,7 +44,7 @@ public sealed class BebeService(
 
         var bebes = await query.OrderBy(x => x.Apellido).ThenBy(x => x.Nombre).ToListAsync(ct);
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         return bebes.Select(x => MapearBebe(x, hoy)).ToList();
     }
@@ -69,7 +67,7 @@ public sealed class BebeService(
         if (bebe is null)
             return null;
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         return MapearBebe(bebe, hoy);
     }
@@ -88,24 +86,6 @@ public sealed class BebeService(
                     dto,
                     ct),
                 ct);
-
-        /*
-         * Si arrancó a mitad de mes le corresponde un recupero de
-         * regalo. Si falla (por ejemplo, la turnera todavía no tiene
-         * su primera clase), lo vuelve a intentar el job diario: el
-         * alta no se cae por esto.
-         */
-        try
-        {
-            await recuperosInicio.GenerarPendientesAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(
-                ex,
-                "No se pudo generar el recupero de inicio a mitad de mes del bebé {BebeId}; lo reintenta el job diario.",
-                bebeId);
-        }
 
         return bebeId;
     }
@@ -130,7 +110,7 @@ public sealed class BebeService(
         // FECHAS BÁSICAS
         // =========================================================
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         // =========================================================
         // MEDIO DEL PAGO INICIAL
@@ -213,6 +193,21 @@ public sealed class BebeService(
         // =========================================================
 
         await ValidarDniBebeAsync(db, dto.Dni, null, ct);
+
+        if (!dto.ConfirmarPosibleDuplicado)
+        {
+            // Incluye legajos dados de baja: se puede reactivar en lugar de crear.
+            var candidatos = await db.Bebes.AsNoTracking().Where(b => b.FechaNacimiento == dto.FechaNacimiento)
+                .Select(b => new { b.Nombre, b.Apellido }).ToListAsync(ct);
+            var comparador = System.Globalization.CultureInfo.GetCultureInfo("es-AR").CompareInfo;
+            var opciones = System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace;
+            static string NombreNormalizado(string nombre, string apellido) => string.Join(" ",
+                (nombre + " " + apellido).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            var nombreNuevo = NombreNormalizado(dto.Nombre, dto.Apellido);
+            if (candidatos.Any(b => comparador.Compare(NombreNormalizado(b.Nombre, b.Apellido), nombreNuevo, opciones) == 0))
+                throw new InvalidOperationException("Posible ficha duplicada: ya existe un bebé con el mismo nombre y fecha de nacimiento. Revisá también los legajos dados de baja. Confirmá solo si es una persona distinta.");
+        }
+
 
         // =========================================================
         // PLAN
@@ -652,7 +647,7 @@ public sealed class BebeService(
                 ? null
                 : dto.MotivoDescuento.Trim(),
 
-            BonificaRecuperoInicio = inicioAMitadDeMes,
+            BonificaRecuperoInicio = false,
             Observaciones = dto.PermitirSobrecupo
                 ? $"Sobrecupo autorizado en inscripción: {dto.MotivoSobrecupo!.Trim()}"
                 : null,
@@ -822,7 +817,7 @@ public sealed class BebeService(
 
         await ValidarDniBebeAsync(db, dto.Dni, id, ct);
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         if (dto.FechaNacimiento > hoy)
         {
@@ -1075,7 +1070,7 @@ public sealed class BebeService(
             );
         }
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         /*
          * La baja impacta en el momento (el bebé deja de figurar como

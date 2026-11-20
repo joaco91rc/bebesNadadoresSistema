@@ -78,31 +78,39 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
         var inscripcion = inscripciones.FirstOrDefault(x =>
             x.Estado == EstadoInscripcion.Activa
             && (!x.FechaFin.HasValue || x.FechaFin.Value >= hoy)
-            && x.Turnos.Any(t => t.Turno.Estado == EstadoTurno.Activo && (t.Turno.VigenteHasta == null || t.Turno.VigenteHasta >= hoy))
         );
 
         var inscripcionDto = inscripcion is null ? null : MapearInscripcion(inscripcion, hoy);
-        // Una inscripción preliminar sin turnos no es un horario fijo.
-        if (inscripcionDto?.Turnos.Count == 0) inscripcionDto = null;
+        // La inscripcion preliminar existe aunque todavia no tenga turnos.
 
         // =====================================================
         // PRÓXIMA CLASE
         // =====================================================
 
         var proximaClase = await ObtenerProximaClaseRealAsync(db, bebeId, inscripciones, hoy, ct);
+        var inscripcionId = inscripcion?.Id ?? Guid.Empty;
+        var tieneClaseRealizada = await db.Asistencias.AsNoTracking().AnyAsync(x =>
+            x.InscripcionId == inscripcionId && x.BebeId == bebeId && x.Estado == EstadoAsistencia.Presente, ct);
+        var primeraRealizada = await db.ReservasSesionesClase.AsNoTracking()
+            .Where(x => x.InscripcionId == inscripcionId && x.BebeId == bebeId && x.Tipo == TipoReservaSesion.InscripcionInicial
+                && db.Asistencias.Any(a => a.InscripcionId == inscripcionId && a.BebeId == bebeId
+                    && a.SesionClaseId == x.SesionClaseId && a.Estado == EstadoAsistencia.Presente))
+            .OrderBy(x => x.SesionClase.Fecha).ThenBy(x => x.SesionClase.HoraInicio)
+            .Select(x => (DateOnly?)x.SesionClase.Fecha).FirstOrDefaultAsync(ct);
+        var pendientePrimera = await PrimeraClasePendiente.Consultar(db)
+            .Where(x => x.InscripcionId == inscripcionId && x.BebeId == bebeId)
+            .OrderByDescending(x => x.SesionClase.Fecha).ThenByDescending(x => x.SesionClase.HoraInicio)
+            .Select(x => new PrimeraClasePendienteDto(x.SesionClaseId, x.SesionClase.Fecha, x.SesionClase.HoraInicio, x.SesionClase.Nivel.Nombre))
+            .FirstOrDefaultAsync(ct);
         var primera = await db.ReservasSesionesClase.AsNoTracking()
-            .Where(x => x.BebeId == bebeId && x.Bebe.Estado == EstadoBebe.Activo
+            .Where(x => x.InscripcionId == inscripcionId && x.BebeId == bebeId && x.Bebe.Estado == EstadoBebe.Activo
                 && x.Tipo == TipoReservaSesion.InscripcionInicial && x.Estado == EstadoReservaSesion.Activa
                 && x.SesionClase.Estado == EstadoSesionClase.Programada
+                && !db.Asistencias.Any(a => a.InscripcionId == inscripcionId && a.Estado == EstadoAsistencia.Presente)
                 && !db.Asistencias.Any(a => a.BebeId == bebeId && a.SesionClaseId == x.SesionClaseId && a.Estado != EstadoAsistencia.Pendiente))
             .OrderBy(x => x.SesionClase.Fecha).ThenBy(x => x.SesionClase.HoraInicio)
-            .Select(x => new { x.SesionClase.TurnoId, x.SesionClase.Fecha, x.SesionClase.HoraInicio, x.SesionClase.HoraFin, Nivel = x.SesionClase.Nivel.Nombre, x.SesionClase.Sector })
+            .Select(x => new { x.SesionClaseId, x.SesionClase.TurnoId, x.SesionClase.Fecha, x.SesionClase.HoraInicio, x.SesionClase.HoraFin, Nivel = x.SesionClase.Nivel.Nombre, x.SesionClase.Sector })
             .FirstOrDefaultAsync(ct);
-        var primeraRealizada = await db.ReservasSesionesClase.AsNoTracking()
-            .Where(x => x.BebeId == bebeId && x.Tipo == TipoReservaSesion.InscripcionInicial
-                && db.Asistencias.Any(a => a.BebeId == bebeId && a.SesionClaseId == x.SesionClaseId && a.Estado == EstadoAsistencia.Presente))
-            .OrderBy(x => x.SesionClase.Fecha)
-            .Select(x => (DateOnly?)x.SesionClase.Fecha).FirstOrDefaultAsync(ct);
         var primeraDto = primera is null ? null : new ProximaClaseLegajoDto(primera.TurnoId, primera.Fecha,
             ConvertirDiaSemana(primera.Fecha.DayOfWeek), primera.HoraInicio, primera.HoraFin, primera.Nivel, primera.Sector, Array.Empty<string>());
 
@@ -192,6 +200,7 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
             .Recuperaciones.AsNoTracking()
             .Include(x => x.SesionOrigen)
                 .ThenInclude(x => x.Nivel)
+            .Include(x => x.NivelOrigen)
             .Include(x => x.SesionUso)
                 .ThenInclude(x => x!.Nivel)
             .Where(x => x.BebeId == bebeId)
@@ -213,8 +222,8 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
                     x.FechaVencimiento,
                     x.SinVencimiento,
                     vencida,
-                    x.SesionOrigen.Fecha,
-                    x.SesionOrigen.Nivel.Nombre,
+                    x.SesionOrigen?.Fecha ?? x.FechaGeneracion,
+                    x.SesionOrigen?.Nivel.Nombre ?? x.NivelOrigen?.Nombre ?? "Sin nivel de origen",
                     x.SesionUsoId,
                     x.SesionUso?.Fecha,
                     x.SesionUso?.Nivel.Nombre
@@ -290,7 +299,8 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
             recuperacionesDto,
             pagadoMesActual,
             pagosDto
-        ) { PrimeraClaseReservada = primeraDto, PrimeraClaseRealizada = primeraRealizada };
+        ) { PrimeraClaseReservada = primeraDto, PrimeraClaseRealizada = primeraRealizada,
+            TieneClaseRealizada = tieneClaseRealizada, PrimeraClaseReservadaSesionId = primera?.SesionClaseId, PrimeraClasePorReprogramar = pendientePrimera };
     }
 
     // =========================================================
@@ -358,8 +368,9 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
         var ahora = TimeOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-3)).DateTime);
         var vigentes = inscripciones.Where(x => x.Estado == EstadoInscripcion.Activa && (x.FechaFin == null || x.FechaFin >= hoy)).ToList();
         var turnos = vigentes.SelectMany(x => x.Turnos).Select(x => x.TurnoId).Distinct().ToArray();
-        var primeras = await PrimeraClaseExcepcional.ObtenerFechasAsync(db, vigentes.Select(x => x.Id), hoy, ct);
-        var reservas = await db.ReservasSesionesClase.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado == EstadoReservaSesion.Activa && x.SesionClase.Fecha >= hoy).Select(x => x.SesionClaseId).ToListAsync(ct);
+        var primeras = await PrimeraClaseExcepcional.ObtenerFechasAsync(db, vigentes.Select(x => x.Id), hoy, ct, bloquearPendientesSinFecha: true);
+        var reservas = await db.ReservasSesionesClase.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado == EstadoReservaSesion.Activa && x.SesionClase.Fecha >= hoy
+            && !db.Asistencias.Any(a => a.BebeId == x.BebeId && a.InscripcionId == x.InscripcionId && a.SesionClaseId == x.SesionClaseId && a.Estado == EstadoAsistencia.AusenteConAviso)).Select(x => x.SesionClaseId).ToListAsync(ct);
         var recuperos = await db.Recuperaciones.AsNoTracking().Where(x => x.BebeId == bebeId && x.Estado == EstadoRecuperacion.Reservada && x.SesionUsoId != null && x.SesionUso!.Fecha >= hoy).Select(x => x.SesionUsoId!.Value).ToListAsync(ct);
         var especiales = reservas.Concat(recuperos).ToHashSet();
         var sesiones = await db.SesionesClase.AsNoTracking().Include(x => x.Nivel).Include(x => x.Profesores).ThenInclude(x => x.Profesor)

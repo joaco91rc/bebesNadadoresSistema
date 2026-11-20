@@ -381,7 +381,7 @@
                     </label>
 
 
-                    <select @bind="_form.NivelId"
+                    <select @bind="_form.NivelId" disabled="@CompletaHorarioPendiente"
                             @bind:after="NivelCambioAsync">
 
                         <option value="@Guid.Empty">
@@ -416,10 +416,9 @@
                     </label>
 
 
-                    @if (EsPrimeraInscripcion &&
-                         ReglasCuota.EsInicioAMitadDeMes(_hoy))
+                    @if (EsPrimeraInscripcion && ReglasCuota.EsInicioAMitadDeMes(_hoy))
                     {
-                        @* Del 15 en adelante: media cuota + recupero o el 1° del mes siguiente *@
+                        @* La fecha y la tarifa se eligen independientemente. *@
                         <BnInicioMitadMes FechaElegida="_hoy"
                                           FechaActual="_form.AplicarDesde"
                                           ImporteMensual="@(PlanSeleccionado?.PrecioMensual is decimal precioMes ? CalcularTotal(precioMes) : null)"
@@ -427,9 +426,8 @@
                     }
                     else
                     {
-                        <BnDatePicker @bind-Value="_form.AplicarDesde"
-                                      MinDate="_hoy"
-                                      MaxDate="_hoy" />
+                        <BnDatePicker Value="_form.AplicarDesde"
+                                      Disabled="true" />
                     }
 
 
@@ -437,10 +435,22 @@
 
                         @(EsPrimeraInscripcion
                             ? TextoInicioPrimeraInscripcion
-                            : "En esta primera versión el cambio se aplica hoy.")
+                            : CompletaHorarioPendiente ? "Se completa la inscripción existente sin cambiar su inicio ni generar otra cuota." : "El cambio se aplica hoy.")
 
                     </small>
-
+                    @if (EsPrimeraInscripcion)
+                    {
+                        <label>Tarifa del primer mes (elección administrativa)</label>
+                        <select @bind="_form.CobrarMediaCuotaPrimerMes">
+                            <option value="">Sugerida: @(MediaCuotaSugerida ? "Media tarifa" : "Tarifa completa")</option>
+                            <option value="false">Tarifa completa</option>
+                            <option value="true">Media tarifa (50%)</option>
+                        </select>
+                        @if (PlanSeleccionado?.PrecioMensual is decimal importe)
+                        {
+                            <small>Importe de la primera cuota: @FormatearPrecio(MediaCuotaElegida ? Math.Round(CalcularTotal(importe) / 2m, 2, MidpointRounding.AwayFromZero) : CalcularTotal(importe))</small>
+                        }
+                    }
                 </div>
 
 
@@ -455,7 +465,7 @@
                     </label>
 
 
-                    <select @bind="_form.MedioPagoPreferido">
+                    <select @bind="_form.MedioPagoPreferido" disabled="@CompletaHorarioPendiente">
 
                         @foreach (var medio in
                             Enum.GetValues<MedioPago>())
@@ -570,7 +580,7 @@
                     </label>
 
 
-                    <select @bind="_form.PlanId"
+                    <select @bind="_form.PlanId" disabled="@CompletaHorarioPendiente"
                             @bind:after="PlanCambio">
 
                         <option value="@Guid.Empty">
@@ -608,7 +618,7 @@
 
                     <input type="checkbox"
                            class="discount-toggle-input"
-                           checked="@AplicaDescuento"
+                           checked="@AplicaDescuento" disabled="@CompletaHorarioPendiente"
                            @onchange="CambiarDescuento" />
 
 
@@ -649,7 +659,7 @@
                             </label>
 
 
-                            <select @bind="_form.TipoDescuento">
+                            <select @bind="_form.TipoDescuento" disabled="@CompletaHorarioPendiente">
 
                                 <option value="@TipoDescuento.MontoFijo">
                                     Monto fijo
@@ -683,7 +693,7 @@
                             <input type="number"
                                    min="0"
                                    step="0.01"
-                                   @bind="_form.ValorDescuento" />
+                                   @bind="_form.ValorDescuento" disabled="@CompletaHorarioPendiente" />
 
                         </div>
 
@@ -702,7 +712,7 @@
                             <input type="text"
                                    maxlength="200"
                                    placeholder="Ej. Descuento hermano"
-                                   @bind="_form.MotivoDescuento" />
+                                   @bind="_form.MotivoDescuento" disabled="@CompletaHorarioPendiente" />
 
                         </div>
 

@@ -2559,3 +2559,12 @@ text-decoration: none;
         translateY(-1px);
 }
 .initial-class-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}.initial-class-tile{display:grid;gap:6px;padding:16px;border:1px solid var(--mud-palette-divider);border-radius:12px}.initial-class-tile small{font-size:11px;color:var(--mud-palette-text-secondary);font-weight:800;letter-spacing:.5px}.initial-class-highlight{border-color:#21ace566;background:#21ace511}.initial-class-highlight small{color:#21ace5}
+
+
+/* Reprogramación de primera clase dentro del legajo. */
+.first-class-select {
+    width: 100%; padding: .65rem .85rem; border: 1px solid var(--mud-palette-lines-default);
+    color: var(--mud-palette-text-primary); background: var(--mud-palette-surface); border-radius: .55rem;
+}
+.first-class-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; }
+.initial-class-tile .manage-enrollment-button { align-self: flex-start; margin-top: .5rem; }

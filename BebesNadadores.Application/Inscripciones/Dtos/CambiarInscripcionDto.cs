@@ -4,6 +4,11 @@ namespace BebesNadadores.Application.Inscripciones.Dtos;
 
 public sealed class CambiarInscripcionDto
 {
+    // Solo se aplica al crear una inscripcion nueva. Null = sugerencia por fecha.
+    public bool? CobrarMediaCuotaPrimerMes { get; set; }
+    // Evita operar sobre una inscripcion distinta si la pantalla quedo desactualizada.
+    public Guid? InscripcionEsperadaId { get; set; }
+
     public Guid NivelId { get; set; }
 
     public Guid PlanId { get; set; }

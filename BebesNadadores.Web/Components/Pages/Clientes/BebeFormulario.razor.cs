@@ -87,6 +87,12 @@ public partial class BebeFormulario : ComponentBase
     protected bool _cargandoTurnos;
 
     protected string? _error;
+    protected bool _posibleDuplicado;
+    protected void LimpiarConfirmacionDuplicado()
+    {
+        _posibleDuplicado = false;
+        _form.ConfirmarPosibleDuplicado = false;
+    }
 
     // =========================================================
     // PROPIEDADES CALCULADAS
@@ -119,7 +125,7 @@ public partial class BebeFormulario : ComponentBase
     /*
      * Fecha que eligió la administrativa en el calendario. Si es del
      * 15 en adelante, BnInicioMitadMes ofrece arrancar ese día (media
-     * cuota + recupero) o el 1° del mes siguiente.
+     * cuota sugerida) o el 1° del mes siguiente.
      */
     private DateOnly? _fechaElegidaInicio;
 
@@ -322,7 +328,7 @@ public partial class BebeFormulario : ComponentBase
 
     private static GuardarBebeDto CrearFormularioNuevo()
     {
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         var form = new GuardarBebeDto
         {
@@ -392,7 +398,7 @@ public partial class BebeFormulario : ComponentBase
 
             PlanId = null,
 
-            FechaInicioInscripcion = DateOnly.FromDateTime(DateTime.Today),
+            FechaInicioInscripcion = BebesNadadores.Domain.Common.FechaArgentina.Hoy,
 
             MedioPagoPreferido = MedioPago.Transferencia,
 
@@ -466,6 +472,7 @@ public partial class BebeFormulario : ComponentBase
 
     private async Task FechaNacimientoCambiadaAsync(DateOnly? valor)
     {
+        LimpiarConfirmacionDuplicado();
         _fechaNacimientoInformada = valor.HasValue;
         if (!valor.HasValue) return;
         var fecha = valor.Value;
@@ -735,7 +742,7 @@ public partial class BebeFormulario : ComponentBase
             return;
         }
 
-        if (_form.FechaNacimiento > DateOnly.FromDateTime(DateTime.Today))
+        if (_form.FechaNacimiento > BebesNadadores.Domain.Common.FechaArgentina.Hoy)
         {
             _error = "La fecha de nacimiento no puede ser futura.";
 
@@ -955,6 +962,11 @@ public partial class BebeFormulario : ComponentBase
         catch (Exception ex)
         {
             _error = Errores.Mensaje(ex);
+            if (!_editando && ex.Message.StartsWith("Posible ficha duplicada:", StringComparison.Ordinal))
+            {
+                _posibleDuplicado = true;
+                _form.ConfirmarPosibleDuplicado = false;
+            }
         }
         finally
         {

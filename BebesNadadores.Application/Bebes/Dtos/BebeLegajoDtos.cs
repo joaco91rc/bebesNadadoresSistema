@@ -161,4 +161,9 @@ public sealed record BebeLegajoDto(
 {
     public ProximaClaseLegajoDto? PrimeraClaseReservada { get; init; }
     public DateOnly? PrimeraClaseRealizada { get; init; }
+    public bool TieneClaseRealizada { get; init; }
+    public Guid? PrimeraClaseReservadaSesionId { get; init; }
+    public PrimeraClasePendienteDto? PrimeraClasePorReprogramar { get; init; }
 }
+
+public sealed record PrimeraClasePendienteDto(Guid SesionClaseId, DateOnly Fecha, TimeOnly HoraInicio, string Nivel);

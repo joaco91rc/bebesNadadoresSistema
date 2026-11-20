@@ -50,8 +50,7 @@ public partial class InscripcionEditar : ComponentBase
     // =========================================================
 
     protected readonly DateOnly _hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
     protected BebeLegajoDto? _legajo;
@@ -97,31 +96,15 @@ protected bool EsPrimeraInscripcion =>
      * Qué pasa con el primer mes según la fecha de inicio
      * (misma regla que el servidor: ReglasCuota).
      */
-    protected string TextoInicioPrimeraInscripcion
-    {
-        get
-        {
-            var inicio =
-                _form.AplicarDesde;
+    protected bool CompletaHorarioPendiente => _legajo?.InscripcionActual is { } actual
+        && (actual.Turnos.Count == 0 || (!_legajo.TieneClaseRealizada
+            && (actual.FechaInicio > _hoy || _legajo.PrimeraClasePorReprogramar is not null || _legajo.PrimeraClaseReservada is not null)));
 
-            if (inicio != _hoy)
-            {
-                return $"Comienza el {inicio:dd/MM/yyyy}. " +
-                       "La cuota de ese mes se genera sola ese día.";
-            }
+    protected string TextoInicioPrimeraInscripcion =>
+        $"Inicio: {_form.AplicarDesde:dd/MM/yyyy}. La primera cuota corresponde a ese mes. Elegí la tarifa; no genera recuperos de regalo.";
 
-            if (inicio.Day == 1)
-            {
-                return "Comienza hoy. La cuota del mes se genera sola.";
-            }
-
-            return ReglasCuota.EsInicioAMitadDeMes(inicio)
-                ? "Comienza hoy. Se genera MEDIA cuota de este mes (se cobra desde Pagos) " +
-                  "y el bebé recibe 1 clase de recupero de regalo."
-                : "Comienza hoy. Se genera la cuota completa de este mes, que se cobra desde Pagos.";
-        }
-    }
-
+    protected bool MediaCuotaSugerida => ReglasCuota.EsInicioAMitadDeMes(_form.AplicarDesde);
+    protected bool MediaCuotaElegida => _form.CobrarMediaCuotaPrimerMes ?? MediaCuotaSugerida;
 
     protected async Task ElegirInicioAsync(
         DateOnly fecha)
@@ -129,6 +112,8 @@ protected bool EsPrimeraInscripcion =>
         _form.AplicarDesde =
             fecha;
 
+        _planes = (await ConsultaService.ListarPlanesAsync(fecha)).ToList();
+        _form.TurnosIds.Clear();
         await CargarTurnosAsync();
     }
     protected NivelDto? NivelSeleccionado =>
@@ -221,7 +206,7 @@ protected bool EsPrimeraInscripcion =>
         _planes =
             (await ConsultaService
                 .ListarPlanesAsync(
-                    _hoy))
+                    _legajo.InscripcionActual is { } vigente && vigente.FechaInicio > _hoy ? vigente.FechaInicio : _hoy))
 
             .OrderBy(x =>
                 x.VecesPorSemana)
@@ -326,8 +311,9 @@ protected bool EsPrimeraInscripcion =>
                         ? actual.PlanId
                         : Guid.Empty,
 
-                AplicarDesde =
-                    _hoy,
+                InscripcionEsperadaId = actual.Id,
+
+                AplicarDesde = CompletaHorarioPendiente && actual.FechaInicio > _hoy ? actual.FechaInicio : _hoy,
 
                 MedioPagoPreferido =
                     actual.MedioPagoPreferido,

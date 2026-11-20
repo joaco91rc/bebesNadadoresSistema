@@ -44,6 +44,8 @@ public sealed record BebeDto(
 
 public sealed class GuardarBebeDto
 {
+    public bool ConfirmarPosibleDuplicado { get; set; }
+
     public string Nombre { get; set; } = string.Empty;
 
     public string Apellido { get; set; } = string.Empty;

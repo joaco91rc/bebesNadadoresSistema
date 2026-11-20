@@ -1309,7 +1309,7 @@ public sealed class TurneraService(
             });
 
         var primerasExcepcionales = await PrimeraClaseExcepcional.ObtenerFechasAsync(
-            db, inscripciones.Select(x => x.InscripcionId), sesion.Fecha, ct);
+            db, inscripciones.Select(x => x.InscripcionId), sesion.Fecha, ct, bloquearPendientesSinFecha: true);
 
         var primerasAnteriores = await PrimeraClaseExcepcional.ObtenerInscripcionesConReservaAnteriorAsync(
             db, inscripcionIds, sesion.Fecha, ct);

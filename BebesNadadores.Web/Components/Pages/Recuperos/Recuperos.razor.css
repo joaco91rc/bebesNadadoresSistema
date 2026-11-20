@@ -2691,3 +2691,14 @@
 
 /* Aviso de recuperación que supera el cupo nominal sin pasar de 14 */
 .overcapacity-recovery-warning{margin:8px 0;padding:8px 10px;border:1px solid rgba(245,169,66,.45);border-radius:10px;background:rgba(245,169,66,.1);color:#e9ae57;font-size:12px;font-weight:700;line-height:1.35}
+
+
+.primeras-pendientes-panel { border: 1px solid var(--mud-palette-lines-default); background: var(--mud-palette-surface); border-radius: 14px; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+.primeras-pendientes-panel summary { cursor: pointer; color: var(--mud-palette-warning); }
+.primeras-pendientes-panel summary .mud-icon-root { vertical-align: middle; margin-right: .5rem; }
+.primeras-pendientes-panel p { color: var(--mud-palette-text-secondary); margin: .6rem 0; }
+.primeras-pendientes-list { display: grid; gap: .5rem; }
+.primera-pendiente-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; padding: .7rem; border: 1px solid var(--mud-palette-lines-default); border-radius: .65rem; }
+.primera-pendiente-row strong, .primera-pendiente-row small { display: block; }
+.primera-pendiente-row small { color: var(--mud-palette-text-secondary); margin-top: .3rem; }
+.primera-pendiente-row a { text-decoration: none; }

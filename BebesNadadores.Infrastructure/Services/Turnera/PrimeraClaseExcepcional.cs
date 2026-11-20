@@ -16,7 +16,8 @@ public static class PrimeraClaseExcepcional
         AppDbContext db,
         IEnumerable<Guid> inscripcionesIds,
         DateOnly fechaDesde,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool bloquearPendientesSinFecha = false)
     {
         var ids = inscripcionesIds.Distinct().ToList();
         if (ids.Count == 0) return new Dictionary<Guid, DateOnly>();
@@ -25,12 +26,24 @@ public static class PrimeraClaseExcepcional
             .Where(x => ids.Contains(x.InscripcionId)
                 && x.Tipo == TipoReservaSesion.InscripcionInicial
                 && x.Estado == EstadoReservaSesion.Activa
-                && x.SesionClase.Fecha >= fechaDesde)
+                && x.SesionClase.Fecha >= fechaDesde
+                && !db.Asistencias.Any(a => a.InscripcionId == x.InscripcionId
+                    && a.BebeId == x.BebeId && a.SesionClaseId == x.SesionClaseId
+                    && a.Estado == EstadoAsistencia.AusenteConAviso))
             .Select(x => new { x.InscripcionId, x.SesionClase.Fecha })
             .ToListAsync(ct);
 
-        return reservas.GroupBy(x => x.InscripcionId)
+        var fechas = reservas.GroupBy(x => x.InscripcionId)
             .ToDictionary(x => x.Key, x => x.Min(y => y.Fecha));
+        if (bloquearPendientesSinFecha)
+        {
+            var pendientes = await PrimeraClasePendiente.Consultar(db)
+                .Where(x => ids.Contains(x.InscripcionId))
+                .Select(x => x.InscripcionId).Distinct().ToListAsync(ct);
+            foreach (var id in pendientes)
+                fechas[id] = DateOnly.MaxValue;
+        }
+        return fechas;
     }
 
     public static async Task<HashSet<Guid>> ObtenerInscripcionesConReservaAnteriorAsync(

@@ -13,6 +13,8 @@ public interface IAsistenciaService
 
     Task ReprogramarPrimeraClaseAsync(Guid sesionId, Guid bebeId, Guid destinoId, string? observaciones, Guid? usuarioId, CancellationToken ct = default);
 
+    Task MoverReservaPrimeraClaseAsync(Guid sesionId, Guid bebeId, Guid destinoId, Guid? usuarioId, CancellationToken ct = default);
+
     Task MarcarAsync(
         RegistrarAsistenciaDto dto,
         CancellationToken ct = default);

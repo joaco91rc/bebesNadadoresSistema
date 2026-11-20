@@ -1,6 +1,5 @@
 using BebesNadadores.Application.Cuotas;
 using BebesNadadores.Application.Pagos;
-using BebesNadadores.Application.Recuperos;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using BebesNadadores.Application.Inscripciones;
@@ -17,7 +16,6 @@ public sealed class InscripcionService(
     IDbContextFactory<AppDbContext> factory,
     IConfiguracionSistemaService configuracionService,
     IPagoService pagoService,
-    IRecuperosInicioMitadMesService recuperosInicio,
     ILogger<InscripcionService> logger)
     : IInscripcionService
 {
@@ -64,8 +62,7 @@ public sealed class InscripcionService(
 
 
         var hoy =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+            BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
         // =====================================================
@@ -75,11 +72,7 @@ public sealed class InscripcionService(
         // para permitir cambios futuros.
         // =====================================================
 
-        if (dto.AplicarDesde != hoy)
-        {
-            throw new InvalidOperationException(
-                "Por el momento los cambios de inscripción deben aplicarse con fecha de hoy.");
-        }
+
 
 
         // =====================================================
@@ -113,8 +106,8 @@ public sealed class InscripcionService(
                 .Where(x =>
                     x.BebeId == bebeId
                     &&
-                    x.Estado ==
-                        EstadoInscripcion.Activa)
+                    x.Estado == EstadoInscripcion.Activa
+                    && (!x.FechaFin.HasValue || x.FechaFin.Value >= hoy))
                 .OrderByDescending(x =>
                     x.FechaInicio)
                 .FirstOrDefaultAsync(ct)
@@ -125,6 +118,18 @@ public sealed class InscripcionService(
         // =====================================================
         // NIVEL
         // =====================================================
+
+        // Completar un horario pendiente conserva la inscripcion original,
+        // incluso si su inicio esta programado para el mes siguiente.
+        if (dto.InscripcionEsperadaId.HasValue && dto.InscripcionEsperadaId.Value != actual.Id)
+            throw new InvalidOperationException("La inscripción cambió. Volvé a abrir la ficha antes de guardar.");
+        var sinPrimeraRealizada = !await db.Asistencias.AnyAsync(a => a.InscripcionId == actual.Id && a.Estado == EstadoAsistencia.Presente, ct);
+        var esPreliminar = actual.Turnos.Count == 0 || (sinPrimeraRealizada && (actual.FechaInicio > hoy
+            || await db.ReservasSesionesClase.AnyAsync(r => r.InscripcionId == actual.Id
+                && r.Tipo == TipoReservaSesion.InscripcionInicial && r.Estado == EstadoReservaSesion.Activa, ct)));
+        var fechaCambioPermitida = esPreliminar && actual.FechaInicio > hoy ? actual.FechaInicio : hoy;
+        if (dto.AplicarDesde != fechaCambioPermitida)
+            throw new InvalidOperationException("Actualizá la fecha de aplicación antes de guardar.");
 
         var nivel =
             await db.Niveles
@@ -397,7 +402,7 @@ public sealed class InscripcionService(
 //
 
 var esReparacionHorarios =
-    actual.Turnos.Count == 0
+    esPreliminar
 
     &&
 
@@ -433,6 +438,11 @@ var esReparacionHorarios =
             dto.MotivoDescuento),
         StringComparison.Ordinal);
 
+
+// No cerrar una inscripcion preliminar ni recalcular su cuota al asignar
+// los horarios. Un cambio economico requiere una operacion separada.
+if (esPreliminar && !esReparacionHorarios)
+    throw new InvalidOperationException("Para completar el horario fijo, conservá el nivel, plan, medio de pago y descuento de la inscripción original.");
 
 // =========================================================
 // MODIFICAR INSCRIPCIÓN ACTUAL
@@ -662,20 +672,18 @@ if (
         /*
          * Después del commit (cada uno usa su propio DbContext):
          * - si tenía saldo a favor de antes, se aplica a la cuota nueva;
-         * - si arrancó a mitad de mes, se genera su recupero de regalo.
          * Si algo de esto falla, la reinscripción ya quedó hecha y el
          * job diario lo vuelve a intentar.
          */
         try
         {
             await pagoService.AplicarSaldosAFavorAsync(bebeId, ct);
-            await recuperosInicio.GenerarPendientesAsync(ct);
         }
         catch (Exception ex)
         {
             logger.LogWarning(
                 ex,
-                "Reinscripción del bebé {BebeId}: no se pudo aplicar saldo a favor o generar el recupero de inicio.",
+                "Reinscripción del bebé {BebeId}: no se pudo aplicar saldo a favor.",
                 bebeId);
         }
     }
@@ -702,15 +710,14 @@ if (
 
 
     var hoy =
-        DateOnly.FromDateTime(
-            DateTime.Today);
+        BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
 
     // =========================================================
     // FECHA DE INICIO: HOY O EL 1° DEL MES SIGUIENTE
     //
     // Del 15 en adelante la administrativa puede elegir arrancar
-    // hoy (media cuota + recupero) o el 1° del mes siguiente.
+    // hoy o el 1° del mes siguiente. La tarifa se elige aparte.
     // =========================================================
 
     var primeroMesSiguiente =
@@ -764,15 +771,11 @@ if (
                         EstadoInscripcion.Activa
 
                     &&
-                    x.FechaInicio <=
-                        dto.AplicarDesde
-
-                    &&
                     (
                         !x.FechaFin.HasValue
                         ||
                         x.FechaFin.Value >=
-                            dto.AplicarDesde
+                            hoy
                     ),
                 ct);
 
@@ -1202,6 +1205,7 @@ if (
         inscripcion,
         configuracion.DiaVencimientoCuota,
         hoy,
+        dto.CobrarMediaCuotaPrimerMes,
         ct);
 
 
@@ -1212,31 +1216,17 @@ if (
 }
 
 
-/*
- * Regla del primer mes (ReglasCuota):
- *
- * - Arranca el día 1 (o el 1° del mes siguiente): no se crea nada,
- *   la cuota la genera el generador mensual ese día.
- * - Arranca del 2 al 14: cuota completa del mes.
- * - Arranca del 15 en adelante: media cuota + recupero de regalo
- *   (BonificaRecuperoInicio).
- *
- * La cuota queda pendiente y se cobra desde Pagos.
- * Si el bebé ya tiene una cuota vigente de ese mes (por ejemplo,
- * se dio de baja y vuelve en el mismo mes), no se cobra otra.
- */
+// La administrativa elige media o completa; la fecha solo sugiere.
+// Se guarda una sola cuota por bebe y periodo, aun si inicia el dia 1.
 private static async Task AgregarCuotaPrimerMesAsync(
     AppDbContext db,
     Inscripcion inscripcion,
     int diaVencimiento,
     DateOnly hoy,
+    bool? cobrarMediaCuotaPrimerMes,
     CancellationToken ct)
 {
-    var inicio =
-        inscripcion.FechaInicio;
-
-    if (inicio.Day == 1)
-        return;
+    var inicio = inscripcion.FechaInicio;
 
     var periodo =
         new DateOnly(
@@ -1274,13 +1264,10 @@ private static async Task AgregarCuotaPrimerMesAsync(
             inscripcion.TipoDescuento,
             inscripcion.ValorDescuento);
 
-    var mitadDeMes =
-        ReglasCuota.EsInicioAMitadDeMes(inicio);
-
-    var importe =
-        ReglasCuota.CalcularImportePrimerMes(
-            importeMensual,
-            inicio);
+    var mitadDeMes = cobrarMediaCuotaPrimerMes ?? ReglasCuota.EsInicioAMitadDeMes(inicio);
+    var importe = mitadDeMes
+        ? Math.Round(importeMensual * 0.50m, 2, MidpointRounding.AwayFromZero)
+        : importeMensual;
 
     if (importe <= 0)
         return;
@@ -1306,8 +1293,7 @@ private static async Task AgregarCuotaPrimerMesAsync(
                 : $"Cuota {periodo:MM/yyyy}"
         });
 
-    inscripcion.BonificaRecuperoInicio =
-        mitadDeMes;
+    inscripcion.BonificaRecuperoInicio = false;
 }
 
 private static int CalcularEdadMesesInscripcion(

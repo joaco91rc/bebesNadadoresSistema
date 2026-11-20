@@ -9,7 +9,7 @@
     Si la fecha elegida es del 15 en adelante (ReglasCuota), muestra
     las dos opciones que da el natatorio y deja elegir:
 
-      - Arrancar ese día: media cuota + 1 recupero de regalo.
+      - Arrancar ese día: media cuota sugerida.
       - Arrancar el 1° del mes siguiente: cuota completa.
 
     Uso:
@@ -58,12 +58,11 @@
                 <span class="bn-inicio-texto">
                     <strong>Arrancar el @FechaElegida.ToString("dd/MM")</strong>
                     <small>
-                        Media cuota
+                        Media cuota sugerida
                         @if (ImporteMensual.HasValue)
                         {
                             <text>(@FormatearMoneda(ReglasCuota.CalcularImportePrimerMes(ImporteMensual.Value, FechaElegida)))</text>
                         }
-                        + 1 clase de recupero de regalo
                     </small>
                 </span>
 
@@ -84,7 +83,7 @@
                 <span class="bn-inicio-texto">
                     <strong>Arrancar el 1° de @NombreMes(mesSiguiente)</strong>
                     <small>
-                        Cuota completa
+                        Cuota completa sugerida
                         @if (ImporteMensual.HasValue)
                         {
                             <text>(@FormatearMoneda(ImporteMensual.Value))</text>

@@ -7,6 +7,7 @@
 @using BebesNadadores.Application.Bebes
 @using BebesNadadores.Application.Bebes.Dtos
 @using BebesNadadores.Domain.Enums
+@using BebesNadadores.Infrastructure.Services.Turnera
 
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<BebesNadadores.Infrastructure.Persistence.AppDbContext> DbHorarios
@@ -629,11 +630,15 @@
                        FOOTER
                        ========================================= *@
 
-                    <div class="baby-schedule-grid @((_primerasClases.ContainsKey(bebe.Id) || (!_horariosHabituales.ContainsKey(bebe.Id) && _primerasRealizadas.ContainsKey(bebe.Id))) ? "has-first-class" : "")">
+                    <div class="baby-schedule-grid @((_primerasPendientes.ContainsKey(bebe.Id) || _primerasClases.ContainsKey(bebe.Id) || (!_horariosHabituales.ContainsKey(bebe.Id) && _primerasRealizadas.ContainsKey(bebe.Id))) ? "has-first-class" : "")">
                         <div class="baby-schedule"><span class="baby-schedule-icon"><MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small"/></span><div><small>HORARIO FIJO</small><strong>@(_horariosHabituales.GetValueOrDefault(bebe.Id) ?? "Sin horario fijo")</strong></div></div>
-                        @if (_primerasClases.TryGetValue(bebe.Id, out var primeraClase))
+                        @if (_primerasPendientes.TryGetValue(bebe.Id, out var fechaAusencia))
                         {
-                            <div class="baby-schedule baby-first-class"><span class="baby-schedule-icon"><MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small"/></span><div><small>PRIMERA CLASE PENDIENTE</small><strong>@primeraClase</strong></div></div>
+                            <div class="baby-schedule baby-first-class baby-first-followup"><span class="baby-schedule-icon"><MudIcon Icon="@Icons.Material.Filled.EventRepeat" Size="Size.Small"/></span><div><small>PRIMERA CLASE A REPROGRAMAR</small><strong>Ausente con aviso · @fechaAusencia</strong></div></div>
+                        }
+                        else if (_primerasClases.TryGetValue(bebe.Id, out var primeraClase))
+                        {
+                            <div class="baby-schedule baby-first-class"><span class="baby-schedule-icon"><MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small"/></span><div><small>PRIMERA CLASE RESERVADA</small><strong>@primeraClase</strong></div></div>
                         }
                         else if (!_horariosHabituales.ContainsKey(bebe.Id) && _primerasRealizadas.TryGetValue(bebe.Id, out var realizada))
                         {
@@ -857,6 +862,7 @@
 
     private Dictionary<Guid, string> _horariosHabituales = new();
     private Dictionary<Guid, string> _primerasClases = new();
+    private Dictionary<Guid, string> _primerasPendientes = new();
     private Dictionary<Guid, DateOnly> _primerasRealizadas = new();
     private readonly List<BebeDto> _bebes = [];
 
@@ -1072,10 +1078,20 @@
         var ids = datos.Select(x => x.Id).ToArray();
         var horarios = await db.InscripcionesTurnos.AsNoTracking().Where(x => ids.Contains(x.Inscripcion.BebeId) && x.Inscripcion.Estado == EstadoInscripcion.Activa && (x.Inscripcion.FechaFin == null || x.Inscripcion.FechaFin >= hoy) && x.Turno.Estado == EstadoTurno.Activo && (x.Turno.VigenteHasta == null || x.Turno.VigenteHasta >= hoy))
             .Select(x => new { x.Inscripcion.BebeId, x.Turno.DiaSemana, x.Turno.HoraInicio, Desde = x.Inscripcion.FechaInicio > x.Turno.VigenteDesde ? x.Inscripcion.FechaInicio : x.Turno.VigenteDesde, HastaInscripcion = x.Inscripcion.FechaFin, HastaTurno = x.Turno.VigenteHasta }).ToListAsync();
+        var pendientes = await PrimeraClasePendiente.Consultar(db).Where(x => ids.Contains(x.BebeId))
+            .Select(x => new { x.BebeId, x.SesionClase.Fecha, x.SesionClase.HoraInicio }).ToListAsync();
+        _primerasPendientes = pendientes.GroupBy(x => x.BebeId).ToDictionary(g => g.Key, g =>
+        {
+            var p = g.OrderByDescending(x => x.Fecha).ThenByDescending(x => x.HoraInicio).First();
+            return $"{p.Fecha:dd/MM/yyyy} · {p.HoraInicio:HH:mm}";
+        });
         var primeras = await db.ReservasSesionesClase.AsNoTracking()
             .Where(x => ids.Contains(x.BebeId) && x.Bebe.Estado == EstadoBebe.Activo
                 && x.Tipo == TipoReservaSesion.InscripcionInicial && x.Estado == EstadoReservaSesion.Activa
+                && x.Inscripcion.Estado == EstadoInscripcion.Activa
+                && (x.Inscripcion.FechaFin == null || x.Inscripcion.FechaFin >= hoy)
                 && x.SesionClase.Estado == EstadoSesionClase.Programada
+                && !db.Asistencias.Any(a => a.InscripcionId == x.InscripcionId && a.Estado == EstadoAsistencia.Presente)
                 && !db.Asistencias.Any(a => a.BebeId == x.BebeId && a.SesionClaseId == x.SesionClaseId && a.Estado != EstadoAsistencia.Pendiente))
             .Select(x => new { x.BebeId, x.SesionClase.Fecha, x.SesionClase.HoraInicio }).ToListAsync();
         var realizadas = await db.ReservasSesionesClase.AsNoTracking()

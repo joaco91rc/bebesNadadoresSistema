@@ -80,4 +80,4 @@ public sealed class RegistrarAsistenciaMasivaDto
         = [];
 }
 
-public sealed record OpcionPrimeraClaseDto(Guid SesionId, DateOnly Fecha, TimeOnly Hora, string Nivel, int Libres);
+public sealed record OpcionPrimeraClaseDto(Guid SesionId, DateOnly Fecha, TimeOnly Hora, string Nivel, int Libres, bool LugarPropio = false);

@@ -3,11 +3,17 @@
 @attribute [Authorize(Policy = PoliticasSistema.ConsultaGeneral)]
 
 @using System.Globalization
+@using System.Security.Claims
+@using BebesNadadores.Application.Asistencia
+@using BebesNadadores.Application.Asistencia.Dtos
+@using BebesNadadores.Domain.Common
 @using BebesNadadores.Application.Bebes
 @using BebesNadadores.Application.Bebes.Dtos
 @using BebesNadadores.Domain.Enums
 
 @inject IBebeLegajoService LegajoService
+@inject IAsistenciaService AsistenciaPrimeraClase
+@inject AuthenticationStateProvider AuthPrimeraClase
 @inject NavigationManager Navigation
 @inject BebesNadadores.Application.Comunicaciones.IWhatsAppService WhatsAppService
 @inject PermisosUsuario Permisos
@@ -1063,7 +1069,7 @@ else if (_legajo is not null)
 
                             <MudIcon Icon="@Icons.Material.Filled.EditCalendar" Size="Size.Small" />
 
-                            Gestionar inscripción
+                            @(_legajo.InscripcionActual.Turnos.Count == 0 ? "Asignar horario fijo" : "Gestionar inscripción")
 
                         </button>
                     }
@@ -1071,17 +1077,76 @@ else if (_legajo is not null)
                 </div>
 
 
-                @if (_legajo.PrimeraClaseReservada is { } primera)
+                @if (_legajo.PrimeraClasePorReprogramar is { } pendiente)
                 {
                     <div class="initial-class-grid">
-                        @if (_legajo.InscripcionActual is null)
-                        { <div class="initial-class-tile"><small>HORARIO FIJO</small><strong>Sin horario fijo</strong></div> }
-                        <div class="initial-class-tile initial-class-highlight"><small>PRIMERA CLASE PENDIENTE</small><strong>@primera.Fecha.ToString("dd/MM/yyyy") · @primera.HoraInicio.ToString("HH:mm")</strong><span>@primera.Nivel</span></div>
+                        <div class="initial-class-tile initial-class-highlight">
+                            <small>PRIMERA CLASE PENDIENTE DE REPROGRAMACIÓN</small>
+                            <strong>Ausente con aviso · @pendiente.Fecha.ToString("dd/MM/yyyy") · @pendiente.HoraInicio.ToString("HH:mm")</strong>
+                            <span>@pendiente.Nivel · No es un recupero habitual.</span>
+                            @if (_puedeGestionar)
+                            {
+                                <button type="button" class="manage-enrollment-button" @onclick="() => AbrirPrimeraClaseAsync(pendiente.SesionClaseId)">
+                                    <MudIcon Icon="@Icons.Material.Filled.EventRepeat" Size="Size.Small" /> Reprogramar primera clase
+                                </button>
+                            }
+                        </div>
                     </div>
                 }
-                @if (_legajo.PrimeraClaseRealizada is { } realizada)
+                else if (_legajo.PrimeraClaseReservada is { } primera)
                 {
-                    <div class="initial-class-grid"><div class="initial-class-tile"><small>@(_legajo.InscripcionActual is null && _legajo.PrimeraClaseReservada is null ? "PENDIENTE DE DEFINIR HORARIO" : "HISTORIAL DE PRIMERA CLASE")</small><strong>Primera clase realizada el @realizada.ToString("dd/MM/yyyy")</strong></div></div>
+                    <div class="initial-class-grid">
+                        <div class="initial-class-tile initial-class-highlight">
+                            <small>PRIMERA CLASE RESERVADA</small>
+                            <strong>@primera.Fecha.ToString("dd/MM/yyyy") · @primera.HoraInicio.ToString("HH:mm")</strong><span>@primera.Nivel</span>
+                            @if (_puedeGestionar && _legajo.PrimeraClaseReservadaSesionId is Guid sesionPrimera)
+                            {
+                                @if (primera.Fecha > FechaArgentina.Hoy || (primera.Fecha == FechaArgentina.Hoy && primera.HoraInicio > TimeOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(-3)).DateTime)))
+                                {
+                                    <button type="button" class="manage-enrollment-button" @onclick="() => AbrirPrimeraClaseAsync(sesionPrimera)">Modificar primera clase</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="manage-enrollment-button" @onclick="() => AbrirAsistencia(sesionPrimera)">Registrar asistencia de primera clase</button>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+                else if (_legajo.PrimeraClaseRealizada is { } realizada && _legajo.InscripcionActual?.Turnos.Count == 0)
+                {
+                    <div class="initial-class-grid"><div class="initial-class-tile"><small>PENDIENTE DE DEFINIR HORARIO</small><strong>Primera clase realizada el @realizada.ToString("dd/MM/yyyy")</strong></div></div>
+                }
+                else if (_legajo.PrimeraClaseRealizada is { } fechaRealizada)
+                {
+                    <div class="initial-class-grid"><div class="initial-class-tile"><small>HISTORIAL DE PRIMERA CLASE</small><strong>Primera clase realizada el @fechaRealizada.ToString("dd/MM/yyyy")</strong></div></div>
+                }
+                @if (_origenPrimeraClase.HasValue)
+                {
+                    <div class="initial-class-grid">
+                        <div class="initial-class-tile initial-class-highlight" role="region" aria-label="Modificar primera clase">
+                            <small>REPROGRAMACIÓN</small>
+                            <strong>Elegí una nueva clase disponible</strong>
+                            <span>Se conserva la inscripción, el horario fijo y los pagos existentes.</span>
+                            @if (!string.IsNullOrWhiteSpace(_errorPrimeraClase)) { <span role="alert">@_errorPrimeraClase</span> }
+                            @if (_cargandoPrimeraClase) { <span>Consultando lugares...</span> }
+                            else if (_opcionesPrimeraClase.Count == 0 && string.IsNullOrWhiteSpace(_errorPrimeraClase)) { <span>No hay lugares disponibles en el período consultado.</span> }
+                            else if (_opcionesPrimeraClase.Count > 0)
+                            {
+                                <select class="first-class-select" @bind="_destinoPrimeraClase" disabled="@_guardandoPrimeraClase">
+                                    <option value="">Seleccionar fecha y horario</option>
+                                    @foreach (var opcion in _opcionesPrimeraClase)
+                                    {
+                                        <option value="@opcion.SesionId">@opcion.Fecha.ToString("dd/MM/yyyy") · @opcion.Hora.ToString("HH:mm") · @opcion.Nivel · @(opcion.LugarPropio ? "Horario fijo reservado" : $"{opcion.Libres} libres")</option>
+                                    }
+                                </select>
+                            }
+                            <div class="first-class-actions">
+                                <button type="button" class="manage-enrollment-button" @onclick="CerrarPrimeraClase" disabled="@_guardandoPrimeraClase">Cancelar</button>
+                                <button type="button" class="create-enrollment-button" disabled="@(_guardandoPrimeraClase || _cargandoPrimeraClase || !Guid.TryParse(_destinoPrimeraClase, out _))" @onclick="ConfirmarPrimeraClaseAsync">Confirmar nueva fecha</button>
+                            </div>
+                        </div>
+                    </div>
                 }
                 @if (_legajo.InscripcionActual is null)
                 {
@@ -1172,7 +1237,8 @@ else if (_legajo is not null)
                         @if (_legajo.InscripcionActual.Turnos.Count == 0)
                         {
                             <div class="empty-inline">
-                                No tiene turnos vinculados.
+                                <strong>Horario fijo pendiente de definir.</strong>
+                                <span>La inscripción ya existe. Asignar el horario no genera otra cuota.</span>
                             </div>
                         }
                         else
@@ -1794,6 +1860,11 @@ else if (_legajo is not null)
             }
 
 
+            if (_legajo.PrimeraClasePorReprogramar is not null)
+                alertas.Add(new AlertaLegajo("Primera clase pendiente de reprogramación.", "warning", Icons.Material.Filled.EventRepeat));
+            if (_legajo.InscripcionActual is { } actual && actual.Turnos.Count == 0)
+                alertas.Add(new AlertaLegajo("Horario fijo pendiente de definir.", "warning", Icons.Material.Filled.Schedule));
+
             if (_legajo.AptoActual is null)
             {
                 alertas.Add(
@@ -1852,6 +1923,48 @@ else if (_legajo is not null)
     }
 
 
+    private Guid? _origenPrimeraClase;
+    private string _destinoPrimeraClase = "";
+    private string? _errorPrimeraClase;
+    private bool _cargandoPrimeraClase, _guardandoPrimeraClase;
+    private IReadOnlyList<OpcionPrimeraClaseDto> _opcionesPrimeraClase = Array.Empty<OpcionPrimeraClaseDto>();
+
+    private async Task AbrirPrimeraClaseAsync(Guid sesionId)
+    {
+        if (!_puedeGestionar || _guardandoPrimeraClase) return;
+        _origenPrimeraClase = sesionId;
+        _destinoPrimeraClase = "";
+        _errorPrimeraClase = null;
+        _opcionesPrimeraClase = Array.Empty<OpcionPrimeraClaseDto>();
+        _cargandoPrimeraClase = true;
+        try { _opcionesPrimeraClase = await AsistenciaPrimeraClase.ListarReprogramacionAsync(sesionId, BebeId); }
+        catch (Exception ex) { _errorPrimeraClase = Errores.Mensaje(ex); }
+        finally { _cargandoPrimeraClase = false; }
+    }
+
+    private void CerrarPrimeraClase()
+    {
+        if (!_guardandoPrimeraClase) _origenPrimeraClase = null;
+    }
+
+    private async Task ConfirmarPrimeraClaseAsync()
+    {
+        if (!_puedeGestionar || _guardandoPrimeraClase || _origenPrimeraClase is not Guid origen
+            || !Guid.TryParse(_destinoPrimeraClase, out var destino)) return;
+        _guardandoPrimeraClase = true;
+        _errorPrimeraClase = null;
+        try
+        {
+            var auth = await AuthPrimeraClase.GetAuthenticationStateAsync();
+            Guid? usuario = Guid.TryParse(auth.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
+            await AsistenciaPrimeraClase.MoverReservaPrimeraClaseAsync(origen, BebeId, destino, usuario);
+            _origenPrimeraClase = null;
+            await CargarAsync();
+        }
+        catch (Exception ex) { _errorPrimeraClase = Errores.Mensaje(ex); }
+        finally { _guardandoPrimeraClase = false; }
+    }
+
     private bool _puedeGestionar;
 
 
@@ -1865,7 +1978,9 @@ else if (_legajo is not null)
 
     protected override async Task OnParametersSetAsync()
     {
+        _origenPrimeraClase = null;
         if (string.Equals(TabInicial, "asistencia", StringComparison.OrdinalIgnoreCase)) _tab = TabLegajo.Asistencia;
+        else if (string.Equals(TabInicial, "inscripcion", StringComparison.OrdinalIgnoreCase)) _tab = TabLegajo.Inscripcion;
         await CargarAsync();
     }
 
