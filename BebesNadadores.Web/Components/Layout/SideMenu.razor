@@ -141,6 +141,10 @@
                             <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.NotificationImportant" /></span>
                             @if (!Collapsed) { <span class="menu-text">Cuotas vencidas</span> }
                         </NavLink>
+                        <NavLink href="/datos-facturacion" class="menu-link" ActiveClass="active" title="Datos de facturación">
+                            <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.AssignmentInd" /></span>
+                            @if (!Collapsed) { <span class="menu-text">Datos de facturación</span> }
+                        </NavLink>
                         <NavLink href="/facturas" class="menu-link" ActiveClass="active" title="Facturas fiscales">
                             <span class="menu-icon"><MudIcon Icon="@Icons.Material.Filled.Receipt" /></span>
                             @if (!Collapsed) { <span class="menu-text">Facturas fiscales</span> }
@@ -274,7 +278,7 @@
         if (ruta.StartsWith("inscripciones/primeras-clases") || ruta.StartsWith("reservas-vacantes") ||
             ruta.StartsWith("alertas-vacantes") || ruta.StartsWith("espera-vacantes"))
             return "inscripciones";
-        if (ruta.StartsWith("pagos") || ruta.StartsWith("caja") || ruta.StartsWith("bancos") || ruta.StartsWith("proveedores"))
+        if (ruta.StartsWith("pagos") || ruta.StartsWith("caja") || ruta.StartsWith("bancos") || ruta.StartsWith("proveedores") || ruta.StartsWith("facturas") || ruta.StartsWith("datos-facturacion") || ruta.EndsWith("/datos-fiscales"))
             return "finanzas";
         if (ruta.StartsWith("profesores") || ruta.StartsWith("aptos-medicos"))
             return "equipo";

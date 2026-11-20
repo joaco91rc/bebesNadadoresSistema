@@ -1,0 +1,70 @@
+@page "/configuracion/facturacion"
+@attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
+@using BebesNadadores.Web.Services.Facturas
+@inject ConfiguracionFiscalService Servicio
+@inject AuthenticationStateProvider Autenticacion
+@inject FacturasService Facturas
+
+<PageTitle>Configuración fiscal | Bebés Nadadores</PageTitle>
+<div class="cfg-fiscal">
+    <a class="cfg-back" href="/configuracion"><MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"/> Volver a Configuración</a>
+    <header class="cfg-header">
+        <div><small>ADMINISTRACIÓN · FACTURACIÓN</small><h1>Configuración fiscal</h1><p>Definí el emisor de las facturas y los criterios para asociarlas a las familias.</p></div>
+        <button type="button" class="cfg-secondary" disabled="@ocupado" @onclick="Cargar"><MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"/> Actualizar</button>
+    </header>
+    @if (error != null) { <div class="cfg-message cfg-error" role="alert">@error</div> }
+    @if (mensaje != null) { <div class="cfg-message cfg-success" role="status">@mensaje</div> }
+    @if (datos != null)
+    {
+        <section class="cfg-panel">
+            <div class="cfg-section-head"><span class="cfg-icon"><MudIcon Icon="@Icons.Material.Filled.Receipt"/></span><div><h2>Datos del emisor</h2><p>El CUIT se utiliza para validar los comprobantes importados de ARCA.</p></div></div>
+            <div class="cfg-grid">
+                <label>Razón social<input type="text" maxlength="200" @bind="datos.RazonSocial" disabled="@ocupado"/><small>Nombre legal del natatorio.</small></label>
+                <label>CUIT emisor<input type="text" inputmode="numeric" maxlength="16" placeholder="XX-XXXXXXXX-X" @bind="datos.CuitEmisor" disabled="@ocupado"/><small>El CUIT del PDF debe coincidir con este número.</small></label>
+                <label class="cfg-full">Correo institucional de referencia<input type="email" maxlength="254" @bind="datos.CorreoInstitucional" disabled="@ocupado"/><small>Dato administrativo. El remitente real y las credenciales SMTP se configuran en n8n; guardarlo aquí no cambia el remitente de los workflows.</small></label>
+            </div>
+        </section>
+        <section class="cfg-panel">
+            <div class="cfg-section-head"><span class="cfg-icon"><MudIcon Icon="@Icons.Material.Filled.Tune"/></span><div><h2>Conciliación automática</h2><p>La asociación automática solo se realiza cuando los datos permiten identificar a los alumnos.</p></div></div>
+            <div class="cfg-rule"><div><strong>Asociar facturas automáticamente</strong><small>Identificar el alumno según el documento fiscal registrado.</small></div><label class="cfg-switch"><input type="checkbox" aria-label="Asociar facturas automáticamente" @bind="datos.AsociacionAutomatica" disabled="@ocupado"/><span></span></label></div>
+            <div class="cfg-rule"><div><strong>Conciliar pagos de hermanos</strong><small>Cuando hay varios alumnos, buscar una combinación única de pagos por el importe real facturado.</small></div><label class="cfg-switch"><input type="checkbox" aria-label="Conciliar pagos de hermanos" @bind="datos.ConciliarHermanos" disabled="@(ocupado || !datos.AsociacionAutomatica)"/><span></span></label></div>
+            <div class="cfg-grid cfg-tolerance"><label>Días anteriores a la emisión<input type="number" min="0" max="30" @bind="datos.DiasTolerancia" disabled="@(ocupado || !datos.AsociacionAutomatica || !datos.ConciliarHermanos)"/><small>0 = mismo día. Hasta 30 días previos. Las coincidencias ambiguas quedan para revisión.</small></label></div>
+        </section>
+        <section class="cfg-panel cfg-communications">
+            <div class="cfg-section-head"><span class="cfg-icon"><MudIcon Icon="@Icons.Material.Filled.Email"/></span><div><h2>Envío de facturas</h2><p>@(envios ? "Envíos automáticos habilitados." : "Envíos automáticos bloqueados.") Gestioná la regla de facturas desde Comunicaciones automáticas.</p><small>Guardar estos datos no activa envíos ni reprocesa facturas anteriores.</small></div></div>
+            <a class="cfg-secondary" href="/configuracion/comunicaciones">Ir a Comunicaciones <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small"/></a>
+        </section>
+        <div class="cfg-footer"><div><small>@(datos.ModificadoUtc.HasValue ? $"Última modificación: {datos.ModificadoUtc.Value.ToOffset(TimeSpan.FromHours(-3)):dd/MM/yyyy HH:mm} (Argentina)" : "Todavía no se guardó la configuración en la base.")</small>@if(datos.ModificadoPor != null){<small>@datos.ModificadoPor</small>}</div><button type="button" class="cfg-primary" disabled="@ocupado" @onclick="Guardar"><MudIcon Icon="@Icons.Material.Filled.Save" Size="Size.Small"/> Guardar configuración</button></div>
+    }
+    else if (ocupado) { <p>Cargando configuración fiscal…</p> }
+</div>
+
+@code {
+    private ConfiguracionFiscalDatos? datos;
+    private bool ocupado, envios;
+    private string? error, mensaje;
+    protected override Task OnInitializedAsync() => Cargar();
+    private async Task Cargar()
+    {
+        ocupado = true; error = mensaje = null;
+        try { datos = await Servicio.ObtenerAsync(); envios = await Facturas.EnviosHabilitadosAsync(); }
+        catch (Exception ex) { datos = null; error = "No se pudo leer la configuración fiscal. Verificá que se haya ejecutado SQL/06_configuracion_fiscal.sql."; System.Diagnostics.Trace.TraceError(ex.ToString()); }
+        finally { ocupado = false; }
+    }
+    private async Task Guardar()
+    {
+        if (ocupado || datos == null) return;
+        ocupado = true; error = mensaje = null;
+        try
+        {
+            var auth = await Autenticacion.GetAuthenticationStateAsync();
+            await Servicio.GuardarAsync(datos, auth.User);
+            datos = await Servicio.ObtenerAsync();
+            mensaje = "Configuración fiscal guardada. Se aplicará a las próximas importaciones sin reiniciar el sistema.";
+        }
+        catch (InvalidOperationException ex) { error = ex.Message; }
+        catch (UnauthorizedAccessException ex) { error = ex.Message; }
+        catch (Exception ex) { error = "No se pudo guardar la configuración fiscal. Actualizá la pantalla antes de reintentar."; System.Diagnostics.Trace.TraceError(ex.ToString()); }
+        finally { ocupado = false; }
+    }
+}

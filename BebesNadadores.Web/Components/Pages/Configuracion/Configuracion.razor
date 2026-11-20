@@ -10,7 +10,8 @@
 
 <div class="settings-page">
     <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
-        <Authorized><a class="settings-communications-card" href="/configuracion/comunicaciones"><span class="settings-communications-icon"><MudIcon Icon="@Icons.Material.Filled.Email"/></span><span><strong>Comunicaciones automáticas</strong><small>Configurá los envíos por correo y consultá su historial.</small></span><MudIcon Icon="@Icons.Material.Filled.ChevronRight"/></a></Authorized>
+        <Authorized><a class="settings-communications-card" href="/configuracion/comunicaciones"><span class="settings-communications-icon"><MudIcon Icon="@Icons.Material.Filled.Email"/></span><span><strong>Comunicaciones automáticas</strong><small>Configurá los envíos por correo y consultá su historial.</small></span><MudIcon Icon="@Icons.Material.Filled.ChevronRight"/></a>
+        <a class="settings-communications-card" href="/configuracion/facturacion"><span class="settings-communications-icon"><MudIcon Icon="@Icons.Material.Filled.Receipt"/></span><span><strong>Facturación fiscal</strong><small>CUIT emisor, datos institucionales y conciliación de pagos.</small></span><MudIcon Icon="@Icons.Material.Filled.ChevronRight"/></a></Authorized>
     </AuthorizeView>
     <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
       <Authorized><div style="padding:10px 0 17px"><a href="/administracion/migracion" style="color:var(--mud-palette-primary);font-weight:700">Migración desde el sistema anterior</a></div></Authorized>

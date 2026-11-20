@@ -60,6 +60,7 @@ try
     builder.Services.AddScoped<TarjetaCumpleanosService>();
     builder.Services.AddScoped<ComunicacionesService>();
     builder.Services.AddScoped<FacturasService>();
+    builder.Services.AddScoped<ConfiguracionFiscalService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Recuperos.RegularizacionHistoricaService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Migracion.MigracionCargaService>();
     builder.Services.AddSingleton<BebesNadadores.Web.Services.Migracion.MigracionEjecucionService>();

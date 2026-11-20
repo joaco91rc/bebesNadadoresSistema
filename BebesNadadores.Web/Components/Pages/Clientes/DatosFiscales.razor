@@ -4,26 +4,89 @@
 @inject FacturasService Servicio
 <PageTitle>Datos fiscales | Bebés Nadadores</PageTitle>
 <div class="fiscal-page">
-<header class="fiscal-header"><div><small>LEGAJO · FACTURACIÓN</small><h1>Datos fiscales</h1><h3>@nombre</h3><p>Registrá los CUIT/CUIL que pueden pagar o recibir facturas de este alumno.</p></div><a href="@($"/clientes/{BebeId}")">Volver al legajo</a></header>
-@if(mensaje!=null){<div class="fiscal-banner">@mensaje</div>}
-@if(nombre!=null){
-<div class="fiscal-panel"><div class="fiscal-toolbar"><h3>Principal y auxiliares</h3><button disabled="@ocupado" @onclick="Nuevo">Agregar CUIT/CUIL</button></div>
-@foreach(var x in filas.OrderByDescending(x=>x.Principal).ThenBy(x=>x.Titular)){
-<div class="identidad-row"><div><strong>@x.Titular</strong><p>@x.Documento · @(x.Principal?"Principal":"Auxiliar")</p><p>@(string.IsNullOrWhiteSpace(x.Email)?"Sin correo":x.Email)</p></div><span class="fiscal-status">@(x.Autorizado?"Autorizado":"Sin autorización")</span><button disabled="@ocupado" @onclick="()=>Editar(x)">Editar</button></div>}
-@if(filas.Count==0){<p>No hay documentos fiscales registrados.</p>}
-</div>
-@if(edicion!=null){<section class="fiscal-dialog"><h3>@(edicion.Id==Guid.Empty?"Nuevo titular":"Editar titular")</h3><label>Nombre o razón social</label><input @bind="edicion.Titular" maxlength="200"/><label>CUIT/CUIL</label><input @bind="edicion.Documento" disabled="@(edicion.Id!=Guid.Empty)" placeholder="11 dígitos"/><label>Correo autorizado de destino</label><input type="email" @bind="edicion.Email" placeholder="Puede ser el correo principal de la familia"/><label><input type="checkbox" @bind="edicion.Principal"/> Titular principal</label><label><input type="checkbox" @bind="edicion.Autorizado"/> Confirmo que este destinatario está autorizado a recibir las facturas de este titular.</label><p>Para retirar un titular, desmarcá la autorización. Los envíos pendientes vuelven a validar el correo antes de salir.</p><div class="fiscal-toolbar"><button disabled="@ocupado" @onclick="()=>edicion=null">Cancelar</button><button disabled="@ocupado" @onclick="Guardar">Guardar</button></div></section>}
-}
+    <header class="fiscal-header"><div><small>LEGAJO · FACTURACIÓN</small><h1>Datos fiscales</h1><h3>@nombre</h3><p>Registrá un CUIT/CUIL principal y los auxiliares. Elegí un responsable del legajo para usar su correo actualizado.</p></div><div class="fiscal-toolbar"><a href="/datos-facturacion">Todos los datos fiscales</a><a href="@($"/clientes/{BebeId}")">Volver al legajo</a></div></header>
+    @if(mensaje!=null){<div class="fiscal-banner" role="alert">@mensaje</div>}
+    @if(ocupado&&nombre==null){<p>Cargando datos…</p>}
+    @if(nombre!=null){
+        <div class="fiscal-panel"><div class="fiscal-toolbar"><h3>Principal y auxiliares</h3><button disabled="@ocupado" @onclick="Nuevo">Agregar CUIT/CUIL</button></div>
+            @foreach(var x in filas.OrderByDescending(x=>x.Principal).ThenBy(x=>x.Titular)){
+                <div class="identidad-row"><div><strong>@x.Titular</strong><p>@x.Documento · @(x.Principal?"Principal":"Auxiliar")</p><p>@(string.IsNullOrWhiteSpace(x.Email)?"Sin correo":x.Email)</p><small>@(x.ResponsableId!=null?"Vinculado al legajo":"Titular manual / externo")</small></div><span class="fiscal-status">@(x.ListoParaFacturar?"Autorizado":"Revisar autorización o correo")</span><button disabled="@ocupado" @onclick="()=>Editar(x)">Editar</button></div>
+            }
+            @if(filas.Count==0){<p>No hay documentos fiscales registrados.</p>}
+        </div>
+        @if(edicion!=null){
+            <section class="fiscal-dialog">
+                <h3>@(edicion.Id==Guid.Empty?"Nuevo titular":"Editar titular")</h3>
+                <label for="responsable-fiscal">Titular fiscal</label>
+                <select id="responsable-fiscal" value="@(edicion.ResponsableId?.ToString()??"externo")" @onchange="CambiarResponsable" disabled="@ocupado">
+                    @if(edicion.ResponsableId!=null && Seleccionado==null){<option value="@edicion.ResponsableId.ToString()">Responsable ya no vinculado</option>}
+                    @foreach(var r in responsables){<option value="@r.Id.ToString()">@r.Nombre · @r.Relacion @(r.Principal?"(Contacto principal)":"") @(!r.Activo?"(Inactivo)":"")</option>}
+                    <option value="externo">Otro titular fiscal / empresa</option>
+                </select>
+                @if(edicion.ResponsableId!=null){
+                    <div class="fiscal-contacto">
+                        <strong>@(Seleccionado?.Nombre??"Responsable no disponible en este legajo")</strong>
+                        <div><small>CORREO DEL LEGAJO</small><p>@(string.IsNullOrWhiteSpace(Seleccionado?.Email)?"Sin correo registrado":Seleccionado?.Email)</p></div>
+                        <p>El correo se actualiza automáticamente desde la ficha del alumno.</p>
+                        @if(Seleccionado==null||!Seleccionado.Activo||!Seleccionado.AutorizaComunicaciones||string.IsNullOrWhiteSpace(Seleccionado.Email)){
+                            <p class="fiscal-aviso">Para autorizar envíos, completá el correo y verificá la autorización de comunicaciones en el legajo.</p>
+                            <a href="@($"/clientes/{BebeId}/editar")">Editar ficha del alumno</a>
+                        }
+                    </div>
+                }else{
+                    <label>Nombre o razón social</label><input @bind="edicion.Titular" maxlength="200"/>
+                    <label>Correo autorizado de destino (titular externo)</label><input type="email" @bind="edicion.Email" placeholder="Correo de facturación"/>
+                }
+                <label>CUIT/CUIL</label><input @bind="edicion.Documento" disabled="@(edicion.Id!=Guid.Empty)" placeholder="11 dígitos"/>
+                <label><input type="checkbox" @bind="edicion.Principal"/> Titular principal</label><small>Si no marcás esta opción, se guarda como CUIT/CUIL auxiliar. Podés registrar varios auxiliares.</small>
+                <label><input type="checkbox" @bind="edicion.Autorizado" disabled="@(edicion.ResponsableId!=null && (Seleccionado==null||!Seleccionado.Activo||!Seleccionado.AutorizaComunicaciones||string.IsNullOrWhiteSpace(Seleccionado.Email)) && !edicion.Autorizado)"/> Confirmo que este destinatario está autorizado a recibir las facturas de este titular.</label>
+                @if(hermanos.Count>0){
+                    <div class="fiscal-panel"><h3>Compartir datos con otros hijos</h3><p>Seleccioná otros legajos que comparten un responsable y para los cuales verificaste la misma identidad fiscal y autorización. No se sobrescriben registros existentes; si ya tienen un titular principal, se conserva.</p>
+                    @foreach(var h in hermanos){<label><input type="checkbox" checked="@copiar.Contains(h.Id)" @onchange="e=>Marcar(h.Id,e.Value is true)"/> @h.Nombre @(h.Activo?"":"(Baja)")</label>}
+                    </div>
+                }
+                <p>Para retirar un titular, desmarcá la autorización. Los envíos pendientes vuelven a validar el correo antes de salir.</p>
+                <div class="fiscal-toolbar"><button disabled="@ocupado" @onclick="()=>edicion=null">Cancelar</button><button disabled="@ocupado" @onclick="Guardar">Guardar</button></div>
+            </section>
+        }
+        <section class="fiscal-panel">
+            <div class="fiscal-toolbar"><h3>Historial de facturas fiscales</h3><a href="/facturas">Ir a facturas</a></div>
+            <p>Las facturas compartidas muestran el importe total del comprobante, no el importe individual de la cuota. No modifican la cuenta corriente.</p>
+            @if(historial.Count==0){<p>No hay facturas asociadas a este alumno.</p>}
+            else{<div class="fiscal-table"><table><thead><tr><th>Comprobante</th><th>Importe total</th><th>Alumnos incluidos</th><th>Estado</th><th></th></tr></thead><tbody>
+                @foreach(var f in historial){<tr><td><strong>@f.Comprobante</strong><small>@f.Fecha.ToString("dd/MM/yyyy")</small></td><td>@f.Importe.ToString("C2",System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</td><td>@foreach(var a in f.Alumnos){<small>@a.Nombre</small>}</td><td>@f.Estado</td><td><a href="@($"/facturas/archivo/{f.Id}")" target="_blank" rel="noopener">PDF</a></td></tr>}
+            </tbody></table></div>}
+        </section>
+    }
 </div>
 @code {
     [Parameter] public Guid BebeId {get;set;}
     private string? nombre,mensaje;
     private bool ocupado;
     private List<IdentidadBebeFiscal> filas=[];
+    private List<AlumnoFiscal> hermanos=[];
+    private List<ResponsableFiscalLegajo> responsables=[];
+    private ResponsableFiscalLegajo? Seleccionado=>responsables.FirstOrDefault(x=>x.Id==edicion?.ResponsableId);
+    private List<FacturaFila> historial=[];
+    private HashSet<Guid> copiar=[];
     private IdentidadBebeFiscal? edicion;
-    protected override async Task OnParametersSetAsync(){edicion=null;await Cargar();}
-    private async Task Cargar(){ocupado=true;try{nombre=await Servicio.NombreBebeAsync(BebeId);filas=nombre==null?[]:await Servicio.IdentidadesAsync(BebeId);if(nombre==null)mensaje="Alumno no encontrado.";}catch{mensaje="No se pudieron cargar los datos fiscales. Verificá el SQL de instalación.";}finally{ocupado=false;}}
-    private void Nuevo()=>edicion=new(){BebeId=BebeId,Principal=!filas.Any(x=>x.Principal)};
-    private void Editar(IdentidadBebeFiscal x)=>edicion=new(){Id=x.Id,BebeId=x.BebeId,Documento=x.Documento,Titular=x.Titular,Email=x.Email,Principal=x.Principal,Autorizado=x.Autorizado};
-    private async Task Guardar(){if(edicion==null)return;ocupado=true;try{await Servicio.GuardarIdentidadAsync(edicion);edicion=null;mensaje="Datos fiscales guardados.";await Cargar();}catch(InvalidOperationException ex){mensaje=ex.Message;}catch{mensaje="No se pudo guardar. Verificá que el documento no esté repetido para este alumno.";}finally{ocupado=false;}}
+    protected override async Task OnParametersSetAsync(){edicion=null;nombre=null;mensaje=null;await Cargar();}
+    private async Task Cargar(){ocupado=true;try{nombre=await Servicio.NombreBebeAsync(BebeId);filas=nombre==null?[]:await Servicio.IdentidadesAsync(BebeId);responsables=nombre==null?[]:await Servicio.ResponsablesLegajoAsync(BebeId);hermanos=[];historial=nombre==null?[]:await Servicio.FacturasAlumnoAsync(BebeId);if(nombre==null)mensaje="Alumno no encontrado.";}catch{mensaje="No se pudieron cargar todos los datos fiscales. Verificá los SQL de instalación.";}finally{ocupado=false;}}
+    private async Task Nuevo(){copiar.Clear();edicion=new(){BebeId=BebeId,Principal=!filas.Any(x=>x.Principal),ResponsableId=responsables.FirstOrDefault(x=>x.Activo)?.Id};await CargarHermanos();}
+    private async Task Editar(IdentidadBebeFiscal x){copiar.Clear();edicion=new(){Id=x.Id,BebeId=x.BebeId,Documento=x.Documento,Titular=x.ResponsableId==null?x.Titular:"",Email=x.ResponsableId==null?x.Email:"",Principal=x.Principal,Autorizado=x.Autorizado,ResponsableId=x.ResponsableId};await CargarHermanos();}
+    private async Task CambiarResponsable(ChangeEventArgs e){
+        if(edicion==null)return;
+        var nuevo=Guid.TryParse(e.Value?.ToString(),out var id)?(Guid?)id:null;
+        if(nuevo==edicion.ResponsableId)return;
+        edicion.ResponsableId=nuevo;edicion.Titular="";edicion.Email="";edicion.Autorizado=false;
+        copiar.Clear();await CargarHermanos();
+    }
+    private async Task CargarHermanos(){
+        ocupado=true;hermanos=[];
+        try{hermanos=await Servicio.HermanosAsync(BebeId,edicion?.ResponsableId);}
+        catch{mensaje="No se pudieron consultar los hermanos del legajo.";}
+        finally{ocupado=false;}
+    }
+    private void Marcar(Guid id,bool valor){if(valor)copiar.Add(id);else copiar.Remove(id);}
+    private async Task Guardar(){if(edicion==null)return;ocupado=true;try{await Servicio.GuardarIdentidadAsync(edicion,copiar);edicion=null;copiar.Clear();mensaje="Datos fiscales guardados. Los registros existentes de otros hijos se conservaron.";await Cargar();}catch(InvalidOperationException ex){mensaje=ex.Message;}catch{mensaje="No se pudo guardar. Verificá que el documento no esté repetido para este alumno.";}finally{ocupado=false;}}
 }

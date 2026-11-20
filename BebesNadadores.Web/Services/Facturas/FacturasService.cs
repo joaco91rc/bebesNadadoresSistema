@@ -26,12 +26,21 @@ public sealed class FacturaFila
     public Guid? ResponsableId {get;set;}
     public Guid? IdentidadBebeId {get;set;}
     public Guid? BebeId {get;set;}
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped] public List<FacturaAlumnoVinculo> Alumnos {get;set;}=[];
     [System.ComponentModel.DataAnnotations.Schema.NotMapped] public bool Vinculada => !string.IsNullOrWhiteSpace(Destinatario) && (ResponsableId!=null || IdentidadBebeId!=null);
     public string? Destinatario {get;set;}
     public string? ResponsableNombre {get;set;}
     public DateTimeOffset? EnviadoUtc {get;set;}
     public bool Contrastada {get;set;}
     [System.ComponentModel.DataAnnotations.Schema.NotMapped] public string Comprobante => $"{Tipo:000} {Punto:00000}-{Numero:00000000}";
+}
+public sealed record AlumnoFiscal(Guid Id,string Nombre,bool Activo);
+public sealed record ResumenFiscalAlumno(Guid Id,string Nombre,bool Activo,List<IdentidadBebeFiscal> Identidades);
+public sealed class FacturaAlumnoVinculo
+{
+    public Guid FacturaId {get;set;}
+    public Guid BebeId {get;set;}
+    public string Nombre {get;set;}="";
 }
 public sealed class IdentidadBebeFiscal
 {
@@ -42,14 +51,32 @@ public sealed class IdentidadBebeFiscal
     public string Email {get;set;}="";
     public bool Principal {get;set;}
     public bool Autorizado {get;set;}
+    public Guid? ResponsableId {get;set;}
+    public bool DestinoAutorizado {get;set;}
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool ListoParaFacturar => DestinoAutorizado && MailAddress.TryCreate(Email,out var direccion) && string.Equals(direccion.Address,Email.Trim(),StringComparison.OrdinalIgnoreCase);
 }
+public sealed record ResponsableFiscalLegajo(Guid Id,string Nombre,string Email,string Relacion,bool Activo,bool AutorizaComunicaciones,bool Principal);
 public sealed record ContactoFiscal(Guid Id,string Nombre,string Documento,string Email);
 public sealed record FilaArca(DateOnly Fecha,string Emisor,string Receptor,string Numero,decimal Importe);
 public sealed record TrabajoFactura(Guid Id,string Destinatario,string Asunto,string Archivo,string PdfBase64);
-public sealed class FacturasService(IDbContextFactory<AppDbContext> factory,IConfiguration config)
+public sealed class FacturasService(IDbContextFactory<AppDbContext> factory,IConfiguration config,ConfiguracionFiscalService configuracionFiscal)
 {
     private static readonly CultureInfo Ar = CultureInfo.GetCultureInfo("es-AR");
-    public bool Habilitado => config.GetValue("Facturas:HabilitarEnvios",false);
+    public bool Habilitado => config.GetValue("Automatizaciones:Habilitadas",false) && config.GetValue("Facturas:HabilitarEnvios",false);
+    public async Task<bool> EnviosHabilitadosAsync()
+    {
+        if(!Habilitado)return false;
+        await using var db=await factory.CreateDbContextAsync();
+        return await EnviosHabilitadosAsync(db);
+    }
+    private async Task<bool> EnviosHabilitadosAsync(AppDbContext db)
+    {
+        if(!Habilitado)return false;
+        return await db.Database.SqlQueryRaw<bool>("""
+            SELECT EXISTS(SELECT 1 FROM "ConfiguracionComunicaciones" WHERE "Tipo"='facturas' AND "Habilitada") AS "Value"
+            """).SingleAsync();
+    }
     static string Digitos(string? s) => Regex.Replace(s ?? "", @"\D", "");
     static string Valor(string texto,string patron)
     {
@@ -138,7 +165,7 @@ public sealed class FacturasService(IDbContextFactory<AppDbContext> factory,ICon
     public async Task<List<IdentidadBebeFiscal>> IdentidadesAsync(Guid bebe)
     {
         await using var db=await factory.CreateDbContextAsync();
-        return await db.Database.SqlQuery<IdentidadBebeFiscal>($"SELECT * FROM \"BebesIdentidadesFiscales\" WHERE \"BebeId\"={bebe}").ToListAsync();
+        return await db.Database.SqlQuery<IdentidadBebeFiscal>($"SELECT * FROM \"BebesIdentidadesFiscalesVigentes\" WHERE \"BebeId\"={bebe}").ToListAsync();
     }
     public async Task<string?> NombreBebeAsync(Guid bebe)
     {
@@ -152,39 +179,212 @@ public sealed class FacturasService(IDbContextFactory<AppDbContext> factory,ICon
         var d=11-Enumerable.Range(0,10).Sum(i=>(doc[i]-'0')*pesos[i])%11;
         return (d==11?0:d)==doc[10]-'0';
     }
-    public async Task GuardarIdentidadAsync(IdentidadBebeFiscal x)
+    public async Task<List<ResumenFiscalAlumno>> ResumenAlumnosAsync()
+    {
+        await using var db=await factory.CreateDbContextAsync();
+        var alumnos=await db.Bebes.AsNoTracking().OrderBy(b=>b.Apellido).ThenBy(b=>b.Nombre)
+            .Select(b=>new AlumnoFiscal(b.Id,b.Apellido+", "+b.Nombre,b.Estado==BebesNadadores.Domain.Enums.EstadoBebe.Activo)).ToListAsync();
+        var identidades=(await db.Database.SqlQueryRaw<IdentidadBebeFiscal>("SELECT * FROM \"BebesIdentidadesFiscalesVigentes\"").ToListAsync()).ToLookup(x=>x.BebeId);
+        return alumnos.Select(a=>new ResumenFiscalAlumno(a.Id,a.Nombre,a.Activo,identidades[a.Id].OrderByDescending(x=>x.Principal).ThenBy(x=>x.Titular).ToList())).ToList();
+    }
+    public async Task<List<ResponsableFiscalLegajo>> ResponsablesLegajoAsync(Guid bebe)
+    {
+        await using var db=await factory.CreateDbContextAsync();
+        var filas=await db.BebesResponsables.AsNoTracking().Where(x=>x.BebeId==bebe)
+            .Select(x=>new {x.ResponsableId,x.Responsable.Nombre,x.Responsable.Apellido,x.Responsable.Email,x.Relacion,x.Responsable.Activo,x.AutorizaComunicaciones,x.EsContactoPrincipal}).ToListAsync();
+        return filas.OrderByDescending(x=>x.EsContactoPrincipal).ThenBy(x=>x.Apellido).Select(x=>new ResponsableFiscalLegajo(x.ResponsableId,(x.Nombre+" "+x.Apellido).Trim(),x.Email??"",x.Relacion.ToString(),x.Activo,x.AutorizaComunicaciones,x.EsContactoPrincipal)).ToList();
+    }
+    public async Task<List<AlumnoFiscal>> HermanosAsync(Guid bebe,Guid? responsable=null)
+    {
+        await using var db=await factory.CreateDbContextAsync();
+        return await db.Bebes.AsNoTracking().Where(b=>b.Id!=bebe && b.Responsables.Any(r=>(responsable==null||r.ResponsableId==responsable) && db.BebesResponsables.Any(o=>o.BebeId==bebe&&o.ResponsableId==r.ResponsableId)))
+            .OrderBy(b=>b.Apellido).ThenBy(b=>b.Nombre).Select(b=>new AlumnoFiscal(b.Id,b.Apellido+", "+b.Nombre,b.Estado==BebesNadadores.Domain.Enums.EstadoBebe.Activo)).ToListAsync();
+    }
+    public async Task GuardarIdentidadAsync(IdentidadBebeFiscal x,IEnumerable<Guid>? copiarA=null)
     {
         var doc=Digitos(x.Documento); var titular=x.Titular.Trim(); var email=x.Email.Trim();
-        if(!CuitValido(doc)||titular.Length==0||titular.Length>200)throw new InvalidOperationException("Ingresá un CUIT/CUIL válido y el nombre del titular.");
-        if((email.Length>0&&!CorreoValido(email))||(x.Autorizado&&email.Length==0))throw new InvalidOperationException("Ingresá un correo válido antes de autorizar envíos.");
+        if(!CuitValido(doc))throw new InvalidOperationException("Ingresá un CUIT/CUIL válido.");
         await using var db=await factory.CreateDbContextAsync();
         await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        if(x.ResponsableId is Guid responsable)
+        {
+            var contacto=await db.BebesResponsables.AsNoTracking().Where(r=>r.BebeId==x.BebeId&&r.ResponsableId==responsable)
+                .Select(r=>new {r.Responsable.Activo,r.AutorizaComunicaciones,r.Responsable.Email,r.Responsable.Nombre,r.Responsable.Apellido}).SingleOrDefaultAsync();
+            // Permitir revocar una identidad existente aunque ya no figure el responsable en el legajo.
+            if(contacto==null && (x.Autorizado || x.Id==Guid.Empty || !await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM \"BebesIdentidadesFiscales\" WHERE \"Id\"={x.Id} AND \"BebeId\"={x.BebeId} AND \"ResponsableId\"={responsable}) AS \"Value\"").SingleAsync()))
+                throw new InvalidOperationException("Seleccioná un responsable del legajo.");
+            if(x.Autorizado && (contacto==null || !contacto.Activo || !contacto.AutorizaComunicaciones || !CorreoValido(contacto.Email)))
+                throw new InvalidOperationException("El responsable debe estar activo, tener correo válido y autorizar comunicaciones en la ficha del alumno.");
+            // La ficha es la única fuente de nombre y correo para un responsable vinculado.
+            titular="";email="";
+        }
+        else
+        {
+            if(titular.Length==0||titular.Length>200)throw new InvalidOperationException("Ingresá el nombre del titular externo.");
+            if((email.Length>0&&!CorreoValido(email))||(x.Autorizado&&email.Length==0))throw new InvalidOperationException("Ingresá un correo válido antes de autorizar envíos.");
+        }
         if(x.Principal)await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"BebesIdentidadesFiscales\" SET \"Principal\"=false WHERE \"BebeId\"={x.BebeId}");
         if(x.Id==Guid.Empty)
-            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"BebesIdentidadesFiscales\" (\"Id\",\"BebeId\",\"Documento\",\"Titular\",\"Email\",\"Principal\",\"Autorizado\") VALUES ({Guid.NewGuid()},{x.BebeId},{doc},{titular},{email},{x.Principal},{x.Autorizado})");
-        else if(await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"BebesIdentidadesFiscales\" SET \"Titular\"={titular},\"Email\"={email},\"Principal\"={x.Principal},\"Autorizado\"={x.Autorizado} WHERE \"Id\"={x.Id} AND \"BebeId\"={x.BebeId} AND \"Documento\"={doc}")!=1)throw new InvalidOperationException("El documento no se puede cambiar; desautorizalo y agregá otro.");
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"BebesIdentidadesFiscales\" (\"Id\",\"BebeId\",\"Documento\",\"Titular\",\"Email\",\"Principal\",\"Autorizado\",\"ResponsableId\") VALUES ({Guid.NewGuid()},{x.BebeId},{doc},{titular},{email},{x.Principal},{x.Autorizado},{x.ResponsableId})");
+        else if(await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"BebesIdentidadesFiscales\" SET \"Titular\"={titular},\"Email\"={email},\"Principal\"={x.Principal},\"Autorizado\"={x.Autorizado},\"ResponsableId\"={x.ResponsableId} WHERE \"Id\"={x.Id} AND \"BebeId\"={x.BebeId} AND \"Documento\"={doc}")!=1)throw new InvalidOperationException("El documento no se puede cambiar; desautorizalo y agregá otro.");
+        foreach(var hermano in (copiarA??Array.Empty<Guid>()).Distinct().Where(id=>id!=x.BebeId))
+        {
+            if(!await db.BebesResponsables.AnyAsync(r=>r.BebeId==hermano && (x.ResponsableId==null||r.ResponsableId==x.ResponsableId) && db.BebesResponsables.Any(o=>o.BebeId==x.BebeId&&o.ResponsableId==r.ResponsableId)))
+                throw new InvalidOperationException("El alumno seleccionado no comparte el responsable requerido con este legajo.");
+            if(x.Autorizado && x.ResponsableId!=null && !await db.BebesResponsables.AnyAsync(r=>r.BebeId==hermano&&r.ResponsableId==x.ResponsableId&&r.AutorizaComunicaciones))
+                throw new InvalidOperationException("El responsable no autoriza comunicaciones en el legajo de uno de los hermanos seleccionados.");
+            // No sobrescribir datos ni autorizaciones preexistentes en el hermano.
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "BebesIdentidadesFiscales" ("Id","BebeId","Documento","Titular","Email","Principal","Autorizado","ResponsableId")
+                VALUES ({Guid.NewGuid()},{hermano},{doc},{titular},{email},
+                    {x.Principal} AND NOT EXISTS (SELECT 1 FROM "BebesIdentidadesFiscales" WHERE "BebeId"={hermano} AND "Principal"),{x.Autorizado},{x.ResponsableId})
+                ON CONFLICT ("BebeId","Documento") DO NOTHING
+                """);
+        }
         await tx.CommitAsync();
     }
-    private async Task<List<IdentidadBebeFiscal>> CoincidenciasBebeAsync(string doc)
+    private static Task<List<IdentidadBebeFiscal>> CoincidenciasBebeAsync(AppDbContext db,string doc)
+        => db.Database.SqlQuery<IdentidadBebeFiscal>($"SELECT * FROM \"BebesIdentidadesFiscalesVigentes\" WHERE \"Documento\"={doc}").ToListAsync();
+    private static bool DestinosCoincidentes(List<IdentidadBebeFiscal> matches) => matches.Count>0 && matches.All(x=>x.ListoParaFacturar) && matches.Select(x=>x.Email.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count()==1;
+    private async Task<List<AlumnoFiscal>> CandidatosAsync(AppDbContext db,string receptor,Guid? identidad,Guid? responsable)
+    {
+        if(identidad!=null)
+        {
+            var coincidencias=await db.Database.SqlQuery<IdentidadBebeFiscal>($"SELECT * FROM \"BebesIdentidadesFiscalesVigentes\" WHERE \"Documento\"={receptor}").ToListAsync();
+            var ids=coincidencias.Select(x=>x.BebeId).Distinct().ToArray();
+            return await db.Bebes.AsNoTracking().Where(b=>ids.Contains(b.Id)).OrderBy(b=>b.Apellido).ThenBy(b=>b.Nombre)
+                .Select(b=>new AlumnoFiscal(b.Id,b.Apellido+", "+b.Nombre,b.Estado==BebesNadadores.Domain.Enums.EstadoBebe.Activo)).ToListAsync();
+        }
+        if(responsable==null)return [];
+        return await db.Bebes.AsNoTracking().Where(b=>b.Responsables.Any(r=>r.ResponsableId==responsable && r.AutorizaComunicaciones))
+            .OrderBy(b=>b.Apellido).ThenBy(b=>b.Nombre).Select(b=>new AlumnoFiscal(b.Id,b.Apellido+", "+b.Nombre,b.Estado==BebesNadadores.Domain.Enums.EstadoBebe.Activo)).ToListAsync();
+    }
+    public async Task<List<AlumnoFiscal>> CandidatosFacturaAsync(Guid id)
     {
         await using var db=await factory.CreateDbContextAsync();
-        return await db.Database.SqlQuery<IdentidadBebeFiscal>($"SELECT * FROM \"BebesIdentidadesFiscales\" WHERE \"Documento\"={doc}").ToListAsync();
+        var f=await LeerFacturaAsync(db,id)??throw new InvalidOperationException("Factura no encontrada.");
+        return await CandidatosAsync(db,f.Receptor,f.IdentidadBebeId,f.ResponsableId);
     }
-    private async Task<bool> DestinoVigenteAsync(FacturaFila f)
+    private static async Task ReemplazarAlumnosAsync(AppDbContext db,Guid factura,IEnumerable<Guid> alumnos)
     {
+        var ids=alumnos.Distinct().ToArray();
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"FacturasFiscalesBebes\" WHERE \"FacturaId\"={factura}");
+        foreach(var id in ids)
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"FacturasFiscalesBebes\" (\"FacturaId\",\"BebeId\") VALUES ({factura},{id})");
+        Guid? unico=ids.Length==1?ids[0]:null;
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"BebeId\"={unico} WHERE \"Id\"={factura}");
+    }
+    // El pago conserva el importe efectivamente cobrado (incluido cualquier descuento).
+    // No adivinar por tarifa vigente, orden de importación ni cantidad de hermanos.
+    private async Task<bool> AsociarAutomaticamenteAsync(AppDbContext db,Guid factura,string receptor,
+        Guid? identidad,Guid? responsable,DateOnly fecha,decimal importe,ConfiguracionFiscalDatos? ajustes=null)
+    {
+        ajustes ??= await configuracionFiscal.ObtenerAsync(db);
+        if(!ajustes.AsociacionAutomatica)return false;
+        var opciones=await CandidatosAsync(db,receptor,identidad,responsable);
+        if(opciones.Count==1)
+        {
+            await ReemplazarAlumnosAsync(db,factura,new[]{opciones[0].Id});
+            return true;
+        }
+        if(opciones.Count<2 || importe<=0 || !ajustes.ConciliarHermanos)return false;
+        var ids=opciones.Select(x=>x.Id).ToArray();
+        // Día de emisión y días anteriores permitidos, en Argentina; no usar la fecha UTC directamente.
+        var inicio=new DateTimeOffset(fecha.ToDateTime(TimeOnly.MinValue),TimeSpan.FromHours(-3)).ToUniversalTime();
+        var fin=inicio.AddDays(1);
+        inicio=inicio.AddDays(-ajustes.DiasTolerancia);
+        var pagos=await db.Pagos.AsNoTracking()
+            .Where(p=>ids.Contains(p.BebeId) && p.AnuladoUtc==null && p.Importe>0 && p.FechaUtc>=inicio && p.FechaUtc<fin)
+            .OrderBy(p=>p.Id).Select(p=>new PagoFiscalCandidato(p.Id,p.BebeId,p.Importe)).Take(19).ToListAsync();
+        var coincidencia=ConciliadorFacturas.BuscarUnica(pagos,importe);
+        if(coincidencia==null)return false;
+        var pagosIds=coincidencia.Select(p=>p.Id).ToArray();
+        // No usar una segunda factura para el mismo pago; no eliminar pagos ya usados
+        // de la búsqueda porque convertiría una ambigüedad en una falsa coincidencia.
+        var usados=await db.Database.SqlQuery<Guid>($"""
+            SELECT "PagoId" AS "Value" FROM "FacturasFiscalesPagos"
+            WHERE "PagoId"=ANY({pagosIds}) AND "FacturaId"<>{factura}
+            """).ToListAsync();
+        if(usados.Count>0)return false;
+        await ReemplazarAlumnosAsync(db,factura,coincidencia.Select(p=>p.BebeId));
+        foreach(var pago in coincidencia)
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "FacturasFiscalesPagos" ("FacturaId","PagoId") VALUES ({factura},{pago.Id})
+                ON CONFLICT ("PagoId") DO NOTHING
+                """);
+        // Una importación concurrente puede haber reservado un pago de otro CUIT.
+        // Si ocurrió, revertimos toda la asociación de esta factura.
+        var reservados=await db.Database.SqlQuery<Guid>($"""
+            SELECT "PagoId" AS "Value" FROM "FacturasFiscalesPagos" WHERE "FacturaId"={factura}
+            """).ToListAsync();
+        if(pagosIds.Any(id=>!reservados.Contains(id)))
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"FacturasFiscalesPagos\" WHERE \"FacturaId\"={factura}");
+            await ReemplazarAlumnosAsync(db,factura,Array.Empty<Guid>());
+            return false;
+        }
+        return true;
+    }
+    public async Task GuardarAlumnosFacturaAsync(Guid factura,IEnumerable<Guid> alumnos)
+    {
+        var ids=alumnos.Distinct().ToArray();
+        if(ids.Length==0)throw new InvalidOperationException("Seleccioná al menos un alumno incluido en este comprobante.");
+        await using var db=await factory.CreateDbContextAsync();
+        await using var tx=await db.Database.BeginTransactionAsync();
+        var f=await LeerFacturaAsync(db,factura,true)??throw new InvalidOperationException("Factura no encontrada.");
+        if(f.Estado is not ("Pendiente" or "Enviado" or "Error") || !f.Vinculada)
+            throw new InvalidOperationException("La factura no tiene un destinatario identificado o está en proceso de envío.");
+        var opciones=await CandidatosAsync(db,f.Receptor,f.IdentidadBebeId,f.ResponsableId);
+        if(ids.Any(id=>!opciones.Any(a=>a.Id==id)))throw new InvalidOperationException("Hay alumnos que no corresponden al titular fiscal de esta factura.");
+        if(!ids.ToHashSet().SetEquals(f.Alumnos.Select(a=>a.BebeId)))
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"FacturasFiscalesPagos\" WHERE \"FacturaId\"={factura}");
+        await ReemplazarAlumnosAsync(db,factura,ids);
+        await tx.CommitAsync();
+    }
+    private async Task<bool> DestinoVigenteAsync(AppDbContext db,FacturaFila f)
+    {
+        if(f.Alumnos.Count==0)return false;
+        var candidatos=await CandidatosAsync(db,f.Receptor,f.IdentidadBebeId,f.ResponsableId);
+        if(f.Alumnos.Any(a=>!candidatos.Any(c=>c.Id==a.BebeId)))return false;
+        var evidencia=await db.Database.SqlQuery<Guid>($"""
+            SELECT "PagoId" AS "Value" FROM "FacturasFiscalesPagos" WHERE "FacturaId"={f.Id}
+            """).ToListAsync();
+        if(evidencia.Count>0)
+        {
+            var pagos=await db.Pagos.AsNoTracking().Where(p=>evidencia.Contains(p.Id) && p.AnuladoUtc==null)
+                .Select(p=>new {p.BebeId,p.Importe}).ToListAsync();
+            if(pagos.Count!=evidencia.Count || pagos.Sum(p=>p.Importe)!=f.Importe ||
+                !pagos.Select(p=>p.BebeId).ToHashSet().SetEquals(f.Alumnos.Select(a=>a.BebeId)))return false;
+        }
+        return await ActualizarDestinoVigenteAsync(db,f);
+    }
+    // Sólo modifica la proyección en memoria. Se persiste al encolar o entregar a n8n,
+    // nunca se sobreescribe el destinatario histórico de una factura enviada.
+    private static async Task<bool> ActualizarDestinoVigenteAsync(AppDbContext db,FacturaFila f)
+    {
+        var matches=await CoincidenciasBebeAsync(db,f.Receptor);
         if(f.IdentidadBebeId!=null)
         {
-            var matches=await CoincidenciasBebeAsync(f.Receptor);
-            return matches.Any(x=>x.Id==f.IdentidadBebeId && x.Autorizado && CorreoValido(x.Email) && x.Email==f.Destinatario)
-                && matches.All(x=>x.Autorizado && CorreoValido(x.Email) && string.Equals(x.Email,f.Destinatario,StringComparison.OrdinalIgnoreCase));
+            var titular=matches.SingleOrDefault(x=>x.Id==f.IdentidadBebeId);
+            if(titular==null||!DestinosCoincidentes(matches))return false;
+            if(f.Alumnos.Any(a=>!matches.Any(x=>x.BebeId==a.BebeId&&x.DestinoAutorizado)))return false;
+            f.Destinatario=titular.Email.Trim(); f.ResponsableNombre=titular.Titular;
+            return true;
         }
-        return !(await CoincidenciasBebeAsync(f.Receptor)).Any() && (await ContactosAsync()).Any(c=>c.Id==f.ResponsableId && c.Email==f.Destinatario);
+        if(matches.Count!=0||f.ResponsableId==null)return false;
+        // Compatibilidad con relaciones fiscales previas a los datos fiscales por alumno.
+        var contacto=await db.Responsables.AsNoTracking().Where(r=>r.Id==f.ResponsableId&&r.Activo&&r.Bebes.Any(b=>b.AutorizaComunicaciones))
+            .Select(r=>new {r.Email,r.Nombre,r.Apellido}).SingleOrDefaultAsync();
+        if(contacto==null||!CorreoValido(contacto.Email)||!string.Equals(contacto.Email.Trim(),f.Destinatario,StringComparison.OrdinalIgnoreCase))return false;
+        return true;
     }
     public async Task<string> ImportarAsync(byte[] pdf,List<FilaArca>? listado)
     {
         var d=LeerPdf(pdf);
-        var emisorPermitido=Digitos(config["Facturas:CuitEmisor"]);
-        if(emisorPermitido.Length!=11 || d.Emisor!=emisorPermitido)throw new InvalidDataException("CUIT emisor no habilitado. Configurá Facturas:CuitEmisor.");
+        var ajustes=await configuracionFiscal.ObtenerAsync();
+        var emisorPermitido=ajustes.CuitEmisor;
+        if(!ConfiguracionFiscalService.CuitValido(emisorPermitido))throw new InvalidDataException("Configurá un CUIT emisor válido en Configuración > Facturación fiscal.");
+        if(d.Emisor!=emisorPermitido)throw new InvalidDataException("El CUIT emisor del PDF no coincide con el configurado.");
         var contrastada=false;
         if(listado!=null)
         {
@@ -199,57 +399,139 @@ public sealed class FacturasService(IDbContextFactory<AppDbContext> factory,ICon
         var todos=await db.Responsables.AsNoTracking().Select(r=>new {r.Id,r.Dni}).ToListAsync();
         var candidatos=todos.Where(r=>Digitos(r.Dni)==d.Receptor || ids.Contains(r.Id) || (dni!=null && (Digitos(r.Dni).Length is 7 or 8) && Digitos(r.Dni).TrimStart('0')==dni)).Select(r=>r.Id).Distinct().ToList();
         var c=candidatos.Count==1?contactos.SingleOrDefault(c=>c.Id==candidatos[0]):null;
-        var fiscales=await CoincidenciasBebeAsync(d.Receptor);
-        var fiscal=fiscales.Count>0 && fiscales.All(x=>x.Autorizado&&CorreoValido(x.Email)) && fiscales.Select(x=>x.Email.ToUpperInvariant()).Distinct().Count()==1 ? fiscales.OrderBy(x=>x.Id).First() : null;
+        var fiscales=await CoincidenciasBebeAsync(db,d.Receptor);
+        var fiscal=DestinosCoincidentes(fiscales) ? fiscales.OrderBy(x=>x.Id).First() : null;
         if(fiscales.Count>0)c=null;
-        Guid? bebeFiscal=fiscal!=null && fiscales.Select(x=>x.BebeId).Distinct().Count()==1 ? fiscal.BebeId : null;
+        Guid? bebeFiscal=ajustes.AsociacionAutomatica && fiscal!=null && fiscales.Select(x=>x.BebeId).Distinct().Count()==1 ? fiscal.BebeId : null;
         var id=Guid.NewGuid(); var hash=Convert.ToHexString(SHA256.HashData(pdf));
+        await using var tx=await db.Database.BeginTransactionAsync();
         var nfilas=await db.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO "FacturasFiscales" ("Id","Emisor","Tipo","Punto","Numero","Receptor","Fecha","Importe","Cae","Pdf","Hash","ResponsableId","Destinatario","ResponsableNombre","Contrastada","IdentidadBebeId","BebeId")
             VALUES ({id},{d.Emisor},{d.Tipo},{d.Punto},{d.Numero},{d.Receptor},{d.Fecha},{d.Importe},{d.Cae},{pdf},{hash},{c?.Id},{fiscal?.Email??c?.Email},{fiscal?.Titular??c?.Nombre},{contrastada},{fiscal?.Id},{bebeFiscal}) ON CONFLICT ("Emisor","Tipo","Punto","Numero") DO NOTHING
             """);
-        if(nfilas==1)return "Importada";
+        if(nfilas==1)
+        {
+            var asociada=await AsociarAutomaticamenteAsync(db,id,d.Receptor,fiscal?.Id,c?.Id,d.Fecha,d.Importe,ajustes);
+            // Sólo las importaciones contrastadas con Excel/CSV pueden entrar automáticamente.
+            // Sin habilitación, quedan pendientes (no se libera un lote histórico al activar).
+            bool encolada=asociada && contrastada && d.Importe>0 && Habilitado && await EncolarUnaAsync(db,id);
+            await tx.CommitAsync();
+            if(encolada)return "Importada, asociada y en cola de envío";
+            return asociada ? "Importada y asociada automáticamente (pendiente de envío)" : "Importada: requiere revisión de datos fiscales o pagos";
+        }
+        await tx.CommitAsync();
         var hashes=await db.Database.SqlQuery<string>($"SELECT \"Hash\" AS \"Value\" FROM \"FacturasFiscales\" WHERE \"Emisor\"={d.Emisor} AND \"Tipo\"={d.Tipo} AND \"Punto\"={d.Punto} AND \"Numero\"={d.Numero}").ToListAsync();
         return hashes.Count==1&&hashes[0]==hash?"Ya importada (mismo archivo)":"Comprobante ya existente con PDF diferente: revisar. No se reemplazó.";
+    }
+    private const string ColumnasFactura="""
+        SELECT "Id","Emisor","Tipo","Punto","Numero","Receptor","Fecha","Importe","Cae","Estado","ResponsableId","Destinatario","ResponsableNombre","EnviadoUtc","Contrastada","IdentidadBebeId","BebeId" FROM "FacturasFiscales"
+        """;
+    private static async Task CargarAlumnosAsync(AppDbContext db,List<FacturaFila> filas)
+    {
+        if(filas.Count==0)return;
+        var ids=filas.Select(f=>f.Id).ToArray();
+        var alumnos=await db.Database.SqlQuery<FacturaAlumnoVinculo>($"""
+            SELECT v."FacturaId",v."BebeId",b."Apellido" || ', ' || b."Nombre" AS "Nombre"
+            FROM "FacturasFiscalesBebes" v JOIN "Bebes" b ON b."Id"=v."BebeId"
+            WHERE v."FacturaId"=ANY({ids}) ORDER BY b."Apellido",b."Nombre"
+            """).ToListAsync();
+        var lookup=alumnos.ToLookup(a=>a.FacturaId);
+        foreach(var f in filas)f.Alumnos=lookup[f.Id].ToList();
+    }
+    private static async Task<FacturaFila?> LeerFacturaAsync(AppDbContext db,Guid id,bool bloquear=false)
+    {
+        var filas= bloquear
+            ? await db.Database.SqlQueryRaw<FacturaFila>(ColumnasFactura+" WHERE \"Id\"={0} FOR UPDATE",id).ToListAsync()
+            : await db.Database.SqlQueryRaw<FacturaFila>(ColumnasFactura+" WHERE \"Id\"={0}",id).ToListAsync();
+        await CargarAlumnosAsync(db,filas);
+        return filas.SingleOrDefault();
     }
     public async Task<List<FacturaFila>> ListarAsync()
     {
         await using var db=await factory.CreateDbContextAsync();
-        return await db.Database.SqlQueryRaw<FacturaFila>("""SELECT "Id","Emisor","Tipo","Punto","Numero","Receptor","Fecha","Importe","Cae","Estado","ResponsableId","Destinatario","ResponsableNombre","EnviadoUtc","Contrastada","IdentidadBebeId","BebeId" FROM "FacturasFiscales" ORDER BY "Fecha" DESC,"Numero" DESC LIMIT 2000""").ToListAsync();
+        var filas=await db.Database.SqlQueryRaw<FacturaFila>(ColumnasFactura+" ORDER BY \"Fecha\" DESC,\"Numero\" DESC LIMIT 2000").ToListAsync();
+        await CargarAlumnosAsync(db,filas);
+        var pendientes=filas.Where(f=>f.Estado is "Pendiente" or "EnCola").Where(f=>f.IdentidadBebeId!=null).ToList();
+        if(pendientes.Count>0)
+        {
+            var docs=pendientes.Select(f=>f.Receptor).Distinct().ToArray();
+            var lookup=(await db.Database.SqlQuery<IdentidadBebeFiscal>($"SELECT * FROM \"BebesIdentidadesFiscalesVigentes\" WHERE \"Documento\"=ANY({docs})").ToListAsync()).ToLookup(x=>x.Documento);
+            foreach(var f in pendientes)
+            {
+                var matches=lookup[f.Receptor].ToList(); var titular=matches.SingleOrDefault(x=>x.Id==f.IdentidadBebeId);
+                if(titular!=null&&DestinosCoincidentes(matches)){f.Destinatario=titular.Email.Trim();f.ResponsableNombre=titular.Titular;}
+                else{f.Destinatario=null;f.ResponsableNombre=null;}
+            }
+        }
+        return filas;
+    }
+    public async Task<List<FacturaFila>> FacturasAlumnoAsync(Guid bebe)
+    {
+        await using var db=await factory.CreateDbContextAsync();
+        var filas=await db.Database.SqlQueryRaw<FacturaFila>(ColumnasFactura+" WHERE \"Id\" IN (SELECT \"FacturaId\" FROM \"FacturasFiscalesBebes\" WHERE \"BebeId\"={0}) ORDER BY \"Fecha\" DESC,\"Numero\" DESC",bebe).ToListAsync();
+        await CargarAlumnosAsync(db,filas);
+        return filas;
     }
     public async Task VincularAsync(Guid factura,Guid responsable,bool recordar)
     {
         var c=(await ContactosAsync()).SingleOrDefault(x=>x.Id==responsable)??throw new InvalidOperationException("Contacto sin correo autorizado.");
         await using var db=await factory.CreateDbContextAsync();
         await using var tx=await db.Database.BeginTransactionAsync();
-        var docs=await db.Database.SqlQuery<string>($"SELECT \"Receptor\" AS \"Value\" FROM \"FacturasFiscales\" WHERE \"Id\"={factura} AND \"Estado\"='Pendiente'").ToListAsync();
+        var docs=await db.Database.SqlQuery<string>($"SELECT \"Receptor\" AS \"Value\" FROM \"FacturasFiscales\" WHERE \"Id\"={factura} AND \"Estado\"='Pendiente' FOR UPDATE").ToListAsync();
         if(docs.Count!=1)throw new InvalidOperationException("La factura no está pendiente.");
-        if((await CoincidenciasBebeAsync(docs[0])).Count>0)throw new InvalidOperationException("Este CUIT/CUIL está registrado en Datos fiscales. Revisá los titulares y usá Buscar CUIT/CUIL.");
+        if((await CoincidenciasBebeAsync(db,docs[0])).Count>0)throw new InvalidOperationException("Este CUIT/CUIL está registrado en Datos fiscales. Revisá los titulares y usá Buscar CUIT/CUIL.");
         if(recordar)await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"IdentidadesFiscales\" (\"Documento\",\"ResponsableId\") VALUES ({docs[0]},{responsable}) ON CONFLICT DO NOTHING");
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"IdentidadBebeId\"=NULL,\"BebeId\"=NULL,\"ResponsableId\"={responsable},\"Destinatario\"={c.Email},\"ResponsableNombre\"={c.Nombre} WHERE \"Id\"={factura} AND \"Estado\"='Pendiente'");
+        var f=await LeerFacturaAsync(db,factura);
+        if(f!=null)await RevalidarAlumnosAsync(db,f,null,responsable);
         await tx.CommitAsync();
     }
     public async Task ReidentificarAsync(Guid id)
     {
         await using var db=await factory.CreateDbContextAsync();
-        var f=(await ListarAsync()).SingleOrDefault(x=>x.Id==id && x.Estado=="Pendiente")??throw new InvalidOperationException("Factura no pendiente.");
-        var m=await CoincidenciasBebeAsync(f.Receptor);
-        if(m.Count==0 || m.Any(x=>!x.Autorizado||!CorreoValido(x.Email)) || m.Select(x=>x.Email.ToUpperInvariant()).Distinct().Count()!=1)throw new InvalidOperationException("No hay una coincidencia fiscal autorizada e inequívoca.");
+        await using var tx=await db.Database.BeginTransactionAsync();
+        var f=await LeerFacturaAsync(db,id,true);
+        if(f==null||f.Estado!="Pendiente")throw new InvalidOperationException("Factura no pendiente.");
+        var m=await CoincidenciasBebeAsync(db,f.Receptor);
+        if(!DestinosCoincidentes(m))throw new InvalidOperationException("No hay una coincidencia fiscal autorizada e inequívoca.");
         var x=m.OrderBy(x=>x.Id).First(); Guid? bebe=m.Select(x=>x.BebeId).Distinct().Count()==1?x.BebeId:null;
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"IdentidadBebeId\"={x.Id},\"BebeId\"={bebe},\"ResponsableId\"=NULL,\"Destinatario\"={x.Email},\"ResponsableNombre\"={x.Titular} WHERE \"Id\"={id} AND \"Estado\"='Pendiente'");
+        await RevalidarAlumnosAsync(db,f,x.Id,null);
+        await tx.CommitAsync();
+    }
+    private async Task RevalidarAlumnosAsync(AppDbContext db,FacturaFila f,Guid? identidad,Guid? responsable)
+    {
+        var candidatos=await CandidatosAsync(db,f.Receptor,identidad,responsable);
+        if(f.Alumnos.Count>0 && f.Alumnos.All(a=>candidatos.Any(c=>c.Id==a.BebeId)))
+        {
+            await ReemplazarAlumnosAsync(db,f.Id,f.Alumnos.Select(a=>a.BebeId));
+            return;
+        }
+        await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"FacturasFiscalesPagos\" WHERE \"FacturaId\"={f.Id}");
+        await ReemplazarAlumnosAsync(db,f.Id,Array.Empty<Guid>());
+        await AsociarAutomaticamenteAsync(db,f.Id,f.Receptor,identidad,responsable,f.Fecha,f.Importe);
     }
     public async Task<int> EncolarAsync(IEnumerable<Guid> ids)
     {
-        if(!Habilitado)return 0;
-        var facturas=await ListarAsync(); int total=0;
-        await using var db=await factory.CreateDbContextAsync();
-        foreach(var id in ids.Distinct())
-        {
-            var f=facturas.FirstOrDefault(x=>x.Id==id);
-            if(f==null || !await DestinoVigenteAsync(f))continue;
-            total+=await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"Estado\"='EnCola' WHERE \"Id\"={id} AND \"Estado\"='Pendiente' AND \"ResponsableId\" IS NOT DISTINCT FROM {f.ResponsableId} AND \"IdentidadBebeId\" IS NOT DISTINCT FROM {f.IdentidadBebeId} AND \"Destinatario\"={f.Destinatario}");
-        }
+        if(!await EnviosHabilitadosAsync())return 0;
+        int total=0;
+        foreach(var id in ids.Distinct())if(await EncolarUnaAsync(id))total++;
         return total;
+    }
+    private async Task<bool> EncolarUnaAsync(Guid id)
+    {
+        await using var db=await factory.CreateDbContextAsync();
+        await using var tx=await db.Database.BeginTransactionAsync();
+        var resultado=await EncolarUnaAsync(db,id);
+        await tx.CommitAsync();
+        return resultado;
+    }
+    private async Task<bool> EncolarUnaAsync(AppDbContext db,Guid id)
+    {
+        if(!await EnviosHabilitadosAsync(db))return false;
+        var f=await LeerFacturaAsync(db,id,true);
+        if(f==null || f.Estado!="Pendiente" || !await DestinoVigenteAsync(db,f))return false;
+        return (await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"Estado\"='EnCola',\"Destinatario\"={f.Destinatario},\"ResponsableNombre\"={f.ResponsableNombre} WHERE \"Id\"={id} AND \"Estado\"='Pendiente' AND \"ResponsableId\" IS NOT DISTINCT FROM {f.ResponsableId} AND \"IdentidadBebeId\" IS NOT DISTINCT FROM {f.IdentidadBebeId} AND EXISTS (SELECT 1 FROM \"FacturasFiscalesBebes\" WHERE \"FacturaId\"={id}) AND EXISTS (SELECT 1 FROM \"ConfiguracionComunicaciones\" WHERE \"Tipo\"='facturas' AND \"Habilitada\")"))==1;
     }
     public async Task<byte[]?> PdfAsync(Guid id)
     {
@@ -261,12 +543,17 @@ public sealed class FacturasService(IDbContextFactory<AppDbContext> factory,ICon
         if(!Habilitado)return null;
         await using var db=await factory.CreateDbContextAsync();
         var ids=await db.Database.SqlQueryRaw<Guid>("""
-            UPDATE "FacturasFiscales" SET "Estado"='EnProceso' WHERE "Id"=(SELECT "Id" FROM "FacturasFiscales" WHERE "Estado"='EnCola' ORDER BY "Fecha","Numero" LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING "Id" AS "Value"
+            UPDATE "FacturasFiscales" SET "Estado"='EnProceso' WHERE "Id"=(SELECT "Id" FROM "FacturasFiscales" WHERE "Estado"='EnCola' AND EXISTS (SELECT 1 FROM "ConfiguracionComunicaciones" WHERE "Tipo"='facturas' AND "Habilitada") ORDER BY "Fecha","Numero" LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING "Id" AS "Value"
             """).ToListAsync();
         if(ids.Count==0)return null;
-        var id=ids[0]; var f=(await ListarAsync()).FirstOrDefault(x=>x.Id==id);
-        if(f==null || !await DestinoVigenteAsync(f)) {await ResultadoAsync(id,false);return null;}
+        var id=ids[0]; var f=await LeerFacturaAsync(db,id);
+        if(f==null || !await DestinoVigenteAsync(db,f))
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"Estado\"='Pendiente' WHERE \"Id\"={id} AND \"Estado\"='EnProceso'");
+            return null;
+        }
         var pdf=await PdfAsync(id); if(pdf==null){await ResultadoAsync(id,false);return null;}
+        if(await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"FacturasFiscales\" SET \"Destinatario\"={f.Destinatario},\"ResponsableNombre\"={f.ResponsableNombre} WHERE \"Id\"={id} AND \"Estado\"='EnProceso'")!=1)return null;
         return new(id,f.Destinatario!, $"Bebés Nadadores - Factura {f.Comprobante}", $"Factura_{f.Punto:00000}_{f.Numero:00000000}.pdf",Convert.ToBase64String(pdf));
     }
     public async Task ResultadoAsync(Guid id,bool enviado)

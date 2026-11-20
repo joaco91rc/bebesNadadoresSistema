@@ -37,6 +37,7 @@ public sealed class ComunicacionesService(
     TarjetaCumpleanosService cumpleanos)
 {
     public static readonly string[] Tipos = ["ausencias", "pagos", "morosos", "cumpleanos", "recuperos"];
+    public static readonly string[] TiposConfigurables = [.. Tipos, "facturas"];
     public bool HabilitadaGlobal => config.GetValue("Automatizaciones:Habilitadas", false);
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
     private sealed record Candidato(Guid BebeId, string Clave, string Asunto, string Mensaje, Guid? PagoId = null, bool Cumple = false);
@@ -48,7 +49,7 @@ public sealed class ComunicacionesService(
     }
     public async Task CambiarAsync(string tipo, bool habilitada, CancellationToken ct = default)
     {
-        if (!Tipos.Contains(tipo)) throw new ArgumentException("Tipo inválido.");
+        if (!TiposConfigurables.Contains(tipo)) throw new ArgumentException("Tipo inválido.");
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE "ConfiguracionComunicaciones" SET "Habilitada"={habilitada},
