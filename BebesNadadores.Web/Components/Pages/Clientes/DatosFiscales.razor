@@ -1,0 +1,29 @@
+@page "/clientes/{BebeId:guid}/datos-fiscales"
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
+@using BebesNadadores.Web.Services.Facturas
+@inject FacturasService Servicio
+<PageTitle>Datos fiscales | Bebés Nadadores</PageTitle>
+<div class="fiscal-page">
+<header class="fiscal-header"><div><small>LEGAJO · FACTURACIÓN</small><h1>Datos fiscales</h1><h3>@nombre</h3><p>Registrá los CUIT/CUIL que pueden pagar o recibir facturas de este alumno.</p></div><a href="@($"/clientes/{BebeId}")">Volver al legajo</a></header>
+@if(mensaje!=null){<div class="fiscal-banner">@mensaje</div>}
+@if(nombre!=null){
+<div class="fiscal-panel"><div class="fiscal-toolbar"><h3>Principal y auxiliares</h3><button disabled="@ocupado" @onclick="Nuevo">Agregar CUIT/CUIL</button></div>
+@foreach(var x in filas.OrderByDescending(x=>x.Principal).ThenBy(x=>x.Titular)){
+<div class="identidad-row"><div><strong>@x.Titular</strong><p>@x.Documento · @(x.Principal?"Principal":"Auxiliar")</p><p>@(string.IsNullOrWhiteSpace(x.Email)?"Sin correo":x.Email)</p></div><span class="fiscal-status">@(x.Autorizado?"Autorizado":"Sin autorización")</span><button disabled="@ocupado" @onclick="()=>Editar(x)">Editar</button></div>}
+@if(filas.Count==0){<p>No hay documentos fiscales registrados.</p>}
+</div>
+@if(edicion!=null){<section class="fiscal-dialog"><h3>@(edicion.Id==Guid.Empty?"Nuevo titular":"Editar titular")</h3><label>Nombre o razón social</label><input @bind="edicion.Titular" maxlength="200"/><label>CUIT/CUIL</label><input @bind="edicion.Documento" disabled="@(edicion.Id!=Guid.Empty)" placeholder="11 dígitos"/><label>Correo autorizado de destino</label><input type="email" @bind="edicion.Email" placeholder="Puede ser el correo principal de la familia"/><label><input type="checkbox" @bind="edicion.Principal"/> Titular principal</label><label><input type="checkbox" @bind="edicion.Autorizado"/> Confirmo que este destinatario está autorizado a recibir las facturas de este titular.</label><p>Para retirar un titular, desmarcá la autorización. Los envíos pendientes vuelven a validar el correo antes de salir.</p><div class="fiscal-toolbar"><button disabled="@ocupado" @onclick="()=>edicion=null">Cancelar</button><button disabled="@ocupado" @onclick="Guardar">Guardar</button></div></section>}
+}
+</div>
+@code {
+    [Parameter] public Guid BebeId {get;set;}
+    private string? nombre,mensaje;
+    private bool ocupado;
+    private List<IdentidadBebeFiscal> filas=[];
+    private IdentidadBebeFiscal? edicion;
+    protected override async Task OnParametersSetAsync(){edicion=null;await Cargar();}
+    private async Task Cargar(){ocupado=true;try{nombre=await Servicio.NombreBebeAsync(BebeId);filas=nombre==null?[]:await Servicio.IdentidadesAsync(BebeId);if(nombre==null)mensaje="Alumno no encontrado.";}catch{mensaje="No se pudieron cargar los datos fiscales. Verificá el SQL de instalación.";}finally{ocupado=false;}}
+    private void Nuevo()=>edicion=new(){BebeId=BebeId,Principal=!filas.Any(x=>x.Principal)};
+    private void Editar(IdentidadBebeFiscal x)=>edicion=new(){Id=x.Id,BebeId=x.BebeId,Documento=x.Documento,Titular=x.Titular,Email=x.Email,Principal=x.Principal,Autorizado=x.Autorizado};
+    private async Task Guardar(){if(edicion==null)return;ocupado=true;try{await Servicio.GuardarIdentidadAsync(edicion);edicion=null;mensaje="Datos fiscales guardados.";await Cargar();}catch(InvalidOperationException ex){mensaje=ex.Message;}catch{mensaje="No se pudo guardar. Verificá que el documento no esté repetido para este alumno.";}finally{ocupado=false;}}
+}

@@ -1,3 +1,4 @@
+using BebesNadadores.Web.Services.Facturas;
 using BebesNadadores.Web.Services.Automatizaciones;
 using Microsoft.AspNetCore.DataProtection;
 using BebesNadadores.Infrastructure;
@@ -58,6 +59,7 @@ try
     builder.Services.AddScoped<EnlaceComprobantePagoService>();
     builder.Services.AddScoped<TarjetaCumpleanosService>();
     builder.Services.AddScoped<ComunicacionesService>();
+    builder.Services.AddScoped<FacturasService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Recuperos.RegularizacionHistoricaService>();
     builder.Services.AddScoped<BebesNadadores.Web.Services.Migracion.MigracionCargaService>();
     builder.Services.AddSingleton<BebesNadadores.Web.Services.Migracion.MigracionEjecucionService>();
@@ -129,6 +131,7 @@ try
     app.UseAntiforgery();
 
     app.MapComunicaciones();
+    app.MapFacturas();
     app.MapStaticAssets();
     app.MapRazorPages();
 

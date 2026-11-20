@@ -74,6 +74,11 @@ else if (_legajo is not null)
 
 
                 <div class="hero-actions">
+                    <AuthorizeView Policy="@PoliticasSistema.GestionCaja">
+                        <Authorized>
+                            <a class="whatsapp-button" href="@($"/clientes/{BebeId}/datos-fiscales")"><MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" /> Datos fiscales</a>
+                        </Authorized>
+                    </AuthorizeView>
 
                     @if (_legajo.ResponsablePrincipal is not null
                          &&

@@ -809,8 +809,8 @@
             <p>Elegí una nueva clase del mismo nivel. Se registrará la ausencia con aviso y se liberará el lugar original, sin generar recupero.</p>
             @if (!string.IsNullOrWhiteSpace(_errorReprogramar)) { <p role="alert" class="reprogram-error">@_errorReprogramar</p> }
             @if (_cargandoReprogramar) { <p>Consultando lugares disponibles...</p> }
-            else if (_opcionesReprogramar.Count == 0) { <p>No hay lugares disponibles en los próximos 60 días.</p> }
-            else
+            else if (_opcionesReprogramar.Count == 0 && string.IsNullOrWhiteSpace(_errorReprogramar)) { <p>No hay lugares disponibles en los próximos 60 días.</p> }
+            else if (_opcionesReprogramar.Count > 0)
             {
                 <label for="nueva-primera">Nueva fecha y horario</label>
                 <select id="nueva-primera" @bind="_destinoReprogramar" disabled="@_guardandoReprogramar">

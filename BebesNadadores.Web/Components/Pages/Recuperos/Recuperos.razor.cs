@@ -96,9 +96,25 @@ public partial class Recuperos : ComponentBase
     protected List<RecuperacionActivaDto> RecuperosDelBebe =>
         _panel?.Recuperos.Where(x => x.BebeId == _bebeSeleccionadoId
             && x.Estado == EstadoRecuperacion.Disponible)
-            .OrderBy(x => x.FechaOrigen).ToList() ?? [];
+            .OrderBy(x => x.FechaVencimiento ?? DateOnly.MaxValue).ThenBy(x => x.FechaOrigen).ToList() ?? [];
 
-    protected bool _respetarDiaPreferido = true;
+    protected bool _respetarDiaPreferido = false;
+    protected bool _buscarHastaVencimiento = true;
+    private long _versionBusqueda;
+    protected string _diaFiltro = "";
+    protected string _horaFiltro = "";
+    protected bool BusquedaAmpliada => _recuperacionSeleccionadaId.HasValue && _buscarHastaVencimiento;
+    protected DateOnly FinBusqueda => RecuperoSeleccionado?.FechaVencimiento ?? Hoy.AddDays(60);
+    protected IEnumerable<VacanteRecuperoDto> VacantesParaFiltros =>
+        _recuperacionSeleccionadaId.HasValue ? _clasesCompatibles : (_panel?.Vacantes ?? []);
+    protected IEnumerable<TimeOnly> HorariosDisponibles => VacantesParaFiltros.Select(x => x.HoraInicio).Distinct().OrderBy(x => x);
+    protected async Task CambiarAlcanceAsync()
+    {
+        _buscarHastaVencimiento = !_buscarHastaVencimiento;
+        _inicioSemana = ObtenerLunes(Hoy);
+        await CargarAsync();
+        await CargarClasesCompatiblesAsync();
+    }
 
     protected bool _cargandoCompatibles;
 
@@ -108,8 +124,7 @@ public partial class Recuperos : ComponentBase
         _panel?.Recuperos.FirstOrDefault(x => x.RecuperacionId == _recuperacionSeleccionadaId);
 
     protected IEnumerable<(Guid Id, string Nombre)> NivelesDisponibles =>
-        _panel?.Vacantes.Select(x => (x.NivelId, x.Nivel)).Distinct().OrderBy(x => x.Nivel)
-        ?? Enumerable.Empty<(Guid, string)>();
+        VacantesParaFiltros.Select(x => (x.NivelId, x.Nivel)).Distinct().OrderBy(x => x.Nivel);
 
     // =========================================================
     // MODAL CANDIDATOS
@@ -173,6 +188,10 @@ public partial class Recuperos : ComponentBase
                 query = query.Where(x => x.NivelId == _nivelFiltroId.Value);
             }
 
+            if (int.TryParse(_diaFiltro, out var dia))
+                query = query.Where(x => (int)x.Fecha.DayOfWeek == dia);
+            if (TimeOnly.TryParseExact(_horaFiltro, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var hora))
+                query = query.Where(x => x.HoraInicio == hora);
             return query.OrderBy(x => x.Fecha).ThenBy(x => x.HoraInicio).ToList();
         }
     }
@@ -196,21 +215,29 @@ public partial class Recuperos : ComponentBase
         _recuperacionSeleccionadaId = recuperacionId == Guid.Empty ? null : recuperacionId;
         _nivelFiltroId = null;
         _respetarDiaPreferido = false;
-        var recupero = RecuperoSeleccionado;
-        if (recupero is not null && recupero.FechaOrigen >= Hoy)
-            _inicioSemana = ObtenerLunes(recupero.FechaOrigen);
-        else
-            _inicioSemana = ObtenerLunes(Hoy);
+        _buscarHastaVencimiento = true;
+        _diaFiltro = "";
+        _horaFiltro = "";
+        _inicioSemana = ObtenerLunes(Hoy);
         await CargarAsync();
         await CargarClasesCompatiblesAsync();
     }
 
     protected async Task CargarClasesCompatiblesAsync()
     {
-        if (!_recuperacionSeleccionadaId.HasValue)
+        var version = ++_versionBusqueda;
+        _clasesCompatibles = [];
+        _cargandoCompatibles = false;
+        if (!_recuperacionSeleccionadaId.HasValue || RecuperoSeleccionado is null)
         {
             _clasesCompatibles = [];
-
+            return;
+        }
+        var desde = BusquedaAmpliada ? Hoy : _inicioSemana;
+        var hasta = BusquedaAmpliada ? FinBusqueda : _inicioSemana.AddDays(6);
+        if (hasta < desde)
+        {
+            _clasesCompatibles = [];
             return;
         }
 
@@ -220,24 +247,29 @@ public partial class Recuperos : ComponentBase
 
             _error = null;
 
-            _clasesCompatibles = (
+            var resultado = (
                 await RecuperosService.ListarClasesCompatiblesAsync(
                     _recuperacionSeleccionadaId.Value,
-                    _inicioSemana,
-                    _inicioSemana.AddDays(6),
+                    desde,
+                    hasta,
                     _respetarDiaPreferido
                 )
             ).ToList();
+            if (version == _versionBusqueda)
+                _clasesCompatibles = resultado;
         }
         catch (Exception ex)
         {
-            _error = Errores.Mensaje(ex);
-
-            _clasesCompatibles = [];
+            if (version == _versionBusqueda)
+            {
+                _error = Errores.Mensaje(ex);
+                _clasesCompatibles = [];
+            }
         }
         finally
         {
-            _cargandoCompatibles = false;
+            if (version == _versionBusqueda)
+                _cargandoCompatibles = false;
         }
     }
 
@@ -250,6 +282,8 @@ public partial class Recuperos : ComponentBase
 
     protected void LimpiarRecuperoSeleccionado()
     {
+        ++_versionBusqueda;
+        _cargandoCompatibles = false;
         _recuperacionSeleccionadaId = null;
         _bebeSeleccionadoId = null;
         _alumnoSeleccionado = null;
@@ -259,6 +293,9 @@ public partial class Recuperos : ComponentBase
         _respetarDiaPreferido = false;
 
         _nivelFiltroId = null;
+        _diaFiltro = "";
+        _horaFiltro = "";
+        _buscarHastaVencimiento = true;
     }
 
     /// <summary>
@@ -423,6 +460,7 @@ public partial class Recuperos : ComponentBase
         _mensaje = null;
 
         await CargarAsync();
+        await CargarClasesCompatiblesAsync();
     }
 
     // =========================================================
@@ -431,6 +469,7 @@ public partial class Recuperos : ComponentBase
 
     protected async Task SemanaAnterior()
     {
+        _buscarHastaVencimiento = false;
         _inicioSemana = _inicioSemana.AddDays(-7);
 
         await CargarAsync();
@@ -443,6 +482,7 @@ public partial class Recuperos : ComponentBase
 
     protected async Task SemanaSiguiente()
     {
+        _buscarHastaVencimiento = false;
         _inicioSemana = _inicioSemana.AddDays(7);
 
         await CargarAsync();
@@ -455,6 +495,7 @@ public partial class Recuperos : ComponentBase
 
     protected async Task IrSemanaActual()
     {
+        _buscarHastaVencimiento = false;
         _inicioSemana = ObtenerLunes(Hoy);
 
         await CargarAsync();
@@ -508,9 +549,11 @@ public partial class Recuperos : ComponentBase
                     _alumnoSeleccionado = null;
                     _bebeSeleccionadoId = null;
                 }
-                else if (_alumnoSeleccionado is not null)
+                else
                 {
-                    _alumnoSeleccionado = _alumnoSeleccionado with { Cantidad = disponibles };
+                    if (_alumnoSeleccionado is not null)
+                        _alumnoSeleccionado = _alumnoSeleccionado with { Cantidad = disponibles };
+                    await ElegirRecuperoAsync(RecuperosDelBebe[0].RecuperacionId);
                 }
             }
         }
@@ -654,6 +697,7 @@ public partial class Recuperos : ComponentBase
             _mensaje = $"Reserva liberada para {recupero.Bebe}.";
 
             await CargarAsync();
+            await CargarClasesCompatiblesAsync();
         }
         catch (Exception ex)
         {

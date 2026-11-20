@@ -1385,6 +1385,11 @@ public sealed class TurneraService(
             .Where(x => x.SesionClaseId == sesion.Id)
             .ToDictionaryAsync(x => x.BebeId, ct);
 
+        var idsInscripcionesEsperadas = esperados.Values.Select(x => x.InscripcionId).Distinct().ToArray();
+        var inscripcionesConOtraClaseRealizada = (await db.Asistencias.AsNoTracking()
+            .Where(a => idsInscripcionesEsperadas.Contains(a.InscripcionId) && a.SesionClaseId != sesion.Id
+                && a.Estado == EstadoAsistencia.Presente)
+            .Select(a => a.InscripcionId).Distinct().ToListAsync(ct)).ToHashSet();
         var detalleBebes = new List<BebeSesionDto>();
 
         foreach (var esperado in esperados)
@@ -1403,7 +1408,7 @@ public sealed class TurneraService(
                     $"{bebe.Nombre} {bebe.Apellido}",
                     asistencia?.Estado,
                     esperado.Value.EsRecupero,
-                    !esperado.Value.EsRecupero && (
+                    !esperado.Value.EsRecupero && !inscripcionesConOtraClaseRealizada.Contains(esperado.Value.InscripcionId) && (
                         primeraClaseBebeIds.Contains(bebe.Id) ||
                         (!primerasAnteriores.Contains(esperado.Value.InscripcionId)
                             && primeraFechaPorInscripcion.TryGetValue(

@@ -83,12 +83,8 @@ public sealed class RecuperosService(
             .Include(x =>
                 x.SesionUso)
 
-            .Where(x =>
-                x.Estado ==
-                    EstadoRecuperacion.Disponible
-                ||
-                x.Estado ==
-                    EstadoRecuperacion.Reservada)
+            .Where(x => x.Bebe.Estado == EstadoBebe.Activo &&
+                (x.Estado == EstadoRecuperacion.Disponible || x.Estado == EstadoRecuperacion.Reservada))
 
             .OrderBy(x =>
                 x.FechaVencimiento == null)
@@ -430,8 +426,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
             "El recupero indicado no existe.");
 
 
-    if (recuperacion.Estado !=
-        EstadoRecuperacion.Disponible)
+    if (recuperacion.Bebe.Estado != EstadoBebe.Activo || recuperacion.Estado != EstadoRecuperacion.Disponible)
     {
         return [];
     }
@@ -618,12 +613,23 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
     // ARMAR RESULTADO
     // =====================================================
 
-    var resultado =
-        new List<VacanteRecuperoDto>();
+    var idsSesiones = sesiones.Select(x => x.Id).ToArray();
+    var ocupadasPorElAlumno = (await db.Recuperaciones.AsNoTracking()
+        .Where(r => r.BebeId == recuperacion.BebeId && r.SesionUsoId.HasValue && idsSesiones.Contains(r.SesionUsoId.Value)
+            && (r.Estado == EstadoRecuperacion.Reservada || r.Estado == EstadoRecuperacion.Utilizada))
+        .Select(r => r.SesionUsoId!.Value).ToListAsync(ct)).ToHashSet();
+    ocupadasPorElAlumno.UnionWith(await db.ReservasSesionesClase.AsNoTracking()
+        .Where(r => r.BebeId == recuperacion.BebeId && idsSesiones.Contains(r.SesionClaseId) && r.Estado == EstadoReservaSesion.Activa)
+        .Select(r => r.SesionClaseId).ToListAsync(ct));
+    ocupadasPorElAlumno.UnionWith(await db.Asistencias.AsNoTracking()
+        .Where(a => a.BebeId == recuperacion.BebeId && idsSesiones.Contains(a.SesionClaseId) && a.Estado != EstadoAsistencia.Pendiente)
+        .Select(a => a.SesionClaseId).ToListAsync(ct));
+    var resultado = new List<VacanteRecuperoDto>();
 
 
     foreach (var sesion in sesiones)
     {
+        if (ocupadasPorElAlumno.Contains(sesion.Id)) continue;
         /*
          * No puede recuperar en un turno al que
          * ya pertenece regularmente.
@@ -670,11 +676,10 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
         // FRANJA HORARIA
         // -------------------------------------------------
         //
-        // Seguimos respetando la franja aunque la
-        // administrativa habilite "otros días".
+        // Las preferencias son opcionales para la búsqueda manual.
         //
 
-        if (!CoincideFranjaListaEspera(
+        if (respetarDiaPreferido && !CoincideFranjaListaEspera(
             franja,
             sesion.HoraInicio))
         {
@@ -929,8 +934,17 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
     // FILTRAR FRANJA Y OTRAS REGLAS
     // =========================================================
 
+    var bebesYaReservados = (await db.Recuperaciones.AsNoTracking()
+        .Where(r => r.SesionUsoId == sesion.Id && (r.Estado == EstadoRecuperacion.Reservada || r.Estado == EstadoRecuperacion.Utilizada))
+        .Select(r => r.BebeId).ToListAsync(ct)).ToHashSet();
+    bebesYaReservados.UnionWith(await db.ReservasSesionesClase.AsNoTracking()
+        .Where(r => r.SesionClaseId == sesion.Id && r.Estado == EstadoReservaSesion.Activa)
+        .Select(r => r.BebeId).ToListAsync(ct));
+    bebesYaReservados.UnionWith(await db.Asistencias.AsNoTracking()
+        .Where(a => a.SesionClaseId == sesion.Id && a.Estado != EstadoAsistencia.Pendiente)
+        .Select(a => a.BebeId).ToListAsync(ct));
     var candidatos =
-        solicitudes
+        solicitudes.Where(x => x.Bebe.Estado == EstadoBebe.Activo && !bebesYaReservados.Contains(x.BebeId))
 
             /*
              * Si ya es alumno habitual de este mismo turno,
@@ -1136,6 +1150,8 @@ private static string ObtenerPreferenciaListaEsperaTexto(
                 "El recupero indicado no existe.");
 
 
+        if (recuperacion.Bebe.Estado != EstadoBebe.Activo)
+            throw new InvalidOperationException("El alumno está dado de baja.");
         if (recuperacion.Estado !=
             EstadoRecuperacion.Disponible)
         {
@@ -1267,6 +1283,14 @@ private static string ObtenerPreferenciaListaEsperaTexto(
         // =====================================================
         // VALIDAR CUPO OPERATIVO
         // =====================================================
+        if (recuperacion.SesionOrigenId == sesion.Id
+            || await db.Recuperaciones.AnyAsync(r => r.BebeId == recuperacion.BebeId && r.SesionUsoId == sesion.Id
+                && (r.Estado == EstadoRecuperacion.Reservada || r.Estado == EstadoRecuperacion.Utilizada), ct)
+            || await db.ReservasSesionesClase.AnyAsync(r => r.BebeId == recuperacion.BebeId && r.SesionClaseId == sesion.Id
+                && r.Estado == EstadoReservaSesion.Activa, ct)
+            || await db.Asistencias.AnyAsync(a => a.BebeId == recuperacion.BebeId && a.SesionClaseId == sesion.Id
+                && a.Estado != EstadoAsistencia.Pendiente, ct))
+            throw new InvalidOperationException("El alumno ya tiene una clase o recupero asociado a este horario.");
 
         var ocupacion =
             await CalculadoraCupoSesion.CalcularAsync(

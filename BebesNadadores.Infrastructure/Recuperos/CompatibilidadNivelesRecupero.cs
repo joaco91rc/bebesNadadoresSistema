@@ -3,7 +3,7 @@ using System.Text;
 
 namespace BebesNadadores.Infrastructure.Services.Recuperos;
 
-/// <summary>Compatibilidad UNIDIRECCIONAL autorizada por el natatorio.</summary>
+/// <summary>Los tres grupos de 3 a 6 años son compatibles entre sí para recuperos.</summary>
 internal static class CompatibilidadNivelesRecupero
 {
     public static bool Permite(string? nivelOrigen, string? nivelDestino)
@@ -12,10 +12,11 @@ internal static class CompatibilidadNivelesRecupero
         var destino = Normalizar(nivelDestino);
         if (origen.Length == 0 || destino.Length == 0) return false;
         if (origen == destino) return true;
-        // 3 y 4 años puede recuperar con 3 a 6 años.
-        // 5 y 6 años puede recuperar con 3 a 6 años.
-        return EsGrupoMixto(destino) && (EsTresCuatro(origen) || EsCincoSeis(origen));
+        // Los niveles de bebés y 2 años sólo admiten su mismo nivel.
+        return EsGrupoMayor(origen) && EsGrupoMayor(destino);
     }
+
+    private static bool EsGrupoMayor(string s) => EsGrupoMixto(s) || EsTresCuatro(s) || EsCincoSeis(s);
 
     private static bool EsGrupoMixto(string s) =>
         s.Contains("3 a 6") || s.Contains("3 y 6") || s.Contains("3-6");

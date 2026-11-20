@@ -1,0 +1,222 @@
+{
+  "name": "BBN-06 | Facturas fiscales",
+  "nodes": [
+    {
+      "id": "dffc2c75-0567-4a28-b537-c686cb58c2f4",
+      "name": "Cada minuto",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "32bce330-5b8f-4743-a1ad-2c5c37815770",
+      "name": "Tomar mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bebesnadadores.com/api/facturas/tomar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      }
+    },
+    {
+      "id": "2d4e21eb-9068-4149-981a-93b21831e5de",
+      "name": "Hay mensaje",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e91f55a9-7383-45a2-9737-08034dcf45f2",
+              "leftValue": "={{ !!$json.mensaje }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "93a644c0-b6b0-41a0-bb60-cfac1c25c5b8",
+      "name": "Preparar correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -80
+      ],
+      "parameters": {
+        "jsCode": "const m=$json.mensaje; if(!m?.id || !m.destinatario || !m.pdfBase64) throw new Error('Factura incompleta'); return [{json:{id:m.id,destinatario:m.destinatario,asunto:m.asunto,html:'<p>Hola, familia:</p><p>Adjuntamos la factura fiscal emitida por Bebés Nadadores.</p><p>Muchas gracias.<br>Administración de Bebés Nadadores</p>'},binary:{factura:{data:m.pdfBase64,mimeType:'application/pdf',fileName:m.archivo,fileExtension:'pdf'}}}];"
+      }
+    },
+    {
+      "id": "5d8a4903-83ec-40d2-a731-103290fdd38b",
+      "name": "Enviar correo",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -80
+      ],
+      "parameters": {
+        "fromEmail": "Bebés Nadadores <administracion@bebesnadadores.com>",
+        "toEmail": "={{ $json.destinatario }}",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "factura"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "424da16d-c1d1-4dfc-92da-28d786d21078",
+      "name": "Confirmar envío",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        -180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bebesnadadores.com/api/facturas/resultado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({id: $(\"Preparar correo\").first().json.id, enviado: true}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "416a9b7b-6d52-44e9-bf01-53d8ed95c192",
+      "name": "Registrar error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bebesnadadores.com/api/facturas/resultado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({id: $(\"Preparar correo\").first().json.id, enviado: false}) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Cada minuto": {
+      "main": [
+        [
+          {
+            "node": "Tomar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tomar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Hay mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay mensaje": {
+      "main": [
+        [
+          {
+            "node": "Preparar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar correo": {
+      "main": [
+        [
+          {
+            "node": "Enviar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar correo": {
+      "main": [
+        [
+          {
+            "node": "Confirmar envío",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false
+  }
+}

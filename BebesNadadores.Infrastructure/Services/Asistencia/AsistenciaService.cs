@@ -279,6 +279,14 @@ foreach (var reserva in
                 esperados.Remove(id);
         }
 
+        // Una inscripción con asistencia real en otra sesión no debe volver al
+        // circuito de primera clase, aunque se hayan versionado sus turnos.
+        var idsInscripcionesEsperadas = esperados.Values.Select(x => x.InscripcionId).Distinct().ToArray();
+        var inscripcionesConOtraClaseRealizada = (await db.Asistencias.AsNoTracking()
+            .Where(a => idsInscripcionesEsperadas.Contains(a.InscripcionId) && a.SesionClaseId != sesion.Id
+                && a.Estado == EstadoAsistencia.Presente)
+            .Select(a => a.InscripcionId).Distinct().ToListAsync(ct)).ToHashSet();
+
         var alumnos =
             new List<AsistenciaAlumnoDto>();
 
@@ -320,7 +328,7 @@ foreach (var reserva in
                     recuperoVigente
                         ? recuperacion!.FechaVencimiento
                         : null,
-                    !esperado.EsRecupero &&
+                    !esperado.EsRecupero && !inscripcionesConOtraClaseRealizada.Contains(esperado.InscripcionId) &&
                         (esperado.EsPrimeraClase || primeraClaseReservadaIds.Contains(esperado.BebeId))));
         }
 
@@ -394,9 +402,10 @@ foreach (var reserva in
         var alumno = detalle?.Alumnos.FirstOrDefault(x => x.BebeId == bebeId && x.EsPrimeraClase && !x.EsRecupero);
         if (alumno is null)
             throw new InvalidOperationException("El alumno ya no tiene una primera clase en este horario.");
-        if (alumno.Estado == EstadoAsistencia.Presente)
-            throw new InvalidOperationException("La primera clase ya figura como presente. Corregí primero ese estado.");
-        if (await db.Asistencias.AnyAsync(x => x.InscripcionId == alumno.InscripcionId && x.Estado == EstadoAsistencia.Presente, ct))
+        // Permite corregir el presente de esta primera clase; no reprograma
+        // cuando hay otra clase efectivamente realizada en la inscripción.
+        if (await db.Asistencias.AnyAsync(x => x.InscripcionId == alumno.InscripcionId
+            && x.SesionClaseId != origen.Id && x.Estado == EstadoAsistencia.Presente, ct))
             throw new InvalidOperationException("El alumno ya registra una clase realizada en esta inscripción.");
         return alumno.InscripcionId;
     }
@@ -502,6 +511,7 @@ foreach (var reserva in
                 ct);
 
 
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
         await MarcarInternoAsync(
             db,
             sesion,
@@ -513,6 +523,7 @@ foreach (var reserva in
 
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
     }
 
 
@@ -612,7 +623,9 @@ foreach (var reserva in
 
         if (estado == EstadoAsistencia.AusenteConAviso && !esperado.EsRecupero &&
             await db.ReservasSesionesClase.AnyAsync(x => x.SesionClaseId == sesion.Id && x.BebeId == bebeId
-                && x.Tipo == TipoReservaSesion.InscripcionInicial && x.Estado == EstadoReservaSesion.Activa, ct))
+                && x.Tipo == TipoReservaSesion.InscripcionInicial && x.Estado == EstadoReservaSesion.Activa, ct)
+            && !await db.Asistencias.AnyAsync(a => a.InscripcionId == esperado.InscripcionId
+                && a.SesionClaseId != sesion.Id && a.Estado == EstadoAsistencia.Presente, ct))
             throw new InvalidOperationException("Para una primera clase con aviso, elegí la nueva fecha desde Asistencia.");
 
         var asistencia =
@@ -766,12 +779,8 @@ foreach (var reserva in
                         x.BebeId ==
                             esperado.BebeId
                         &&
-                        x.SesionOrigenId ==
-                            sesion.Id
-                        &&
-                        x.Tipo ==
-                            TipoRecuperacion
-                                .AusenciaConAviso,
+                        (x.SesionOrigenId == sesion.Id || (x.SesionOrigenId == null && x.AsistenciaOrigenId == asistencia.Id))
+                        && x.Tipo == TipoRecuperacion.AusenciaConAviso,
                     ct);
 
 var configuracion =
@@ -875,9 +884,11 @@ var configuracion =
             Guid bebeId,
             CancellationToken ct)
     {
+        var asistenciaIds = db.Asistencias.Where(a => a.BebeId == bebeId && a.SesionClaseId == sesion.Id)
+            .Select(a => a.Id);
         var recuperaciones = await db.Recuperaciones
             .Where(x => x.BebeId == bebeId
-                && x.SesionOrigenId == sesion.Id
+                && (x.SesionOrigenId == sesion.Id || (x.SesionOrigenId == null && x.AsistenciaOrigenId.HasValue && asistenciaIds.Contains(x.AsistenciaOrigenId.Value)))
                 && x.Tipo == TipoRecuperacion.AusenciaConAviso
                 && x.Estado != EstadoRecuperacion.Anulada)
             .ToListAsync(ct);

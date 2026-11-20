@@ -580,7 +580,7 @@
 
                     <span>
 
-                        PERÍODO
+                        @(BusquedaAmpliada ? "BÚSQUEDA AMPLIADA" : "PERÍODO SEMANAL")
 
                     </span>
 
@@ -588,7 +588,7 @@
 
                     <strong>
 
-                        @TextoSemana
+                        @(BusquedaAmpliada ? $"{Hoy:dd/MM} — {FinBusqueda:dd/MM/yyyy}" : TextoSemana)
 
                     </strong>
 
@@ -624,6 +624,12 @@
 
 
 
+            @if (RecuperoSeleccionado is not null)
+            {
+                <button type="button" class="secondary-action" disabled="@_cargandoCompatibles" @onclick="CambiarAlcanceAsync">
+                    @(BusquedaAmpliada ? "Ver por semana" : "Buscar hasta vencimiento")
+                </button>
+            }
             <div class="availability-legend">
 
 
@@ -802,6 +808,31 @@
                 </div>
 
 
+                <div class="recovery-filters">
+                    <div class="recovery-filter">
+                        <label>DÍA</label>
+                        <select @bind="_diaFiltro">
+                            <option value="">Todos los días</option>
+                            <option value="1">Lunes</option>
+                            <option value="2">Martes</option>
+                            <option value="3">Miércoles</option>
+                            <option value="4">Jueves</option>
+                            <option value="5">Viernes</option>
+                            <option value="6">Sábado</option>
+                            <option value="0">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="recovery-filter">
+                        <label>HORARIO</label>
+                        <select @bind="_horaFiltro">
+                            <option value="">Todos los horarios</option>
+                            @foreach (var hora in HorariosDisponibles)
+                            {
+                                <option value="@(hora.ToString("HH:mm"))">@hora.ToString("HH:mm")</option>
+                            }
+                        </select>
+                    </div>
+                </div>
                 @if (RecuperoSeleccionado is not null)
                 {
                     var recuperoSeleccionado =
@@ -826,7 +857,11 @@
                                 {
                                     <button type="button" class="@(_recuperacionSeleccionadaId == credito.RecuperacionId ? "primary-action" : "secondary-action")"
                                             @onclick="() => ElegirRecuperoAsync(credito.RecuperacionId)">
-                                        Ausencia: @credito.FechaOrigen.ToString("dd/MM/yyyy")
+                                        @ObtenerTipoRecuperoTexto(credito.Tipo): @credito.FechaOrigen.ToString("dd/MM/yyyy")
+                                        @if (credito.Tipo != TipoRecuperacion.SaldoHistoricoVerificado)
+                                        {
+                                            <span> · @credito.HoraOrigen.ToString("HH:mm")</span>
+                                        }
                                         · @ObtenerTextoVencimiento(credito)
                                     </button>
                                 }
@@ -834,6 +869,20 @@
                         </div>
                     }
 
+                    <div style="margin:8px 0;font-size:0.9rem">
+                        @if (BusquedaAmpliada)
+                        {
+                            <span>Buscando desde hoy hasta @FinBusqueda.ToString("dd/MM/yyyy").</span>
+                            @if (!recuperoSeleccionado.FechaVencimiento.HasValue)
+                            {
+                                <span> (Próximos 60 días; crédito sin vencimiento.)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span>Consultando únicamente la semana seleccionada.</span>
+                        }
+                    </div>
                     <div class="selected-recovery">
 
                         <div class="selected-recovery-main">
@@ -856,7 +905,7 @@
 
                                 <small>
                                     @recuperoSeleccionado.NivelOrigen
-                                    · origen
+                                    · @(recuperoSeleccionado.Tipo == TipoRecuperacion.SaldoHistoricoVerificado ? "acreditado" : "origen")
                                     @recuperoSeleccionado.FechaOrigen.ToString("dd/MM/yyyy")
                                     ·
                                     @ObtenerTextoVencimiento(recuperoSeleccionado)
@@ -880,14 +929,14 @@
 
                                     <strong>
                                         @(_respetarDiaPreferido
-                                            ? "Día preferido aplicado"
-                                            : "Mostrando otros días")
+                                            ? "Preferencias aplicadas"
+                                            : "Sin restricciones de preferencia")
                                     </strong>
 
                                     <span>
                                         @(_respetarDiaPreferido
                                             ? "Sólo se muestran opciones que respetan la preferencia."
-                                            : "La restricción por día está desactivada.")
+                                            : "Las preferencias de día y franja horaria están desactivadas.")
                                     </span>
 
                                 </div>
@@ -906,7 +955,7 @@
                                              Size="Size.Small" />
 
                                     <span>
-                                        Ver también otros días
+                                        Ver todos los días y horarios
                                     </span>
                                 }
                                 else
@@ -915,7 +964,7 @@
                                              Size="Size.Small" />
 
                                     <span>
-                                        Respetar día preferido
+                                        Respetar preferencias
                                     </span>
                                 }
 
@@ -986,11 +1035,23 @@
 
                         <span>
 
-                            No hay clases con lugares disponibles para recuperos
-
-                            en este período.
+                            @if (BusquedaAmpliada)
+                            {
+                                <span>No se encontraron clases compatibles con disponibilidad en el rango consultado y con los filtros actuales.</span>
+                            }
+                            else
+                            {
+                                <span>No hay clases con lugares disponibles para recuperos en esta semana.</span>
+                            }
 
                         </span>
+                        @if (!BusquedaAmpliada)
+                        {
+                            <button type="button" class="secondary-action" @onclick="SemanaSiguiente">
+                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                                Consultar semana siguiente
+                            </button>
+                        }
 
 
 
@@ -1701,7 +1762,7 @@
 
                                     <span>
 
-                                        AUSENCIA CON AVISO / ORIGEN
+                                        @(recupero.Tipo == TipoRecuperacion.SaldoHistoricoVerificado ? "SALDO HISTÓRICO · ACREDITACIÓN" : ObtenerTipoRecuperoTexto(recupero.Tipo).ToUpperInvariant())
 
                                     </span>
 
@@ -1712,14 +1773,10 @@
 
 
                                         @recupero.FechaOrigen.ToString("dd/MM/yyyy")
-
-
-
-                                        ·
-
-
-
-                                        @recupero.HoraOrigen.ToString("HH:mm")
+                                        @if (recupero.Tipo != TipoRecuperacion.SaldoHistoricoVerificado)
+                                        {
+                                            <span> · @recupero.HoraOrigen.ToString("HH:mm")</span>
+                                        }
 
 
 
