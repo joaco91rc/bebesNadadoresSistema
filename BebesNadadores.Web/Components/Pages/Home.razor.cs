@@ -358,10 +358,10 @@ public partial class Home
             }
 
 
-            var linkTarjeta = await TarjetasCumpleanos.CrearEnlaceDescriptivoAsync(bebe.Id, Navigation.BaseUri, bebe.NombreCompleto, cumple.EdadQueCumple);
+            var linkTarjeta = await TarjetasCumpleanos.CrearEnlaceDescriptivoAsync(bebe.Id, Navigation.BaseUri, BebesNadadores.Web.Services.Cumpleanos.NombreParaSaludo.Obtener(bebe.Nombre), cumple.EdadQueCumple);
             var mensaje =
                 $"¡Hola! 🎉💙\n\n" +
-                $"¡Hoy es el cumple de {bebe.Nombre}! Desde Bebés Nadadores " +
+                $"¡Hoy es el cumple de {BebesNadadores.Web.Services.Cumpleanos.NombreParaSaludo.Obtener(bebe.Nombre)}! Desde Bebés Nadadores " +
                 "le preparamos una sorpresa muy especial. 🎂🐠\n\n" +
                 $"Abrí su tarjeta de cumpleaños acá: {linkTarjeta}\n\n" +
                 "¡Que tengan un día hermoso! 🫧💙\nBebés Nadadores";

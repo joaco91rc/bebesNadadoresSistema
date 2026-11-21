@@ -533,7 +533,7 @@
                             CumpleaniosHoy.First();
 
                         <strong>
-                            ¡Hoy es el cumple de @cumpleHoy.Nombre!
+                            ¡Hoy es el cumple de @(BebesNadadores.Web.Services.Cumpleanos.NombreParaSaludo.Obtener(cumpleHoy.Nombre))!
                         </strong>
 
                         <span>
@@ -549,7 +549,7 @@
                         <span>
                             @string.Join(
                                 ", ",
-                                CumpleaniosHoy.Select(x => x.Nombre))
+                                CumpleaniosHoy.Select(x => BebesNadadores.Web.Services.Cumpleanos.NombreParaSaludo.Obtener(x.Nombre)))
                         </span>
                     }
 
@@ -562,7 +562,7 @@
                                 title="Abrir WhatsApp con el enlace a la tarjeta animada de cumpleaños"
                                 @onclick="() => SaludarCumpleaniosAsync(cumpleHoy)">
                             <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
-                            Enviar tarjeta web a @cumpleHoy.Nombre
+                            Enviar tarjeta web a @(BebesNadadores.Web.Services.Cumpleanos.NombreParaSaludo.Obtener(cumpleHoy.Nombre))
                         </button>
                     }
                 </div>

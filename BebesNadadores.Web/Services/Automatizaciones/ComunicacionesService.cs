@@ -37,7 +37,6 @@ public sealed class ComunicacionesService(
     TarjetaCumpleanosService cumpleanos)
 {
     public static readonly string[] Tipos = ["ausencias", "pagos", "morosos", "cumpleanos", "recuperos"];
-    public static readonly string[] TiposConfigurables = [.. Tipos, "facturas"];
     public bool HabilitadaGlobal => config.GetValue("Automatizaciones:Habilitadas", false);
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
     private sealed record Candidato(Guid BebeId, string Clave, string Asunto, string Mensaje, Guid? PagoId = null, bool Cumple = false);
@@ -49,7 +48,7 @@ public sealed class ComunicacionesService(
     }
     public async Task CambiarAsync(string tipo, bool habilitada, CancellationToken ct = default)
     {
-        if (!TiposConfigurables.Contains(tipo)) throw new ArgumentException("Tipo inválido.");
+        if (!Tipos.Contains(tipo)) throw new ArgumentException("Tipo inválido.");
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE "ConfiguracionComunicaciones" SET "Habilitada"={habilitada},
@@ -145,7 +144,7 @@ public sealed class ComunicacionesService(
                 WHERE EXISTS (SELECT 1 FROM "ConfiguracionComunicaciones" WHERE "Tipo"={tipo} AND "Habilitada" AND "DesdeUtc"={desde})
                 ON CONFLICT ("Tipo","Clave") DO NOTHING
                 """, ct);
-            if (n == 1) return new(id, email, c.Asunto, contacto.Nombre, c.Mensaje, enlace, c.PagoId.HasValue ? "Descargar comprobante" : c.Cumple ? "Ver mi saludo" : null);
+            if (n == 1) return new(id, email, c.Asunto, c.Cumple ? NombreParaSaludo.Obtener(contacto.Nombre) : contacto.Nombre, c.Mensaje, enlace, c.PagoId.HasValue ? "Descargar comprobante" : c.Cumple ? "Ver mi saludo" : null);
         }
         return null;
     }

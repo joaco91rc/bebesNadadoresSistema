@@ -61,7 +61,7 @@ public sealed class TarjetaCumpleanosService(
         var edad = Math.Max(0, hoy.Year - bebe.FechaNacimiento.Year -
             (hoy.Month < bebe.FechaNacimiento.Month ||
              (hoy.Month == bebe.FechaNacimiento.Month && hoy.Day < bebe.FechaNacimiento.Day) ? 1 : 0));
-        var nombre = WebUtility.HtmlEncode(bebe.Nombre.Trim());
+        var nombre = WebUtility.HtmlEncode(NombreParaSaludo.Obtener(bebe.Nombre));
         var anios = edad == 1 ? "1 añito" : $"{edad} añitos";
 
         var ruta = Path.Combine(environment.WebRootPath ??
