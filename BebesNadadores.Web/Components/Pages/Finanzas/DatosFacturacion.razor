@@ -5,7 +5,7 @@
 <PageTitle>Datos de facturación | Bebés Nadadores</PageTitle>
 <div class="fiscal-page">
     <header class="fiscal-header">
-        <div><small>FINANZAS · DATOS DE LAS FAMILIAS</small><h1>Datos de facturación</h1><p>Administrá los CUIT/CUIL y correos autorizados de cada alumno antes de importar las facturas.</p></div>
+        <div><small>FINANZAS · DATOS DE LAS FAMILIAS</small><h1>Datos de facturación</h1><p>Administrá un DNI o CUIL principal y los documentos auxiliares de otros titulares, con sus correos autorizados, antes de importar las facturas.</p></div>
         <div class="fiscal-toolbar"><a href="/facturas">Facturas fiscales</a><button disabled="@ocupado" @onclick="Cargar">Actualizar</button></div>
     </header>
     @if(mensaje!=null){<div class="fiscal-banner" role="alert">@mensaje</div>}
@@ -16,7 +16,7 @@
     </div>
     <section class="fiscal-panel">
         <div class="fiscal-toolbar">
-            <input aria-label="Buscar alumno o titular" placeholder="Buscar alumno, titular, CUIT o correo…" @bind="buscar" @bind:event="oninput" />
+            <input aria-label="Buscar alumno o titular" placeholder="Buscar alumno, titular, DNI, CUIL o correo…" @bind="buscar" @bind:event="oninput" />
             <select aria-label="Estado de datos fiscales" @bind="filtro"><option value="">Todos los datos fiscales</option><option value="pendiente">Pendientes de completar</option><option value="listo">Con correo autorizado</option><option value="sin">Sin datos registrados</option></select>
             <label><input type="checkbox" @bind="incluirBajas"/> Incluir bajas</label>
         </div>
@@ -26,7 +26,7 @@
             <div class="fiscal-table"><table><thead><tr><th>Alumno</th><th>Identidades fiscales</th><th>Estado</th><th></th></tr></thead><tbody>
                 @foreach(var a in Visibles){
                     <tr><td><strong>@a.Nombre</strong><small>@(a.Activo?"Activo":"Baja")</small></td>
-                        <td>@if(a.Identidades.Count==0){<small>Sin CUIT/CUIL registrado</small>}else{<div>
+                        <td>@if(a.Identidades.Count==0){<small>Sin DNI/CUIL registrado</small>}else{<div>
                             @foreach(var i in a.Identidades){<div class="fiscal-identidad"><strong>@i.Titular</strong><small>@i.Documento · @(i.Principal?"Principal":"Auxiliar") · @(i.DestinoAutorizado?"Autorizado":"Sin autorización")</small><small>@(string.IsNullOrWhiteSpace(i.Email)?"Sin correo":i.Email) · @(i.ResponsableId!=null?"Legajo":"Manual / externo")</small></div>}
                         </div>}</td>
                         <td><span class="fiscal-status @(Preparado(a)?"fiscal-ok":"fiscal-warn")">@(Preparado(a)?"Con correo autorizado":"Pendiente")</span></td>
@@ -35,7 +35,7 @@
                 @if(!Visibles.Any()){<tr><td colspan="4">No hay alumnos para los filtros seleccionados.</td></tr>}
             </tbody></table></div>
         }
-        <p>El estado indica que el alumno tiene al menos un correo fiscal autorizado. El envío de cada factura se valida nuevamente: un CUIT compartido debe tener un destinatario inequívoco.</p>
+        <p>El estado indica que el alumno tiene al menos un correo fiscal autorizado. El envío de cada factura se valida nuevamente: un documento compartido debe tener un destinatario inequívoco.</p>
     </section>
 </div>
 @code {

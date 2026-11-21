@@ -3,50 +3,155 @@
 @using BebesNadadores.Web.Services.Facturas
 @inject FacturasService Servicio
 <PageTitle>Datos fiscales | Bebés Nadadores</PageTitle>
-<div class="fiscal-page">
-    <header class="fiscal-header"><div><small>LEGAJO · FACTURACIÓN</small><h1>Datos fiscales</h1><h3>@nombre</h3><p>Registrá un CUIT/CUIL principal y los auxiliares. Elegí un responsable del legajo para usar su correo actualizado.</p></div><div class="fiscal-toolbar"><a href="/datos-facturacion">Todos los datos fiscales</a><a href="@($"/clientes/{BebeId}")">Volver al legajo</a></div></header>
-    @if(mensaje!=null){<div class="fiscal-banner" role="alert">@mensaje</div>}
-    @if(ocupado&&nombre==null){<p>Cargando datos…</p>}
-    @if(nombre!=null){
-        <div class="fiscal-panel"><div class="fiscal-toolbar"><h3>Principal y auxiliares</h3><button disabled="@ocupado" @onclick="Nuevo">Agregar CUIT/CUIL</button></div>
-            @foreach(var x in filas.OrderByDescending(x=>x.Principal).ThenBy(x=>x.Titular)){
-                <div class="identidad-row"><div><strong>@x.Titular</strong><p>@x.Documento · @(x.Principal?"Principal":"Auxiliar")</p><p>@(string.IsNullOrWhiteSpace(x.Email)?"Sin correo":x.Email)</p><small>@(x.ResponsableId!=null?"Vinculado al legajo":"Titular manual / externo")</small></div><span class="fiscal-status">@(x.ListoParaFacturar?"Autorizado":"Revisar autorización o correo")</span><button disabled="@ocupado" @onclick="()=>Editar(x)">Editar</button></div>
-            }
-            @if(filas.Count==0){<p>No hay documentos fiscales registrados.</p>}
+<div class="fiscal-page fiscal-legajo-page">
+    <header class="fiscal-header">
+        <div>
+            <small>LEGAJO · FACTURACIÓN</small>
+            <h1>Datos fiscales</h1>
+            <p>Administrá el DNI o CUIL principal y los documentos auxiliares de quienes pueden figurar en las facturas.</p>
         </div>
-        @if(edicion!=null){
-            <section class="fiscal-dialog">
-                <h3>@(edicion.Id==Guid.Empty?"Nuevo titular":"Editar titular")</h3>
-                <label for="responsable-fiscal">Titular fiscal</label>
-                <select id="responsable-fiscal" value="@(edicion.ResponsableId?.ToString()??"externo")" @onchange="CambiarResponsable" disabled="@ocupado">
-                    @if(edicion.ResponsableId!=null && Seleccionado==null){<option value="@edicion.ResponsableId.ToString()">Responsable ya no vinculado</option>}
-                    @foreach(var r in responsables){<option value="@r.Id.ToString()">@r.Nombre · @r.Relacion @(r.Principal?"(Contacto principal)":"") @(!r.Activo?"(Inactivo)":"")</option>}
-                    <option value="externo">Otro titular fiscal / empresa</option>
-                </select>
-                @if(edicion.ResponsableId!=null){
-                    <div class="fiscal-contacto">
-                        <strong>@(Seleccionado?.Nombre??"Responsable no disponible en este legajo")</strong>
-                        <div><small>CORREO DEL LEGAJO</small><p>@(string.IsNullOrWhiteSpace(Seleccionado?.Email)?"Sin correo registrado":Seleccionado?.Email)</p></div>
-                        <p>El correo se actualiza automáticamente desde la ficha del alumno.</p>
-                        @if(Seleccionado==null||!Seleccionado.Activo||!Seleccionado.AutorizaComunicaciones||string.IsNullOrWhiteSpace(Seleccionado.Email)){
-                            <p class="fiscal-aviso">Para autorizar envíos, completá el correo y verificá la autorización de comunicaciones en el legajo.</p>
-                            <a href="@($"/clientes/{BebeId}/editar")">Editar ficha del alumno</a>
-                        }
-                    </div>
+        <div class="fiscal-toolbar">
+            <a href="/datos-facturacion">Todos los datos fiscales</a>
+            <a href="@($"/clientes/{BebeId}")">Volver al legajo</a>
+        </div>
+    </header>
+    @if(mensaje is not null){<div class="fiscal-banner" role="status">@mensaje</div>}
+    @if(ocupado && nombre is null){<p>Cargando datos fiscales…</p>}
+    @if(nombre is not null){
+        <section class="fiscal-alumno-banner">
+            <span class="fiscal-alumno-icon" aria-hidden="true"><MudIcon Icon="@Icons.Material.Filled.ChildCare" /></span>
+            <div>
+                <small>ALUMNO</small>
+                <h2>@nombre</h2>
+                <p>Los comprobantes se envían al <strong>correo del contacto principal</strong> registrado en este legajo, aunque la factura esté a nombre de otra persona.</p>
+            </div>
+        </section>
+        <div class="fiscal-contact-card @(ContactoPrincipalHabilitado?"":"fiscal-contact-card--warning")">
+            <MudIcon Icon="@Icons.Material.Filled.AlternateEmail" />
+            <div>
+                <strong>Correo destinatario de las facturas</strong>
+                <p>@CorreoPrincipal</p>
+                <small>@(ContactoPrincipal is null ? "No hay contacto principal asignado" : $"Contacto principal: {ContactoPrincipal.Nombre}")</small>
+            </div>
+            @if(!ContactoPrincipalHabilitado){
+                <a href="@($"/clientes/{BebeId}/editar")">Completar contacto principal</a>
+            }
+        </div>
+        <div class="fiscal-identidades-grid">
+            <section class="fiscal-panel fiscal-doc-section">
+                <div class="fiscal-toolbar">
+                    <div><h3>Documento principal</h3><p>DNI o CUIL usado habitualmente para emitir facturas.</p></div>
+                    @if(!filas.Any(x=>x.Principal)){
+                        <button disabled="@ocupado" @onclick="()=>Nuevo(true)">+ Agregar principal</button>
+                    }
+                </div>
+                @if(filas.FirstOrDefault(x=>x.Principal) is IdentidadBebeFiscal principal){
+                    <article class="fiscal-doc-card fiscal-doc-card--principal">
+                        <div class="fiscal-doc-student">@nombre</div>
+                        <div class="fiscal-doc-badges"><span class="fiscal-chip fiscal-chip--primary">Principal</span><span class="fiscal-chip @(principal.ListoParaFacturar?"fiscal-chip--ok":"fiscal-chip--warning")">@(principal.ListoParaFacturar?"Autorizado":"Revisar")</span></div>
+                        <h4>@principal.Titular</h4>
+                        <div class="fiscal-doc-number">@DocumentoFiscalReceptor.Tipo(principal.Documento): @principal.Documento</div>
+                        <div class="fiscal-doc-mail"><MudIcon Icon="@Icons.Material.Filled.MailOutline" Size="Size.Small" /> <span>@CorreoPrincipal</span></div>
+                        <small>El titular fiscal puede ser diferente del contacto que recibe el correo.</small>
+                        <div class="fiscal-doc-footer"><button disabled="@ocupado" @onclick="()=>Editar(principal)"><MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" /> Editar</button></div>
+                    </article>
                 }else{
-                    <label>Nombre o razón social</label><input @bind="edicion.Titular" maxlength="200"/>
-                    <label>Correo autorizado de destino (titular externo)</label><input type="email" @bind="edicion.Email" placeholder="Correo de facturación"/>
+                    <div class="fiscal-empty">Todavía no hay un documento principal. Agregá el DNI o CUIL del titular habitual.</div>
                 }
-                <label>CUIT/CUIL</label><input @bind="edicion.Documento" disabled="@(edicion.Id!=Guid.Empty)" placeholder="11 dígitos"/>
-                <label><input type="checkbox" @bind="edicion.Principal"/> Titular principal</label><small>Si no marcás esta opción, se guarda como CUIT/CUIL auxiliar. Podés registrar varios auxiliares.</small>
-                <label><input type="checkbox" @bind="edicion.Autorizado" disabled="@(edicion.ResponsableId!=null && (Seleccionado==null||!Seleccionado.Activo||!Seleccionado.AutorizaComunicaciones||string.IsNullOrWhiteSpace(Seleccionado.Email)) && !edicion.Autorizado)"/> Confirmo que este destinatario está autorizado a recibir las facturas de este titular.</label>
-                @if(hermanos.Count>0){
-                    <div class="fiscal-panel"><h3>Compartir datos con otros hijos</h3><p>Seleccioná otros legajos que comparten un responsable y para los cuales verificaste la misma identidad fiscal y autorización. No se sobrescriben registros existentes; si ya tienen un titular principal, se conserva.</p>
-                    @foreach(var h in hermanos){<label><input type="checkbox" checked="@copiar.Contains(h.Id)" @onchange="e=>Marcar(h.Id,e.Value is true)"/> @h.Nombre @(h.Activo?"":"(Baja)")</label>}
+            </section>
+            <section class="fiscal-panel fiscal-doc-section">
+                <div class="fiscal-toolbar">
+                    <div><h3>Documentos auxiliares</h3><p>Otros DNI o CUIL de familiares o terceros.</p></div>
+                    <button disabled="@ocupado" @onclick="()=>Nuevo(false)">+ Agregar auxiliar</button>
+                </div>
+                <div class="fiscal-docs-grid">
+                    @foreach(var auxiliar in filas.Where(x=>!x.Principal).OrderBy(x=>x.Titular)){
+                        <article class="fiscal-doc-card" @key="auxiliar.Id">
+                            <div class="fiscal-doc-student">@nombre</div>
+                            <div class="fiscal-doc-badges"><span class="fiscal-chip">Auxiliar</span><span class="fiscal-chip @(auxiliar.ListoParaFacturar?"fiscal-chip--ok":"fiscal-chip--warning")">@(auxiliar.ListoParaFacturar?"Autorizado":"Revisar")</span></div>
+                            <h4>@auxiliar.Titular</h4>
+                            <div class="fiscal-doc-number">@DocumentoFiscalReceptor.Tipo(auxiliar.Documento): @auxiliar.Documento</div>
+                            <div class="fiscal-doc-mail"><MudIcon Icon="@Icons.Material.Filled.MailOutline" Size="Size.Small" /> <span>@CorreoPrincipal</span></div>
+                            <small>Envía al contacto principal del alumno.</small>
+                            <div class="fiscal-doc-footer"><button disabled="@ocupado" @onclick="()=>Editar(auxiliar)"><MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" /> Editar</button></div>
+                        </article>
+                    }
+                    @if(!filas.Any(x=>!x.Principal)){
+                        <div class="fiscal-empty">Sin auxiliares. Podés agregar el DNI o CUIL del padre, madre, abuelo u otro titular.</div>
+                    }
+                </div>
+            </section>
+        </div>
+        @if(edicion is not null){
+            <section class="fiscal-panel fiscal-editor" id="fiscal-editor">
+                <div class="fiscal-toolbar fiscal-editor-header">
+                    <div>
+                        <small>ALUMNO · @nombre</small>
+                        <h3>@(edicion.Id==Guid.Empty?(edicion.Principal?"Agregar documento principal":"Agregar documento auxiliar"):(edicion.Principal?"Editar documento principal":"Editar documento auxiliar"))</h3>
+                        <p>El documento identifica a quien figura en la factura. El email siempre se obtiene del contacto principal del bebé.</p>
                     </div>
-                }
-                <p>Para retirar un titular, desmarcá la autorización. Los envíos pendientes vuelven a validar el correo antes de salir.</p>
-                <div class="fiscal-toolbar"><button disabled="@ocupado" @onclick="()=>edicion=null">Cancelar</button><button disabled="@ocupado" @onclick="Guardar">Guardar</button></div>
+                    <button type="button" disabled="@ocupado" @onclick="()=>edicion=null" title="Cerrar formulario"><MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" /></button>
+                </div>
+                <div class="fiscal-editor-fields">
+                    <div class="fiscal-field fiscal-field--full">
+                        <label for="responsable-fiscal">¿A nombre de quién se emite el comprobante?</label>
+                        <select id="responsable-fiscal" value="@(edicion.ResponsableId?.ToString()??"externo")" @onchange="CambiarResponsable" disabled="@ocupado">
+                            @if(edicion.ResponsableId is not null && Seleccionado is null){<option value="@edicion.ResponsableId.ToString()">Responsable ya no vinculado</option>}
+                            @foreach(var r in responsables){<option value="@r.Id.ToString()">@r.Nombre · @r.Relacion @(r.Principal?"(Contacto principal)":"") @(!r.Activo?"(Inactivo)":"")</option>}
+                            <option value="externo">Otro titular (no figura como responsable)</option>
+                        </select>
+                    </div>
+                    @if(edicion.ResponsableId is not null){
+                        <div class="fiscal-contacto fiscal-field--full">
+                            <strong>@(Seleccionado?.Nombre??"Responsable no disponible en el legajo")</strong>
+                            <small>TITULAR FISCAL DEL DOCUMENTO</small>
+                            <p>La factura se enviará a <strong>@CorreoPrincipal</strong>, no necesariamente a este titular.</p>
+                        </div>
+                    }else{
+                        <div class="fiscal-field fiscal-field--full">
+                            <label for="titular-externo">Nombre o razón social del titular externo</label>
+                            <input id="titular-externo" @bind="edicion.Titular" maxlength="200" placeholder="Ej.: Abuelo / Otro familiar" />
+                        </div>
+                    }
+                    <div class="fiscal-field fiscal-field--full">
+                        <label for="numero-documento-fiscal">DNI o CUIL @(edicion.Principal?"principal":"auxiliar")</label>
+                        <input id="numero-documento-fiscal" type="text" inputmode="numeric" autocomplete="off"
+                            @bind="edicion.Documento" disabled="@(edicion.Id!=Guid.Empty || ocupado)" maxlength="14"
+                            placeholder="DNI: 7/8 dígitos · CUIL: 11 dígitos" />
+                        <small>Los auxiliares pueden pertenecer a otras personas. Los documentos existentes no se cambian desde esta edición.</small>
+                    </div>
+                    @if(!edicion.Principal){
+                        <label class="fiscal-option fiscal-field--full">
+                            <input type="checkbox" @bind="edicion.Principal" disabled="@ocupado" />
+                            <span><strong>Convertir en documento principal</strong><small>El principal actual pasará a ser auxiliar.</small></span>
+                        </label>
+                    }
+                    <label class="fiscal-option fiscal-field--full">
+                        <input type="checkbox" @bind="edicion.Autorizado" disabled="@ocupado" />
+                        <span><strong>Habilitar este DNI o CUIL para facturación</strong><small>Los correos se enviarán al contacto principal autorizado en la ficha del alumno.</small></span>
+                    </label>
+                    @if(hermanos.Count>0){
+                        <div class="fiscal-sharing fiscal-field--full">
+                            <h4>Compartir datos con otros hijos</h4>
+                            <p>Se conservan los titulares principales existentes en los otros legajos.</p>
+                            @foreach(var h in hermanos){
+                                <label class="fiscal-option" @key="h.Id"><input type="checkbox" checked="@copiar.Contains(h.Id)" disabled="@ocupado" @onchange="e=>Marcar(h.Id,e.Value is true)"/><span><strong>@h.Nombre</strong><small>@(h.Activo?"Alumno activo":"Alumno de baja")</small></span></label>
+                            }
+                        </div>
+                    }
+                    @if(!ContactoPrincipalHabilitado){
+                        <div class="fiscal-alert fiscal-field--full" role="status">El contacto principal debe tener correo válido, estar activo y autorizar comunicaciones para poder enviar facturas. <a href="@($"/clientes/{BebeId}/editar")">Editar legajo</a></div>
+                    }
+                </div>
+                <div class="fiscal-actions">
+                    @if(!string.IsNullOrWhiteSpace(errorEdicion)){
+                        <div class="fiscal-actions-error" role="alert"><strong>No se pudieron guardar los datos</strong><p>@errorEdicion</p></div>
+                    }
+                    <div class="fiscal-actions-buttons">
+                        <button type="button" disabled="@ocupado" @onclick="()=>edicion=null">Cancelar</button>
+                        <button type="button" class="fiscal-save" disabled="@ocupado" @onclick="Guardar"><MudIcon Icon="@Icons.Material.Filled.Save" Size="Size.Small"/> @(ocupado?"Guardando…":"Guardar documento")</button>
+                    </div>
+                </div>
             </section>
         }
         <section class="fiscal-panel">
@@ -61,21 +166,33 @@
 </div>
 @code {
     [Parameter] public Guid BebeId {get;set;}
-    private string? nombre,mensaje;
+    private string? nombre,mensaje,errorEdicion;
     private bool ocupado;
     private List<IdentidadBebeFiscal> filas=[];
     private List<AlumnoFiscal> hermanos=[];
     private List<ResponsableFiscalLegajo> responsables=[];
     private ResponsableFiscalLegajo? Seleccionado=>responsables.FirstOrDefault(x=>x.Id==edicion?.ResponsableId);
+    private ResponsableFiscalLegajo? ContactoPrincipal=>responsables.FirstOrDefault(x=>x.Principal);
+    private string CorreoPrincipal=>string.IsNullOrWhiteSpace(ContactoPrincipal?.Email)?"Sin correo principal registrado":ContactoPrincipal!.Email;
+    private bool ContactoPrincipalHabilitado=>ContactoPrincipal is { Activo: true, AutorizaComunicaciones: true } r && !string.IsNullOrWhiteSpace(r.Email);
     private List<FacturaFila> historial=[];
     private HashSet<Guid> copiar=[];
     private IdentidadBebeFiscal? edicion;
     protected override async Task OnParametersSetAsync(){edicion=null;nombre=null;mensaje=null;await Cargar();}
     private async Task Cargar(){ocupado=true;try{nombre=await Servicio.NombreBebeAsync(BebeId);filas=nombre==null?[]:await Servicio.IdentidadesAsync(BebeId);responsables=nombre==null?[]:await Servicio.ResponsablesLegajoAsync(BebeId);hermanos=[];historial=nombre==null?[]:await Servicio.FacturasAlumnoAsync(BebeId);if(nombre==null)mensaje="Alumno no encontrado.";}catch{mensaje="No se pudieron cargar todos los datos fiscales. Verificá los SQL de instalación.";}finally{ocupado=false;}}
-    private async Task Nuevo(){copiar.Clear();edicion=new(){BebeId=BebeId,Principal=!filas.Any(x=>x.Principal),ResponsableId=responsables.FirstOrDefault(x=>x.Activo)?.Id};await CargarHermanos();}
-    private async Task Editar(IdentidadBebeFiscal x){copiar.Clear();edicion=new(){Id=x.Id,BebeId=x.BebeId,Documento=x.Documento,Titular=x.ResponsableId==null?x.Titular:"",Email=x.ResponsableId==null?x.Email:"",Principal=x.Principal,Autorizado=x.Autorizado,ResponsableId=x.ResponsableId};await CargarHermanos();}
+    private async Task Nuevo(bool esPrincipal)
+    {
+        copiar.Clear();errorEdicion=null;
+        var actual = filas.FirstOrDefault(x=>x.Principal);
+        // Para un auxiliar, sugerir otro responsable. El documento puede ser de otra persona.
+        var responsable = responsables.FirstOrDefault(r=>r.Activo && (esPrincipal || r.Id!=actual?.ResponsableId));
+        edicion=new(){BebeId=BebeId,TipoDocumento="",Principal=esPrincipal,ResponsableId=responsable?.Id};
+        await CargarHermanos();
+    }
+    private async Task Editar(IdentidadBebeFiscal x){copiar.Clear();errorEdicion=null;edicion=new(){Id=x.Id,BebeId=x.BebeId,Documento=x.Documento,TipoDocumento="",Titular=x.ResponsableId==null?x.Titular:"",Email="",Principal=x.Principal,Autorizado=x.Autorizado,ResponsableId=x.ResponsableId};await CargarHermanos();}
     private async Task CambiarResponsable(ChangeEventArgs e){
         if(edicion==null)return;
+        errorEdicion=null;
         var nuevo=Guid.TryParse(e.Value?.ToString(),out var id)?(Guid?)id:null;
         if(nuevo==edicion.ResponsableId)return;
         edicion.ResponsableId=nuevo;edicion.Titular="";edicion.Email="";edicion.Autorizado=false;
@@ -84,9 +201,38 @@
     private async Task CargarHermanos(){
         ocupado=true;hermanos=[];
         try{hermanos=await Servicio.HermanosAsync(BebeId,edicion?.ResponsableId);}
-        catch{mensaje="No se pudieron consultar los hermanos del legajo.";}
+        catch{errorEdicion="No se pudieron consultar los hermanos del legajo.";}
         finally{ocupado=false;}
     }
     private void Marcar(Guid id,bool valor){if(valor)copiar.Add(id);else copiar.Remove(id);}
-    private async Task Guardar(){if(edicion==null)return;ocupado=true;try{await Servicio.GuardarIdentidadAsync(edicion,copiar);edicion=null;copiar.Clear();mensaje="Datos fiscales guardados. Los registros existentes de otros hijos se conservaron.";await Cargar();}catch(InvalidOperationException ex){mensaje=ex.Message;}catch{mensaje="No se pudo guardar. Verificá que el documento no esté repetido para este alumno.";}finally{ocupado=false;}}
+    private async Task Guardar()
+    {
+        if(edicion==null)return;
+        errorEdicion=null;
+        ocupado=true;
+        try
+        {
+            await Servicio.GuardarIdentidadAsync(edicion,copiar);
+            edicion=null;
+            copiar.Clear();
+            mensaje="Datos fiscales guardados. Los registros existentes de otros hijos se conservaron.";
+            await Cargar();
+        }
+        catch(InvalidOperationException ex)
+        {
+            errorEdicion=ex.Message;
+        }
+        catch(Exception ex)
+        {
+            // El botón permanece visible y las restricciones de PostgreSQL se explican junto al formulario.
+            var pg=ex.GetBaseException() as Npgsql.PostgresException;
+            if(pg?.SqlState=="23514" && (pg.ConstraintName?.Contains("Documento",StringComparison.OrdinalIgnoreCase)??false))
+                errorEdicion="Esta base de datos todavía rechaza DNI de 7 u 8 dígitos. Ejecutá el script SQL/08_documentos_receptor_dni_cuil.sql en la misma base a la que está conectada la aplicación.";
+            else if(pg?.SqlState=="23505")
+                errorEdicion="Este documento ya figura en el legajo, o ya existe un documento principal. Revisá los datos fiscales existentes.";
+            else
+                errorEdicion="No se pudo guardar. Verificá que el documento sea válido y que el responsable tenga correo y autorización. Si el error continúa, revisá los logs de la aplicación.";
+        }
+        finally{ocupado=false;}
+    }
 }

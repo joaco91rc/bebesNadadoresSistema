@@ -3,3 +3,90 @@
 .identidad-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 0;border-bottom:1px solid rgba(80,145,180,.22)}.identidad-row>div{flex:1;min-width:200px}.fiscal-dialog{width:100%;max-width:680px}.fiscal-panel h3{font-weight:750}
 
 .fiscal-contacto{display:grid;gap:8px;padding:16px;background:rgba(39,184,230,.08);border:1px solid rgba(80,145,180,.32);border-radius:10px;overflow-wrap:anywhere}.fiscal-contacto small{font-size:.72rem;letter-spacing:.06em;color:var(--mud-palette-text-secondary);font-weight:700}.fiscal-contacto p{margin:3px 0;color:var(--mud-palette-text-secondary)}.fiscal-contacto .fiscal-aviso{color:var(--mud-palette-warning)}.fiscal-contacto a{justify-self:start}.fiscal-dialog select{width:100%}.identidad-row small{color:var(--mud-palette-text-secondary)}
+
+.fiscal-empty{border:1px dashed rgba(80,145,180,.4);border-radius:10px;padding:14px;margin-top:12px!important}.fiscal-panel .fiscal-toolbar h3{margin:0}.fiscal-panel .fiscal-toolbar p{margin:4px 0;font-size:.92rem}.fiscal-dialog>small{color:var(--mud-palette-text-secondary);line-height:1.5}
+
+/* La acción de guardar nunca debe quedar fuera de la zona visible por el scroll interno. */
+.fiscal-dialog > .fiscal-actions {
+    position: sticky;
+    bottom: -18px;
+    z-index: 10;
+    background: var(--mud-palette-surface);
+    border-top: 1px solid rgba(80,145,180,.45);
+    padding: 12px 2px 3px;
+    margin-top: 2px;
+    box-shadow: 0 -12px 18px -16px rgba(0,0,0,.6);
+}
+.fiscal-actions-buttons { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.fiscal-page .fiscal-actions .fiscal-save { background: #168fc1; color: #fff; border-color: #168fc1; }
+.fiscal-actions-error { border: 1px solid rgba(230,116,116,.6); border-radius: 8px; padding: 9px 11px; margin-bottom: 10px; background: rgba(184,52,52,.13); color: var(--mud-palette-text-primary); }
+.fiscal-actions-error p { margin: 3px 0 0; color: var(--mud-palette-text-primary); }
+@media(max-width:700px) {
+    .fiscal-dialog { max-height: calc(100dvh - 96px); }
+    .fiscal-actions-buttons > button { flex: 1; }
+}
+
+/* Interfaz por alumno: tarjetas compactas, acciones visibles y formulario en ancho completo. */
+.fiscal-legajo-page { gap: 16px; }
+.fiscal-legajo-page .fiscal-alumno-banner {
+    display:flex; gap:16px; align-items:center; padding:20px 22px;
+    border:1px solid rgba(40,166,211,.38);border-radius:16px;
+    background:linear-gradient(115deg,rgba(23,111,160,.21),var(--mud-palette-surface) 80%);
+}
+.fiscal-alumno-icon {display:grid;place-items:center;flex:0 0 50px;height:50px;border-radius:13px;color:#36c9f0;background:rgba(35,161,219,.15)}
+.fiscal-alumno-banner small,.fiscal-doc-student,.fiscal-editor-header small {color:#36c9f0;font-size:.73rem;letter-spacing:.065em;font-weight:800}
+.fiscal-alumno-banner h2 {font-size:1.35rem;margin:3px 0 4px;font-weight:800}
+.fiscal-alumno-banner p {margin:0;color:var(--mud-palette-text-secondary);line-height:1.5}
+.fiscal-contact-card {display:flex;align-items:center;gap:13px;padding:13px 18px;border:1px solid rgba(60,172,210,.25);border-radius:12px;background:rgba(31,161,197,.075)}
+.fiscal-contact-card > .mud-icon-root {color:#35c5e7;flex-shrink:0}
+.fiscal-contact-card>div {flex:1;min-width:0;overflow-wrap:anywhere}
+.fiscal-contact-card strong{font-size:.92rem}
+.fiscal-contact-card p {margin:3px 0;font-weight:700}
+.fiscal-contact-card small{display:block;color:var(--mud-palette-text-secondary)}
+.fiscal-contact-card--warning{border-color:rgba(255,174,50,.42)}
+.fiscal-identidades-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.fiscal-doc-section{min-height:220px;min-width:0}
+.fiscal-doc-section .fiscal-toolbar{align-items:flex-start;margin-bottom:15px}
+.fiscal-doc-section .fiscal-toolbar h3{font-size:1.14rem;margin:0}
+.fiscal-doc-section .fiscal-toolbar p{font-size:.86rem;margin:4px 0 0}
+.fiscal-docs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.fiscal-doc-card {background:rgba(48,126,167,.07);border:1px solid rgba(76,157,199,.35);border-radius:13px;padding:16px;display:grid;gap:8px;min-width:0}
+.fiscal-doc-card--principal{border-color:rgba(35,179,222,.65);background:linear-gradient(135deg,rgba(37,163,208,.13),rgba(34,124,175,.055))}
+.fiscal-doc-badges{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
+.fiscal-chip{display:inline-flex;align-items:center;border-radius:99px;padding:3px 10px;font-size:.75rem;font-weight:750;background:rgba(73,145,183,.16);color:var(--mud-palette-text-primary)}
+.fiscal-chip--primary{color:#34c4f3;background:rgba(36,169,224,.16)}
+.fiscal-chip--ok{color:var(--mud-palette-success);background:rgba(40,170,105,.1)}
+.fiscal-chip--warning{color:var(--mud-palette-warning);background:rgba(227,151,31,.1)}
+.fiscal-doc-card h4{font-size:1.06rem;margin:0;font-weight:800;overflow-wrap:anywhere}
+.fiscal-doc-number{font-weight:700;font-variant-numeric:tabular-nums}
+.fiscal-doc-mail{display:flex;gap:8px;align-items:center;min-width:0;color:var(--mud-palette-text-secondary);overflow-wrap:anywhere}
+.fiscal-doc-mail .mud-icon-root{flex-shrink:0;color:#3caed9}
+.fiscal-doc-card>small{font-size:.75rem;line-height:1.4;color:var(--mud-palette-text-secondary)}
+.fiscal-doc-footer{border-top:1px solid rgba(74,152,183,.22);padding-top:9px;display:flex;justify-content:flex-end}
+.fiscal-doc-footer button {display:inline-flex;align-items:center;gap:5px}
+.fiscal-legajo-page .fiscal-empty{min-width:0}
+.fiscal-editor{width:100%;display:block;overflow:visible}
+.fiscal-editor-header{margin-bottom:18px}
+.fiscal-editor-header h3{font-size:1.18rem;font-weight:800;margin:5px 0}
+.fiscal-editor-header p{font-size:.88rem;max-width:740px}
+.fiscal-editor-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fiscal-field{display:grid;gap:7px;min-width:0}
+.fiscal-field label{font-weight:700}
+.fiscal-field--full{grid-column:1/-1}
+.fiscal-editor-fields input:not([type=checkbox]),.fiscal-editor-fields select{display:block;width:100%;min-width:0;min-height:43px}
+.fiscal-field>small{color:var(--mud-palette-text-secondary);font-size:.83rem;line-height:1.5}
+.fiscal-editor .fiscal-contacto{max-width:none}
+.fiscal-option{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border:1px solid rgba(80,145,180,.32);border-radius:11px;background:rgba(37,137,186,.075);cursor:pointer}
+.fiscal-option:hover{border-color:rgba(44,178,217,.65);background:rgba(37,137,186,.12)}
+.fiscal-option input[type=checkbox]{accent-color:#1baddb;margin:3px 0 0;width:19px;height:19px;flex:0 0 19px;cursor:pointer}
+.fiscal-option>span{display:grid;gap:3px;line-height:1.35}
+.fiscal-option small{display:block;color:var(--mud-palette-text-secondary)}
+.fiscal-sharing{display:grid;gap:9px;padding:15px;border:1px solid rgba(80,145,180,.32);border-radius:11px}
+.fiscal-sharing h4{font-size:1rem;margin:0;font-weight:800}
+.fiscal-sharing p{margin:0 0 4px}
+.fiscal-alert{padding:12px 15px;border-radius:10px;border:1px solid rgba(230,170,40,.5);background:rgba(222,156,35,.1);line-height:1.6}
+.fiscal-editor .fiscal-actions{margin-top:18px;padding:16px 0 0;border-top:1px solid rgba(80,145,180,.32)}
+.fiscal-editor .fiscal-actions-buttons button{display:inline-flex;gap:7px;align-items:center;justify-content:center}
+.fiscal-legajo-page .fiscal-actions .fiscal-save{background:#168fc1;color:white;border-color:#168fc1}
+@media(max-width:1040px){.fiscal-identidades-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.fiscal-alumno-banner{align-items:flex-start!important;padding:16px!important}.fiscal-editor-fields{grid-template-columns:1fr}.fiscal-docs-grid{grid-template-columns:1fr}.fiscal-contact-card{align-items:flex-start;flex-wrap:wrap}.fiscal-contact-card>a{margin-left:0}.fiscal-doc-section .fiscal-toolbar{align-items:flex-start}.fiscal-page .fiscal-doc-section .fiscal-toolbar button{white-space:nowrap}}
