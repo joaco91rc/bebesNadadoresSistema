@@ -11,6 +11,7 @@ using BebesNadadores.Application.Turnera.Dtos;
 using BebesNadadores.Domain.Enums;
 using BebesNadadores.Domain.Common;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace BebesNadadores.Web.Components.Pages.Clientes;
 
@@ -18,6 +19,14 @@ public partial class BebeFormulario : ComponentBase
 {
     private string? _bienvenidaUrl;
     private bool _altaFinalizada;
+    [Inject] private Microsoft.JSInterop.IJSRuntime JSWhatsApp { get; set; } = default!;
+
+    private async Task AbrirWhatsAppBienvenidaAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_bienvenidaUrl))
+            await JSWhatsApp.InvokeVoidAsync("abrirWhatsAppBebesNadadores", _bienvenidaUrl);
+    }
+
     [Inject] private BebesNadadores.Application.Comunicaciones.IWhatsAppService WhatsAppBienvenida { get; set; } = default!;
 
     private string? PrepararBienvenida()

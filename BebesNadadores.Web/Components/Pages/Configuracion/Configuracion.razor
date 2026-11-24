@@ -9,6 +9,7 @@
 <PageTitle>Configuración | Bebés Nadadores</PageTitle>
 
 <div class="settings-page">
+    <a class="settings-communications-card" href="/configuracion/whatsapp"><span class="settings-communications-icon"><MudIcon Icon="@Icons.Material.Filled.Chat"/></span><span><strong>WhatsApp del puesto</strong><small>Elegí si abrir la aplicación instalada o WhatsApp Web (una sola pestaña). La preferencia es de esta computadora.</small></span><MudIcon Icon="@Icons.Material.Filled.ChevronRight"/></a>
     <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
         <Authorized><a class="settings-communications-card" href="/configuracion/comunicaciones"><span class="settings-communications-icon"><MudIcon Icon="@Icons.Material.Filled.Email"/></span><span><strong>Comunicaciones automáticas</strong><small>Configurá los envíos por correo y consultá su historial.</small></span><MudIcon Icon="@Icons.Material.Filled.ChevronRight"/></a>
         <a class="settings-communications-card" href="/configuracion/facturacion"><span class="settings-communications-icon"><MudIcon Icon="@Icons.Material.Filled.Receipt"/></span><span><strong>Facturación fiscal</strong><small>CUIT emisor, datos institucionales y conciliación de pagos.</small></span><MudIcon Icon="@Icons.Material.Filled.ChevronRight"/></a></Authorized>

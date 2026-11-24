@@ -2374,7 +2374,7 @@ else
             <h2 id="welcome-title">¡Inscripción registrada!</h2>
             <p>¿Deseás enviar el mensaje de bienvenida a la familia? Incluye el horario elegido y la primera clase, según corresponda.</p>
             <div class="welcome-actions">
-                <a class="primary-action" href="@_bienvenidaUrl" target="BebesNadadoresWhatsApp" rel="noopener noreferrer">Abrir WhatsApp</a>
+                <button type="button" class="primary-action" @onclick="AbrirWhatsAppBienvenidaAsync">Abrir WhatsApp</button>
                 <button type="button" class="secondary-action" @onclick="Volver">Volver a bebés</button>
             </div>
             <small>El mensaje queda preparado. El envío se confirma desde WhatsApp.</small>

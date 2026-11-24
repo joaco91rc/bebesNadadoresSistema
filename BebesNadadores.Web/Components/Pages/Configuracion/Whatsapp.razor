@@ -1,0 +1,50 @@
+@page "/configuracion/whatsapp"
+@attribute [Authorize(Policy = PoliticasSistema.GestionAdministrativa)]
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<PageTitle>WhatsApp del puesto | Bebés Nadadores</PageTitle>
+<div class="wa-settings">
+    <a href="/configuracion" class="wa-back">← Volver a Configuración</a>
+    <header><span class="wa-kicker">PREFERENCIAS DEL PUESTO</span><h1>Cómo abrir WhatsApp</h1>
+    <p>Configurá cómo se abren los mensajes preparados desde turnera, recuperos, pagos y demás módulos.</p></header>
+    @if (_cargando) { <p>Cargando preferencia...</p> }
+    else
+    {
+        <section class="wa-options" aria-label="Modo de WhatsApp">
+            <button type="button" class="wa-option @(_modo == "web" ? "selected" : "")" @onclick='() => CambiarAsync("web")'>
+                <strong>WhatsApp Web</strong><span>Una sola pestaña reutilizable. No hace falta instalar nada.</span>
+                <small>@(_modo == "web" ? "✓ Seleccionado" : "Seleccionar")</small>
+            </button>
+            <button type="button" class="wa-option @(_modo == "app" ? "selected" : "")" @onclick='() => CambiarAsync("app")'>
+                <strong>WhatsApp de escritorio</strong><span>Abre la aplicación instalada en Windows sin agregar pestañas.</span>
+                <small>@(_modo == "app" ? "✓ Seleccionado" : "Seleccionar")</small>
+            </button>
+        </section>
+        <p class="wa-note">La preferencia se guarda solamente en este navegador y este equipo. Para usar la aplicación, instalá WhatsApp de escritorio, vinculá la cuenta institucional y permití que el navegador abra el enlace de WhatsApp.</p>
+        <p class="wa-note">Esta opción prepara el chat y el texto; la administrativa tiene que pulsar Enviar. No habilita los envíos automáticos de n8n.</p>
+    }
+    @if (_error is not null) { <p class="wa-error">@_error</p> }
+</div>
+@code {
+    private string _modo = "web";
+    private bool _cargando = true;
+    private string? _error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { _modo = await JS.InvokeAsync<string>("obtenerModoWhatsAppBebesNadadores"); }
+        catch { _error = "No se pudo leer la preferencia del navegador."; }
+        finally { _cargando = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private async Task CambiarAsync(string modo)
+    {
+        try {
+            await JS.InvokeVoidAsync("establecerModoWhatsAppBebesNadadores", modo);
+            _modo = modo;
+            _error = null;
+        }
+        catch { _error = "No pudimos guardar la preferencia en este navegador."; }
+    }
+}

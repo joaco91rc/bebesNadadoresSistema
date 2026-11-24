@@ -320,6 +320,7 @@ public sealed class BebeLegajoService(IDbContextFactory<AppDbContext> factory) :
         var turnos = inscripcion
             .Turnos.Where(x =>
                 x.Turno.Estado == EstadoTurno.Activo
+                && x.Turno.VigenteDesde <= hoy
                 && (!x.Turno.VigenteHasta.HasValue || x.Turno.VigenteHasta.Value >= hoy)
             )
             .OrderBy(x => x.Turno.DiaSemana)

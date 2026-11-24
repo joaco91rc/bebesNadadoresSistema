@@ -273,7 +273,7 @@
         try
         {
             var url = WhatsAppService.CrearUrl(fila.Telefono, mensaje);
-            await JS.InvokeVoidAsync("open", url, "_blank", "noopener,noreferrer");
+            await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
         }
         catch (Exception)
         {

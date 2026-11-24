@@ -103,6 +103,7 @@ public sealed class InscripcionService(
         var actual =
             await db.Inscripciones
                 .Include(x => x.Turnos)
+                    .ThenInclude(x => x.Turno)
                 .Where(x =>
                     x.BebeId == bebeId
                     &&
@@ -498,14 +499,18 @@ if (
 
 
     // -----------------------------------------------------
-    // Quitar solamente los que dejaron de estar seleccionados
+    // Quitar solamente los turnos aún vigentes que dejaron de estar
+    // seleccionados. Las versiones finalizadas son historia de clases:
+    // nunca borrarlas al editar el horario actual.
     // -----------------------------------------------------
 
     var eliminar =
         relacionesActuales
             .Where(x =>
-                !nuevosIds.Contains(
-                    x.TurnoId))
+                !nuevosIds.Contains(x.TurnoId)
+                && x.Turno.VigenteDesde <= dto.AplicarDesde
+                && (!x.Turno.VigenteHasta.HasValue
+                    || x.Turno.VigenteHasta.Value >= dto.AplicarDesde))
             .ToList();
 
 

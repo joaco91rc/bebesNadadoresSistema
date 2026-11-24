@@ -17,6 +17,7 @@
 @inject NavigationManager Navigation
 @inject BebesNadadores.Application.Comunicaciones.IWhatsAppService WhatsAppService
 @inject PermisosUsuario Permisos
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <PageTitle>Legajo | Bebés Nadadores</PageTitle>
 
@@ -91,13 +92,13 @@ else if (_legajo is not null)
                          !string.IsNullOrWhiteSpace(
                              _legajo.ResponsablePrincipal.WhatsApp))
                     {
-                        <a class="whatsapp-button" href="@ObtenerWhatsAppUrl()" target="_blank" rel="noopener noreferrer">
+                        <button type="button" class="whatsapp-button" @onclick="AbrirWhatsAppLegajoAsync">
 
                             <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
 
                             WhatsApp
 
-                        </a>
+                        </button>
                     }
 
                 </div>
@@ -2289,6 +2290,13 @@ else if (_legajo is not null)
                ?? "#";
     }
 
+
+    private async Task AbrirWhatsAppLegajoAsync()
+    {
+        var url = ObtenerWhatsAppUrl();
+        if (url != "#" && !string.IsNullOrWhiteSpace(url))
+            await JS.InvokeVoidAsync("abrirWhatsAppBebesNadadores", url);
+    }
 
     private void Volver()
     {

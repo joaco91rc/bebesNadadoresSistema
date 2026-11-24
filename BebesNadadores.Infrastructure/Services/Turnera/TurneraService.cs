@@ -75,6 +75,11 @@ public sealed class TurneraService(
 
         await using var db = await factory.CreateDbContextAsync(ct);
 
+        // El alta y la continuidad de un turno son una sola operación.
+        // Si falla alguna validación, no queda una versión vacía publicada.
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, ct);
+
         // =========================================================
         // CICLO LECTIVO
         // =========================================================
@@ -92,7 +97,7 @@ public sealed class TurneraService(
             );
         }
 
-        var hoy = DateOnly.FromDateTime(DateTime.Today);
+        var hoy = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
 
         DateOnly vigenteDesde;
         DateOnly vigenteHasta;
@@ -200,6 +205,62 @@ public sealed class TurneraService(
         );
 
         // =========================================================
+        // CONTINUIDAD DE UNA VERSION ANTERIOR
+        // =========================================================
+        // Un turno creado con el mismo nombre, nivel, día, horario, duración,
+        // sector y cupo, que comienza al día siguiente de otro del mismo ciclo,
+        // es una continuación. No trasladamos alumnos entre turnos diferentes.
+        // Si encontramos más de un antecedente, rechazamos la ambigüedad.
+        var fechaAnterior = vigenteDesde.AddDays(-1);
+        var sectorNormalizado = Normalizar(dto.Sector);
+        var nombreNormalizado = dto.Nombre.Trim();
+        var anteriores = await db.Turnos.AsNoTracking()
+            .Where(x => x.CicloLectivoId == ciclo.Id
+                && x.Estado == EstadoTurno.Activo
+                && x.VigenteHasta == fechaAnterior
+                && x.Nombre == nombreNormalizado
+                && x.NivelId == dto.NivelId
+                && x.DiaSemana == dto.DiaSemana
+                && x.HoraInicio == dto.HoraInicio
+                && x.DuracionMinutos == dto.DuracionMinutos
+                && x.Cupo == dto.Cupo
+                && x.Sector == sectorNormalizado)
+            .Select(x => x.Id).ToListAsync(ct);
+
+        if (anteriores.Count > 1)
+            throw new InvalidOperationException(
+                "Hay más de una versión anterior compatible. Revisá los horarios antes de crearlo.");
+
+        var continuacionTurnoId = anteriores.Count == 1 ? anteriores[0] : (Guid?)null;
+        var vinculosContinuidad = continuacionTurnoId.HasValue
+            ? await db.InscripcionesTurnos.AsNoTracking()
+                .Where(x => x.TurnoId == continuacionTurnoId.Value
+                    && x.Inscripcion.Estado == EstadoInscripcion.Activa
+                    && x.Inscripcion.Bebe.Estado == EstadoBebe.Activo
+                    && x.Inscripcion.FechaInicio <= vigenteHasta
+                    && (x.Inscripcion.FechaFin == null
+                        || x.Inscripcion.FechaFin >= vigenteDesde))
+                .Select(x => new { x.InscripcionId, x.EsPrincipal })
+                .ToListAsync(ct)
+            : null;
+        var reservasContinuidad = continuacionTurnoId.HasValue
+            ? await db.ReservasVacantesCiclo
+                .Where(x => x.TurnoId == continuacionTurnoId.Value
+                    && x.CicloLectivoId == ciclo.Id
+                    && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
+                .ToListAsync(ct)
+            : null;
+
+        // Evitar un alta repetida de la MISMA versión al volver a guardar.
+        if (continuacionTurnoId.HasValue && await db.Turnos.AnyAsync(x =>
+                x.CicloLectivoId == ciclo.Id && x.Estado == EstadoTurno.Activo
+                && x.Nombre == nombreNormalizado && x.NivelId == dto.NivelId
+                && x.DiaSemana == dto.DiaSemana && x.HoraInicio == dto.HoraInicio
+                && x.VigenteDesde == vigenteDesde, ct))
+            throw new InvalidOperationException(
+                "Ya existe la versión del horario desde esa fecha. Abrí el horario vigente en vez de crearlo nuevamente.");
+
+        // =========================================================
         // CREAR TURNO
         // =========================================================
 
@@ -250,26 +311,32 @@ public sealed class TurneraService(
 
         db.Turnos.Add(turno);
 
+        // Conservamos la asignación antigua para que se consulten las clases
+        // anteriores. Sólo agregamos la misma inscripción a la versión nueva.
+        if (vinculosContinuidad is not null)
+        {
+            foreach (var vinculo in vinculosContinuidad)
+                db.InscripcionesTurnos.Add(new InscripcionTurno
+                {
+                    InscripcionId = vinculo.InscripcionId,
+                    TurnoId = turno.Id,
+                    EsPrincipal = vinculo.EsPrincipal
+                });
+        }
+        if (reservasContinuidad is not null)
+            foreach (var reserva in reservasContinuidad)
+                reserva.TurnoId = turno.Id;
+
         await db.SaveChangesAsync(ct);
 
-        // =========================================================
-        // CICLO YA PUBLICADO
-        // =========================================================
-
+        // Generar las sesiones DENTRO de la misma transacción y del mismo
+        // DbContext, de modo que se reviertan si falla la continuidad.
         if (ciclo.Estado == EstadoCicloLectivo.Publicado)
-        {
-            /*
-             * El nuevo horario ya entra en una grilla
-             * que está funcionando.
-             *
-             * Generamos automáticamente todas sus
-             * clases desde AplicarDesde hasta su fin.
-             *
-             * GenerarSesionesAsync evita duplicados.
-             */
-            await GenerarSesionesCicloAsync(ciclo.Id, vigenteDesde, vigenteHasta, ct);
-        }
+            await GenerarSesionesCicloInternoAsync(
+                db, ciclo.Id, vigenteDesde, vigenteHasta, ct,
+                soloTurnoId: turno.Id);
 
+        await transaction.CommitAsync(ct);
         return turno.Id;
     }
 
@@ -386,7 +453,7 @@ public sealed class TurneraService(
             && turno.NivelId == dto.NivelId
             && turno.Cupo == dto.Cupo
             && turno.Sector == Normalizar(dto.Sector)
-            && finAnterior == dto.VigenteHasta
+            // Cambiar la fecha de cierre no debe dejar alumnos sin turno.
             && turno.Estado == EstadoTurno.Activo && dto.Estado == EstadoTurno.Activo;
 
         var vinculos = await db.InscripcionesTurnos
@@ -547,7 +614,7 @@ public sealed class TurneraService(
                     TurnoId = nuevaVersion.Id,
                     EsPrincipal = vinculo.EsPrincipal
                 });
-                vinculo.EsPrincipal = false;
+                // La versión histórica conserva su marca de principal.
             }
             foreach (var reserva in reservasCiclo)
                 reserva.TurnoId = nuevaVersion.Id;

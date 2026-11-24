@@ -44,7 +44,7 @@ export async function compartirComprobante(url, nombreArchivo, mensaje) {
       ? `https://wa.me/?text=${texto}`
       : `https://web.whatsapp.com/send?text=${texto}`;
 
-    window.open(urlWhatsApp, "_blank", "noopener,noreferrer");
+    window.abrirWhatsAppBebesNadadores(urlWhatsApp);
     return "descargado";
   }
 
@@ -60,9 +60,8 @@ export async function abrirWhatsAppComprobante(mensaje) {
     ? `https://wa.me/?text=${texto}`
     : `https://web.whatsapp.com/send?text=${texto}`;
 
-  // Abrir ANTES de cualquier await para minimizar el bloqueo de pop-ups.
-  const ventana = window.open(destino, "_blank");
-  if (ventana) ventana.opener = null;
+  // La misma lógica para todos los módulos: app o pestaña reutilizable.
+  const abierto = window.abrirWhatsAppBebesNadadores(destino);
 
   try {
     await navigator.clipboard?.writeText(mensaje);
@@ -70,5 +69,5 @@ export async function abrirWhatsAppComprobante(mensaje) {
     // El portapapeles es una ayuda, no una condición para continuar.
   }
 
-  return ventana !== null;
+  return abierto;
 }
