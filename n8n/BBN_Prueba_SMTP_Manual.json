@@ -1,0 +1,78 @@
+{
+  "name": "BBN - PRUEBA SMTP MANUAL AISLADA",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "204468a9-1cfb-4cba-8612-a15eab755f8a",
+      "name": "Ejecutar prueba manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// PRUEBA AISLADA: nunca consulta alumnos, pagos ni facturas del sistema.\n// Reemplazar el destinatario por el correo propio antes de ejecutar.\nreturn [{json:{destinatario:\"TU_CORREO_DE_PRUEBA@ejemplo.com\",asunto:\"Prueba SMTP - Bebés Nadadores\",html:\"<div style=\\\"font-family:Arial,sans-serif;padding:24px\\\"><h2>Prueba de correo institucional</h2><p>Este mensaje fue enviado manualmente desde n8n mediante Zoho CPaaS.</p><p>Bebés Nadadores - Administración</p></div>\"}}];"
+      },
+      "id": "030f3477-ad27-405d-a295-0d72daddf335",
+      "name": "Definir correo propio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "Bebés Nadadores <administracion@bebesnadadores.com>",
+        "toEmail": "={{ $json.destinatario }}",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "f6e537fb-f07f-4ac6-9312-637ab138ac10",
+      "name": "Enviar correo de prueba",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Ejecutar prueba manual": {
+      "main": [
+        [
+          {
+            "node": "Definir correo propio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Definir correo propio": {
+      "main": [
+        [
+          {
+            "node": "Enviar correo de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
+  }
+}

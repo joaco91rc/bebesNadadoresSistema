@@ -602,3 +602,60 @@ button:hover {
         7px
         13px !important;
 }
+/* El selector MudBlazor se renderiza fuera del modal de pagos. */
+body:has(.bn-simple-modal) .mud-popover.mud-popover-open { z-index: 2801 !important; }
+
+
+/* ============================================================
+   POPUPS / DIÁLOGOS DEL SISTEMA
+   ============================================================ */
+body .mud-dialog,
+body .cycle-modal,
+body .confirm-modal,
+body .payment-modal,
+body .bn-simple-modal {
+    border: 1px solid color-mix(in srgb, var(--mud-palette-primary, #28afe2) 24%, var(--mud-palette-divider, #7d97aa) 76%);
+    box-shadow: 0 24px 64px rgba(5, 18, 28, .28), 0 0 0 1px rgba(255,255,255,.02);
+}
+
+body .mud-dialog .mud-input-slot,
+body .mud-dialog input,
+body .mud-dialog select,
+body .mud-dialog textarea,
+body .cycle-modal input,
+body .cycle-modal select,
+body .cycle-modal textarea,
+body .confirm-modal input,
+body .confirm-modal select,
+body .confirm-modal textarea,
+body .payment-modal input,
+body .payment-modal select,
+body .payment-modal textarea {
+    background: color-mix(in srgb, var(--mud-palette-surface, #fff) 86%, var(--mud-palette-primary, #28afe2) 14%) !important;
+    border: 1px solid color-mix(in srgb, var(--mud-palette-divider, #8aa6b8) 72%, var(--mud-palette-primary, #28afe2) 28%) !important;
+    border-radius: 12px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+body .mud-dialog .mud-input-slot:focus-within,
+body .mud-dialog input:focus,
+body .mud-dialog select:focus,
+body .mud-dialog textarea:focus,
+body .cycle-modal input:focus,
+body .cycle-modal select:focus,
+body .cycle-modal textarea:focus,
+body .payment-modal input:focus,
+body .payment-modal select:focus,
+body .payment-modal textarea:focus {
+    outline: none;
+    border-color: var(--mud-palette-primary, #28afe2) !important;
+    box-shadow: 0 0 0 3px rgba(40,175,226,.16);
+}
+
+body .mud-dialog .mud-input-label,
+body .mud-dialog label,
+body .cycle-modal label,
+body .confirm-modal label,
+body .payment-modal label {
+    font-weight: 700;
+}

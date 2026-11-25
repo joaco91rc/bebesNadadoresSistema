@@ -187,6 +187,7 @@ public static class DependencyInjection
         services.AddScoped<IProveedorService, ProveedorService>();
         services.AddScoped<IPagoProveedorService, PagoProveedorService>();
         services.AddScoped<IGeneradorCuotasService, GeneradorCuotasService>();
+        services.AddScoped<IBonificacionCuotaService, BonificacionCuotaService>();
         services.AddScoped<IWhatsAppService, WhatsAppService>();
         services.AddScoped<IAptoMedicoService, AptoMedicoService>();
         services.AddScoped<IDashboardService, DashboardService>();

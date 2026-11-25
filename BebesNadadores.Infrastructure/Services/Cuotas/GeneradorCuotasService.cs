@@ -15,6 +15,160 @@ public sealed class GeneradorCuotasService(
     IConfiguracionSistemaService configuracionService
 ) : IGeneradorCuotasService
 {
+    // Generación manual de uno o varios períodos: todo el lote en una transacción.
+    public Task<GeneracionCuotasResultadoDto> GenerarPeriodosAsync(DateOnly inicio, int cantidad,
+        Guid? bebeId = null, Guid? usuarioId = null, CancellationToken ct = default)
+        => ReintentoTransaccional.EjecutarAsync(() => GenerarPeriodosInternoAsync(inicio, cantidad, bebeId, usuarioId, ct), ct);
+
+    private async Task<GeneracionCuotasResultadoDto> GenerarPeriodosInternoAsync(DateOnly inicio, int cantidad,
+        Guid? bebeId, Guid? usuarioId, CancellationToken ct)
+    {
+        if (cantidad is < 1 or > 12) throw new InvalidOperationException("Seleccioná entre 1 y 12 cuotas.");
+        inicio = new DateOnly(inicio.Year, inicio.Month, 1);
+        var config = await configuracionService.ObtenerAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var trx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var generadas = 0;
+        var existentes = 0;
+        var evaluadas = 0;
+        var errores = new List<string>();
+        var afectados = new HashSet<Guid>();
+        for (var n = 0; n < cantidad; n++)
+        {
+            var periodo = inicio.AddMonths(n);
+            var inscripciones = await db.Inscripciones.AsNoTracking().Include(x => x.Bebe).Include(x => x.Plan)
+                .Where(x => (!bebeId.HasValue || x.BebeId == bebeId.Value)
+                    && x.Estado == EstadoInscripcion.Activa && x.Bebe.Estado == EstadoBebe.Activo
+                    && x.FechaInicio <= periodo && (!x.FechaFin.HasValue || x.FechaFin.Value >= periodo))
+                .OrderByDescending(x => x.FechaInicio).ThenBy(x => x.Id).ToListAsync(ct);
+            var cuotas = await db.Cuotas.AsNoTracking().Where(x => x.Periodo == periodo
+                && (!bebeId.HasValue || x.Inscripcion.BebeId == bebeId.Value))
+                .Select(x => new { x.Inscripcion.BebeId, x.InscripcionId, x.Estado }).ToListAsync(ct);
+            if (inscripciones.Count == 0)
+            {
+                if (bebeId.HasValue && cuotas.Any(x => x.Estado != EstadoCuota.Anulada)) { existentes++; continue; }
+                errores.Add($"{periodo:MM/yyyy}: no hay inscripciones activas para el período. Revisá el ciclo lectivo.");
+                continue;
+            }
+            var tarifas = await db.TarifasPlan.AsNoTracking().Where(x => x.VigenciaDesde <= periodo
+                && (!x.VigenciaHasta.HasValue || x.VigenciaHasta.Value >= periodo))
+                .OrderByDescending(x => x.VigenciaDesde).ToListAsync(ct);
+            foreach (var inscripcion in inscripciones.GroupBy(x => x.BebeId).Select(g => g.First()))
+            {
+                evaluadas++;
+                afectados.Add(inscripcion.BebeId);
+                if (cuotas.Any(x => x.BebeId == inscripcion.BebeId && x.Estado != EstadoCuota.Anulada)) { existentes++; continue; }
+                if (cuotas.Any(x => x.BebeId == inscripcion.BebeId))
+                {
+                    if (bebeId.HasValue) errores.Add($"{periodo:MM/yyyy}: existe una cuota anulada. Reactivala desde la cuenta corriente.");
+                    else existentes++;
+                    continue;
+                }
+                var tarifa = tarifas.FirstOrDefault(x => x.PlanId == inscripcion.PlanId);
+                if (tarifa is null)
+                {
+                    errores.Add($"{periodo:MM/yyyy}: falta tarifa vigente para {inscripcion.Bebe.Apellido}, {inscripcion.Bebe.Nombre} (plan {inscripcion.Plan.Nombre}).");
+                    continue;
+                }
+                var importe = ReglasCuota.CalcularImporteMensual(tarifa.PrecioMensual, inscripcion.TipoDescuento, inscripcion.ValorDescuento);
+                var vence = new DateOnly(periodo.Year, periodo.Month, Math.Min(config.DiaVencimientoCuota, DateTime.DaysInMonth(periodo.Year, periodo.Month)));
+                db.Cuotas.Add(new Cuota { Id = Guid.NewGuid(), InscripcionId = inscripcion.Id, Periodo = periodo,
+                    FechaVencimiento = vence, Importe = importe, Estado = importe == 0m ? EstadoCuota.Pagada :
+                    vence < BebesNadadores.Domain.Common.FechaArgentina.Hoy ? EstadoCuota.Vencida : EstadoCuota.Pendiente,
+                    Descripcion = $"Cuota mensual {periodo:MM/yyyy} (generada manualmente)", CreadoPorUsuarioId = usuarioId });
+                generadas++;
+            }
+        }
+        if (errores.Count > 0) throw new InvalidOperationException("No se generó ninguna cuota. Primero configurá las tarifas del nuevo período o ciclo lectivo y revisá las inscripciones. " + string.Join(" | ", errores.Take(8)));
+        await db.SaveChangesAsync(ct);
+        await trx.CommitAsync(ct);
+        var advertencias = new List<string>();
+        foreach (var id in afectados)
+        {
+            try { await pagoService.AplicarSaldosAFavorAsync(id, ct); }
+            catch (Exception ex) when (ex is not OperationCanceledException) { advertencias.Add($"Cuotas generadas; no se pudo aplicar saldo a favor de {id}: {ex.Message}"); }
+        }
+        return new GeneracionCuotasResultadoDto(inicio, evaluadas, generadas, existentes, 0, advertencias);
+    }
+
+    // =========================================================
+    // CUOTA INDIVIDUAL PARA COBRO ADELANTADO
+    // =========================================================
+
+    public Task<GeneracionCuotaIndividualDto> GenerarParaBebeAsync(
+        Guid bebeId, DateOnly periodo, Guid usuarioId, CancellationToken ct = default)
+        => ReintentoTransaccional.EjecutarAsync(
+            () => GenerarParaBebeInternoAsync(bebeId, periodo, usuarioId, ct), ct);
+
+    private async Task<GeneracionCuotaIndividualDto> GenerarParaBebeInternoAsync(
+        Guid bebeId, DateOnly periodo, Guid usuarioId, CancellationToken ct)
+    {
+        if (bebeId == Guid.Empty || usuarioId == Guid.Empty)
+            throw new InvalidOperationException("No se pudo identificar al bebé o al usuario.");
+        periodo = new DateOnly(periodo.Year, periodo.Month, 1);
+        var config = await configuracionService.ObtenerAsync(ct);
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var trx = await db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, ct);
+
+        var existente = await db.Cuotas.AsNoTracking()
+            .Where(x => x.Inscripcion.BebeId == bebeId && x.Periodo == periodo)
+            .OrderBy(x => x.Estado == EstadoCuota.Anulada)
+            .FirstOrDefaultAsync(ct);
+        if (existente is not null)
+        {
+            if (existente.Estado == EstadoCuota.Anulada)
+                throw new InvalidOperationException("Existe una cuota anulada para este período. Reactivala desde la cuenta corriente; no se creará otra.");
+            await trx.CommitAsync(ct);
+            return new GeneracionCuotaIndividualDto(existente.Id, periodo, existente.Importe, true);
+        }
+
+        var inscripcion = await db.Inscripciones.AsNoTracking()
+            .Include(x => x.Bebe)
+            .Where(x => x.BebeId == bebeId
+                && x.Estado == EstadoInscripcion.Activa
+                && x.Bebe.Estado == EstadoBebe.Activo
+                && x.FechaInicio <= periodo
+                && (!x.FechaFin.HasValue || x.FechaFin.Value >= periodo))
+            .OrderByDescending(x => x.FechaInicio).FirstOrDefaultAsync(ct)
+            ?? throw new InvalidOperationException("El bebé no tiene una inscripción activa para el mes elegido. Revisá su inscripción antes de generar la cuota.");
+
+        var tarifa = await db.TarifasPlan.AsNoTracking()
+            .Where(x => x.PlanId == inscripcion.PlanId
+                && x.VigenciaDesde <= periodo
+                && (!x.VigenciaHasta.HasValue || x.VigenciaHasta.Value >= periodo))
+            .OrderByDescending(x => x.VigenciaDesde).FirstOrDefaultAsync(ct)
+            ?? throw new InvalidOperationException("No hay una tarifa vigente para el plan en ese período.");
+        var importe = ReglasCuota.CalcularImporteMensual(
+            tarifa.PrecioMensual, inscripcion.TipoDescuento, inscripcion.ValorDescuento);
+        var vence = new DateOnly(periodo.Year, periodo.Month, config.DiaVencimientoCuota);
+        var cuota = new Cuota
+        {
+            InscripcionId = inscripcion.Id,
+            Periodo = periodo,
+            FechaVencimiento = vence,
+            Importe = importe,
+            Estado = importe == 0m ? EstadoCuota.Pagada
+                : vence < BebesNadadores.Domain.Common.FechaArgentina.Hoy
+                    ? EstadoCuota.Vencida : EstadoCuota.Pendiente,
+            Descripcion = $"Cuota mensual {periodo:MM/yyyy} (generada manualmente)",
+            CreadoPorUsuarioId = usuarioId
+        };
+        db.Cuotas.Add(cuota);
+        await db.SaveChangesAsync(ct);
+        await trx.CommitAsync(ct);
+        // Aplicación posterior al commit. Si falla, la cuota YA está creada:
+        // informamos la advertencia sin hacer creer que falló la generación.
+        string? advertencia = null;
+        try { await pagoService.AplicarSaldosAFavorAsync(bebeId, ct); }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            advertencia = "La cuota se generó, pero no se pudo aplicar el saldo a favor. "
+                + "Revisá la cuenta corriente antes de registrar otro cobro. " + ex.Message;
+        }
+        return new GeneracionCuotaIndividualDto(cuota.Id, periodo, importe, false, advertencia);
+    }
+
     // =========================================================
     // GENERAR
     // =========================================================

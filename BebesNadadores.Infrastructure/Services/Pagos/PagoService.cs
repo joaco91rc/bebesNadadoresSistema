@@ -408,6 +408,7 @@ var periodoActual =
                     x.Inscripcion)
 
 
+                .Include(x => x.Bonificaciones)
                 .Include(x =>
                     x.Reactivaciones)
 
@@ -536,7 +537,9 @@ var periodoActual =
                         x.Descripcion,
                         x.MotivoAnulacion,
                         ultimaReactivacion?.FechaUtc,
-                        ultimaReactivacion?.Motivo);
+                        ultimaReactivacion?.Motivo,
+                        x.Bonificaciones.Where(b => b.AnuladaUtc == null).Sum(b => b.Importe),
+                        x.Importe + x.Bonificaciones.Where(b => b.AnuladaUtc == null).Sum(b => b.Importe));
 
                 })
 
@@ -801,6 +804,8 @@ var deuda =
                 ct);
 
 
+        FiltrarCuotaObjetivo(cuotas, dto.CuotaIdObjetivo);
+
         var restante =
 
             dto.Importe;
@@ -1063,6 +1068,8 @@ var deuda =
                 db,
                 bebe.Id,
                 ct);
+
+        FiltrarCuotaObjetivo(cuotas, dto.CuotaIdObjetivo);
 
         var cobro =
             await registradorCobros.RegistrarAsync(
@@ -1485,6 +1492,17 @@ var deuda =
 
 
 
+
+    private static void FiltrarCuotaObjetivo(List<Cuota> cuotas, Guid? cuotaId)
+    {
+        if (!cuotaId.HasValue) return;
+        var seleccionada = cuotas.FirstOrDefault(x => x.Id == cuotaId.Value
+            && x.Importe > x.Imputaciones.Sum(i => i.Importe));
+        if (seleccionada is null)
+            throw new InvalidOperationException("La cuota elegida no existe, está anulada o ya no tiene saldo pendiente.");
+        cuotas.Clear();
+        cuotas.Add(seleccionada);
+    }
 
     // =========================================================
 

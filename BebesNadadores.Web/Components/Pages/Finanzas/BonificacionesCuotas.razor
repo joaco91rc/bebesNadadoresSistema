@@ -1,0 +1,147 @@
+@page "/pagos/bonificaciones"
+@attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
+@using BebesNadadores.Application.Cuotas
+@using BebesNadadores.Application.Cuotas.Dtos
+@using BebesNadadores.Web.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using System.Globalization
+@inject IBonificacionCuotaService Bonificaciones
+@inject PermisosUsuario Permisos
+@inject AuthenticationStateProvider Auth
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<PageTitle>Control de bonificaciones | Bebés Nadadores</PageTitle>
+<div class="bn-bonificaciones">
+    <header class="bn-header">
+        <div>
+            <small>FINANZAS · AUDITORÍA</small>
+            <h1>Control de cuotas bonificadas</h1>
+            <p>Las bonificaciones reducen cuotas, pero no generan ingresos en caja ni en el banco.</p>
+        </div>
+        <a href="/pagos" class="bn-link">Volver a Pagos</a>
+    </header>
+    @if (!string.IsNullOrWhiteSpace(_error)) { <p class="bn-error">@_error</p> }
+    @if (!string.IsNullOrWhiteSpace(_mensaje)) { <p class="bn-ok">@_mensaje</p> }
+    <section class="bn-filters">
+        <label>Mes bonificado
+            <input type="month" value="@_periodoTexto" @onchange="PeriodoCambioAsync" />
+        </label>
+        <button type="button" @onclick="MostrarTodosAsync">Todos los períodos</button>
+        <label>Buscar bebé o motivo
+            <input type="search" placeholder="Buscar..." @bind="_buscar" @bind:event="oninput" />
+        </label>
+        <button type="button" @onclick="CargarAsync" disabled="@_cargando">Actualizar</button>
+    </section>
+    @if (_cargando) { <p>Cargando bonificaciones...</p> }
+    else
+    {
+        <section class="bn-stats">
+            <article><small>Bonificaciones vigentes</small><strong>@Visibles.Count(x => !x.Anulada)</strong></article>
+            <article><small>Importe bonificado</small><strong>@Moneda(Visibles.Where(x => !x.Anulada).Sum(x => x.Importe))</strong></article>
+            <article><small>Reversiones registradas</small><strong>@Visibles.Count(x => x.Anulada)</strong></article>
+        </section>
+        @if (Visibles.Count == 0) { <p class="bn-empty">No hay bonificaciones para los filtros seleccionados.</p> }
+        else
+        {
+            <div class="bn-table-scroll">
+                <table class="bn-table">
+                    <thead><tr><th>Bebé</th><th>Período</th><th>Bonificación</th><th>Motivo</th><th>Registrada</th><th>Usuario</th><th>Estado</th><th>Acción</th></tr></thead>
+                    <tbody>
+                        @foreach (var b in Visibles)
+                        {
+                            <tr class="@(b.Anulada ? "bn-revertida" : "")" @key="b.Id">
+                                <td><a href="@($"/pagos?bebe={b.BebeId}")">@b.Bebe</a></td>
+                                <td>@b.Periodo.ToString("MM/yyyy")</td>
+                                <td><strong>@Moneda(b.Importe)</strong></td>
+                                <td>@(string.IsNullOrWhiteSpace(b.Motivo) ? "—" : b.Motivo) @if (b.Anulada) { <small>Reversión: @b.MotivoAnulacion</small> }</td>
+                                <td>@FechaArgentina(b.FechaUtc)</td>
+                                <td>@b.Usuario</td>
+                                <td><span class="@(b.Anulada ? "bn-void" : "bn-active")">@(b.Anulada ? "Revertida" : "Vigente")</span></td>
+                                <td>
+                                    @if (!b.Anulada)
+                                    {
+                                        <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
+                                            <Authorized><button type="button" disabled="@_revirtiendo" @onclick="() => RevertirAsync(b)">Revertir</button></Authorized>
+                                        </AuthorizeView>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<BonificacionCuotaDto> _filas = [];
+    private string _periodoTexto = string.Empty;
+    private string _buscar = string.Empty;
+    private bool _cargando;
+    private bool _revirtiendo;
+    private string? _error;
+    private string? _mensaje;
+
+    private List<BonificacionCuotaDto> Visibles => _filas.Where(x =>
+        string.IsNullOrWhiteSpace(_buscar)
+        || x.Bebe.Contains(_buscar, StringComparison.OrdinalIgnoreCase)
+        || x.Motivo.Contains(_buscar, StringComparison.OrdinalIgnoreCase)
+        || x.Usuario.Contains(_buscar, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _cargando = true;
+            _error = null;
+            DateOnly? periodo = null;
+            if (!string.IsNullOrWhiteSpace(_periodoTexto) &&
+                DateOnly.TryParseExact(_periodoTexto + "-01", "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var mes))
+                periodo = mes;
+            _filas = (await Bonificaciones.ListarAsync(periodo)).ToList();
+        }
+        catch (Exception ex) { _error = Errores.Mensaje(ex); }
+        finally { _cargando = false; }
+    }
+
+    private async Task PeriodoCambioAsync(ChangeEventArgs e)
+    {
+        _periodoTexto = e.Value?.ToString() ?? string.Empty;
+        await CargarAsync();
+    }
+    private async Task MostrarTodosAsync() { _periodoTexto = string.Empty; await CargarAsync(); }
+    private async Task RevertirAsync(BonificacionCuotaDto item)
+    {
+        if (_revirtiendo) return;
+        _error = null;
+        _mensaje = null;
+        try
+        {
+            await Permisos.ExigirAsync(PoliticasSistema.SoloAdministrador);
+            var motivo = await JS.InvokeAsync<string?>("prompt", $"Motivo para revertir la bonificación de {item.Bebe}:");
+            if (motivo is null) return;
+            var estado = await Auth.GetAuthenticationStateAsync();
+            var idTexto = estado.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(idTexto, out var usuarioId)) throw new InvalidOperationException("Usuario inválido.");
+            _revirtiendo = true;
+            await Bonificaciones.RevertirAsync(item.Id, motivo, usuarioId);
+            await CargarAsync();
+            _mensaje = "Bonificación revertida. El saldo de la cuota fue actualizado y la auditoría se conserva.";
+        }
+        catch (Exception ex) { _error = Errores.Mensaje(ex); }
+        finally { _revirtiendo = false; }
+    }
+    private static string FechaArgentina(DateTimeOffset fecha)
+    {
+        try { return TimeZoneInfo.ConvertTime(fecha,
+            TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires")).ToString("dd/MM/yyyy HH:mm"); }
+        catch (TimeZoneNotFoundException) { return fecha.ToOffset(TimeSpan.FromHours(-3)).ToString("dd/MM/yyyy HH:mm"); }
+    }
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-AR"));
+}

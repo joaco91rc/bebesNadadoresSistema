@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = PoliticasSistema.SoloAdministrador)]
 
 @using BebesNadadores.Application.Cuotas.Dtos
+@using BebesNadadores.Web.Components.Shared.Utils
 
 <PageTitle>Generación de cuotas | Bebés Nadadores</PageTitle>
 
@@ -121,7 +122,7 @@
                 </span>
 
                 <strong>
-                    Día 10
+                    Según configuración
                 </strong>
             </div>
 
@@ -155,11 +156,11 @@
                 </span>
 
                 <h2>
-                    Generar período
+                    Generar períodos
                 </h2>
 
                 <p>
-                    Podés ejecutar manualmente cualquier período.
+                    Podés generar uno o varios períodos consecutivos.
                     Si las cuotas ya existen, no se duplican.
                 </p>
 
@@ -176,13 +177,15 @@
                     Período
                 </label>
 
-               <input type="month"
-       value="@_periodoTexto"
-       @onchange="CambiarPeriodo"
-       disabled="@_generando" />
+               <BnDatePicker @bind-Value="_periodo" SoloMes="true" Disabled="@_generando" />
+                <label>Cantidad de cuotas</label>
+                <select @bind="_cantidad" disabled="@_generando" class="batch-count">
+                    @for (var n = 1; n <= 12; n++) { <option value="@n">@n</option> }
+                </select>
+                <small>Hasta @(_periodo.AddMonths(_cantidad - 1).ToString("MM/yyyy")) inclusive.</small>
 
                 <small>
-                    Las cuotas vencerán el día 10 del mes seleccionado.
+                    Se utilizará el vencimiento configurado y la tarifa de cada período.
                 </small>
 
             </div>
@@ -236,7 +239,7 @@
                     </span>
 
                     <h2>
-                        Período
+                        Período inicial
                         @(_resultado.Periodo.ToString("MM/yyyy"))
                     </h2>
 

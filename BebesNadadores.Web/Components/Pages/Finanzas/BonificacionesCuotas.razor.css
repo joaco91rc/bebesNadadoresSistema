@@ -1,0 +1,27 @@
+.bn-bonificaciones { max-width:1500px; margin:0 auto; padding:24px; color:var(--mud-palette-text-primary); }
+.bn-header { display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; align-items:center; margin-bottom:25px; }
+.bn-header small { color:#28afe2; font-weight:800; letter-spacing:.08em; }
+.bn-header h1 { margin:5px 0; font-size:clamp(24px,3vw,32px); }
+.bn-header p { color:var(--mud-palette-text-secondary); }
+.bn-link,.bn-filters button,.bn-table button { border-radius:10px; padding:10px 15px; background:var(--mud-palette-surface); border:1px solid var(--mud-palette-divider); color:inherit; cursor:pointer; text-decoration:none; }
+.bn-filters { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-bottom:22px; padding:18px; background:var(--mud-palette-surface); border:1px solid var(--mud-palette-divider); border-radius:16px; }
+.bn-filters label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
+.bn-filters input { padding:10px; border:1px solid var(--mud-palette-divider); border-radius:9px; background:var(--mud-palette-background); color:inherit; }
+.bn-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:20px; }
+.bn-stats article { padding:18px; background:var(--mud-palette-surface); border:1px solid var(--mud-palette-divider); border-radius:15px; display:flex; flex-direction:column; gap:8px; }
+.bn-stats small { color:var(--mud-palette-text-secondary); }
+.bn-stats strong { font-size:23px; }
+.bn-table-scroll { overflow-x:auto; background:var(--mud-palette-surface); border:1px solid var(--mud-palette-divider); border-radius:15px; }
+.bn-table { width:100%; border-collapse:collapse; font-size:13px; }
+.bn-table th,.bn-table td { padding:13px 11px; border-bottom:1px solid var(--mud-palette-divider); text-align:left; vertical-align:middle; }
+.bn-table th { font-weight:800; white-space:nowrap; }
+.bn-table a { color:#28afe2; font-weight:700; }
+.bn-table td small { display:block; margin-top:6px; }
+.bn-revertida { opacity:.65; }
+.bn-active,.bn-void { display:inline-block; padding:5px 8px; border-radius:20px; font-size:12px; }
+.bn-active { background:#e1f7ef; color:#167950; }
+.bn-void { background:#f8e6e6; color:#a34c4c; }
+.bn-error { color:#c94b58; font-weight:700; }
+.bn-ok { color:#0c8669; font-weight:700; }
+.bn-empty { padding:25px; text-align:center; color:var(--mud-palette-text-secondary); }
+@media(max-width:700px) { .bn-stats { grid-template-columns:1fr; } .bn-bonificaciones { padding:12px; } }

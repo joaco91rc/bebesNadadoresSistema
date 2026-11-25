@@ -64,6 +64,31 @@ public sealed class DiaNoLaborableService(
     // CREAR
     // =========================================================
 
+    public Task<int> CrearPeriodoAsync(GuardarDiaNoLaborableDto dto, DateOnly hasta, CancellationToken ct = default)
+        => ReintentoTransaccional.EjecutarAsync(() => CrearPeriodoInternoAsync(dto, hasta, ct), ct);
+
+    private async Task<int> CrearPeriodoInternoAsync(GuardarDiaNoLaborableDto dto, DateOnly hasta, CancellationToken ct)
+    {
+        Validar(dto);
+        if (!dto.TodoElDia || hasta < dto.Fecha || hasta.DayNumber - dto.Fecha.DayNumber > 365)
+            throw new InvalidOperationException("Seleccioná un rango válido de hasta 366 días completos.");
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var trx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var existentes = await db.DiasNoLaborables.AsNoTracking().Where(x => x.Activo && x.Fecha >= dto.Fecha && x.Fecha <= hasta).ToListAsync(ct);
+        var fechas = Enumerable.Range(0, hasta.DayNumber - dto.Fecha.DayNumber + 1).Select(n => dto.Fecha.AddDays(n))
+            .Where(f => !existentes.Any(x => x.Fecha == f && x.TodoElDia)).ToList();
+        if (existentes.Any(x => fechas.Contains(x.Fecha)))
+            throw new InvalidOperationException("Hay cierres parciales dentro del rango. Revisalos antes de crear el período.");
+        foreach (var fecha in fechas)
+            db.DiasNoLaborables.Add(new DiaNoLaborable { Id = Guid.NewGuid(), Fecha = fecha, Tipo = dto.Tipo,
+                Descripcion = dto.Descripcion.Trim(), TodoElDia = true, GeneraRecupero = dto.GeneraRecupero,
+                RecuperoSinVencimiento = dto.GeneraRecupero && dto.RecuperoSinVencimiento, Activo = true });
+        await db.SaveChangesAsync(ct);
+        foreach (var fecha in fechas) await RecalcularSesionesFechaAsync(db, fecha, ct);
+        await trx.CommitAsync(ct);
+        return fechas.Count;
+    }
+
     public async Task<Guid> CrearAsync(
         GuardarDiaNoLaborableDto dto,
         CancellationToken ct = default)

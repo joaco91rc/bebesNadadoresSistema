@@ -24,7 +24,6 @@ public sealed class InscripcionService(
         CambiarInscripcionDto dto,
         CancellationToken ct = default)
     {
-        ValidarAutorizacionSobrecupo(dto);
         return ReintentoTransaccional.EjecutarAsync(
             () => CambiarInternoAsync(
                 bebeId,
@@ -34,14 +33,9 @@ public sealed class InscripcionService(
     }
 
 
-    private static void ValidarAutorizacionSobrecupo(CambiarInscripcionDto dto)
-    {
-        if (dto.PermitirSobrecupo && string.IsNullOrWhiteSpace(dto.MotivoSobrecupo))
-            throw new InvalidOperationException("Indicá el motivo para autorizar un sobrecupo.");
-    }
 
     private static string DescripcionSobrecupo(CambiarInscripcionDto dto) =>
-        $"Sobrecupo autorizado: {dto.MotivoSobrecupo!.Trim()}";
+        $"Sobrecupo autorizado: {dto.MotivoSobrecupo?.Trim()}";
 
     private async Task CambiarInternoAsync(
         Guid bebeId,
@@ -297,13 +291,7 @@ public sealed class InscripcionService(
                     : 0;
 
 
-            if (ocupados >=
-                turno.Cupo && !dto.PermitirSobrecupo)
-            {
-                throw new InvalidOperationException(
-                    $"El turno {turno.DiaSemana} " +
-                    $"{turno.HoraInicio:HH\\:mm} ya no tiene cupo.");
-            }
+            
         }
 
 
@@ -666,7 +654,6 @@ if (
         CambiarInscripcionDto dto,
         CancellationToken ct = default)
     {
-        ValidarAutorizacionSobrecupo(dto);
         await ReintentoTransaccional.EjecutarAsync(
             () => CrearPrimeraInternoAsync(
                 bebeId,
@@ -1035,13 +1022,7 @@ if (
                 : 0;
 
 
-        if (ocupados >=
-            turno.Cupo && !dto.PermitirSobrecupo)
-        {
-            throw new InvalidOperationException(
-                $"El turno {turno.DiaSemana} " +
-                $"{turno.HoraInicio:HH\\:mm} ya no posee cupo disponible.");
-        }
+        
     }
 
 

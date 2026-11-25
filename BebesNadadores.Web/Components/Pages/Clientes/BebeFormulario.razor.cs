@@ -319,12 +319,7 @@ public partial class BebeFormulario : ComponentBase
 
     private void SeleccionarSesionInicial(SesionClaseDto sesion)
     {
-        if (sesion.Vacantes <= 0 && !_form.PermitirSobrecupo)
-        {
-            _error = "La clase seleccionada ya no posee cupos. Activá 'Permitir sobrecupo' para forzarla.";
-
-            return;
-        }
+        
 
         _form.SesionInicialId = sesion.Id;
 
@@ -618,12 +613,7 @@ public partial class BebeFormulario : ComponentBase
             return;
         }
 
-        if (turno.Disponibles <= 0 && !_form.PermitirSobrecupo)
-        {
-            _error = "El horario seleccionado no tiene cupo. Activá 'Permitir sobrecupo' para seleccionarlo.";
-
-            return;
-        }
+        
 
         var otroMismoDia = _turnosDisponibles.Any(x =>
             _form.TurnosIds.Contains(x.TurnoId) && x.DiaSemana == turno.DiaSemana
@@ -940,12 +930,6 @@ public partial class BebeFormulario : ComponentBase
         // =========================================================
         // GUARDAR
         // =========================================================
-
-        if (_form.PermitirSobrecupo && string.IsNullOrWhiteSpace(_form.MotivoSobrecupo))
-        {
-            _error = "Indicá el motivo de la autorización de sobrecupo.";
-            return;
-        }
 
         try
         {

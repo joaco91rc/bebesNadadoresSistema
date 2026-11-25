@@ -9513,3 +9513,40 @@
 .ficha-premium .ficha-header{display:flex;align-items:center;gap:15px;padding:22px 24px;position:sticky;top:0;background:var(--mud-palette-surface);z-index:2;border-bottom:1px solid var(--mud-palette-divider)}
 .ficha-avatar{display:grid;place-items:center;width:52px;height:52px;flex:none;border-radius:16px;background:#23b9e51c;color:#28bce9}.ficha-heading{flex:1;min-width:0}.ficha-kicker,.ficha-section-label{font-size:11px;font-weight:800;letter-spacing:1.2px;color:#20a9d6}.ficha-heading h2{margin:4px 0;font-size:23px;line-height:1.2}.ficha-heading p{margin:0;color:var(--mud-palette-text-secondary);font-size:13px}.ficha-premium .modal-close{flex:none;margin-left:auto}.ficha-body{display:grid;gap:16px;padding:22px 24px}.ficha-tabs{display:flex;gap:6px;flex-wrap:wrap;background:var(--mud-palette-background);padding:5px;border:1px solid var(--mud-palette-divider);border-radius:12px}.ficha-tabs button{flex:1;min-width:125px;padding:11px;display:flex;justify-content:center;align-items:center;gap:7px;background:transparent;border:0;border-radius:8px;color:var(--mud-palette-text-secondary);font:inherit;font-size:13px;font-weight:700;cursor:pointer}.ficha-tabs button.selected{background:#159ed0;color:white}.ficha-grid,.ficha-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ficha-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.ficha-tile,.ficha-block{background:var(--mud-palette-background);border:1px solid var(--mud-palette-divider);border-radius:13px;padding:14px}.ficha-tile small,.ficha-schedule small,.ficha-history small,.ficha-next small,.ficha-next span{display:block;color:var(--mud-palette-text-secondary);font-size:12px;margin-bottom:4px}.ficha-tile strong{font-size:17px}.ficha-stats strong{font-size:25px}.ficha-block h3{display:flex;align-items:center;gap:8px;font-size:15px;margin:0 0 10px}.ficha-schedule,.ficha-history{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--mud-palette-divider);font-size:14px}.ficha-schedule small,.ficha-history small{margin:4px 0 0}.ficha-schedule span{color:#26b8df;font-weight:700;white-space:nowrap}.ficha-next{display:flex;align-items:center;gap:15px;border:1px solid #23b9e55c;border-radius:13px;background:#23b9e50f;padding:17px;color:var(--mud-palette-text-primary)}.ficha-next strong{display:block;font-size:16px;margin-bottom:4px}.ficha-status{padding:6px 9px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;flex:none}.ficha-green,.ficha-status.ok{color:#24b786}.ficha-amber,.ficha-status.warn{color:#d6a244}.ficha-red,.ficha-status.bad{color:#eb6d77}.ficha-status.ok{background:#24b7861a}.ficha-status.warn{background:#d6a2441a}.ficha-status.bad{background:#eb6d771a}.ficha-status.neutral{background:#8499aa22;color:var(--mud-palette-text-secondary)}.ficha-empty{color:var(--mud-palette-text-secondary);font-size:13px;padding:10px 0}@media(max-width:600px){.ficha-body,.ficha-premium .ficha-header{padding:15px}.ficha-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ficha-history{flex-wrap:wrap}.ficha-heading h2{font-size:19px}}
 
+
+/* Bonificaciones y generación puntual */
+.bn-bonif-chip { display:block; color:#148b77; font-weight:700; margin-top:7px; }
+.bn-bonif-fee-action { display:inline-flex; align-items:center; gap:4px; border:1px solid #79c8b9;
+    color:#147d70; background:transparent; border-radius:8px; padding:5px 8px; cursor:pointer; font-size:12px; }
+.bn-payment-choice { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    padding:12px 24px; gap:12px; border-bottom:1px solid var(--mud-palette-divider); }
+.bn-simple-modal { max-width:560px; width:calc(100vw - 28px); }
+.bn-bonif-form .form-field { margin-bottom:16px; }
+.bn-bonif-note { font-size:13px; line-height:1.5; color:var(--mud-palette-text-secondary); }
+.bn-bonif-form textarea { width:100%; min-height:70px; box-sizing:border-box; padding:11px;
+    border-radius:10px; border:1px solid var(--mud-palette-divider); background:var(--mud-palette-surface); color:inherit; }
+
+/* Acciones de cuenta y cuotas: evitar columnas superpuestas */
+.account-hero { flex-wrap:wrap; gap:16px; }
+.account-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; flex: 1 1 100%; }
+.account-person { min-width:0; }
+.header-actions { justify-content:flex-end; }
+.fee-item { grid-template-columns:minmax(90px,1fr) minmax(110px,1.5fr) auto; gap:8px; }
+.fee-item .fee-period { grid-column:1; grid-row:1; }
+.fee-item .fee-progress { grid-column:2; grid-row:1; min-width:0; }
+.fee-item .fee-status { grid-column:3; grid-row:1; justify-self:end; }
+.fee-item .fee-balance { grid-column:1 / 3; grid-row:2; justify-self:start; text-align:left; }
+.fee-item .fee-actions { grid-column:3; grid-row:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px; }
+.fee-item .bn-bonif-fee-action { color:var(--mud-palette-success); white-space:nowrap; width:auto; min-width:0; min-height:30px; }
+.fee-item .void-action { flex:none; position:static; }
+.fee-item.is-voided .fee-actions { opacity:1; pointer-events:auto; }
+@media(max-width:600px){ .account-actions { justify-content:flex-start; } .fee-item { grid-template-columns:repeat(2,minmax(0,1fr)); } .fee-item .fee-period {grid-column:1;grid-row:1;} .fee-item .fee-status {grid-column:2;grid-row:1;} .fee-item .fee-progress {grid-column:1/-1;grid-row:2;} .fee-item .fee-balance {grid-column:1;grid-row:3;} .fee-item .fee-actions {grid-column:2;grid-row:3;} }
+
+
+.bn-confirm-modal { max-width: 620px; }
+.bn-confirm-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.bn-confirm-summary > div { background:var(--mud-palette-background); border:1px solid var(--mud-palette-divider); border-radius:12px; padding:12px 14px; }
+.bn-confirm-summary > div.full { grid-column:1 / -1; }
+.bn-confirm-summary small { display:block; margin-bottom:4px; color:var(--mud-palette-text-secondary); font-size:12px; }
+.bn-confirm-summary strong { display:block; font-size:14px; line-height:1.35; }
+@media (max-width: 640px) { .bn-confirm-summary { grid-template-columns:1fr; } }

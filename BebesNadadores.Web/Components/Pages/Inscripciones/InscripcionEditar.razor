@@ -903,22 +903,7 @@
 
 
 
-<div class="capacity-override @(_form.PermitirSobrecupo ? "capacity-override-active" : "")">
-    <label class="capacity-override-toggle">
-        <input type="checkbox" @bind="_form.PermitirSobrecupo" />
-        <span><strong>Permitir sobrecupo (autorización administrativa)</strong>
-            <small>Los lugares disponibles son informativos. Activá esta opción únicamente si necesitás inscribir en un horario completo.</small></span>
-    </label>
-    @if (_form.PermitirSobrecupo)
-    {
-        <div class="capacity-override-reason">
-            <label>Motivo de la excepción *</label>
-            <input type="text" maxlength="300" @bind="_form.MotivoSobrecupo"
-                   placeholder="Ej.: autorización de coordinación" />
-            <small>Se guardará en las observaciones de la inscripción.</small>
-        </div>
-    }
-</div>
+<p class="capacity-note">El cupo configurado es informativo. Verificá la ocupación antes de confirmar.</p>
 
 
                 @* =================================================
@@ -1053,8 +1038,7 @@
                                                            : "")
                                                        @(esActual
                                                            ? "current"
-                                                           : "") @(turno.Disponibles <= 0 && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
-                                                disabled="@(sinCupo && !_form.PermitirSobrecupo)"
+                                                           : "") @(turno.Disponibles <= 0 ? "overcapacity-enabled" : "")"
                                                 @onclick="() => AlternarTurno(turno)">
 
                                             <div class="schedule-option-check">
@@ -1097,26 +1081,8 @@
 
                                             <div class="schedule-option-capacity">
 
-                                                @if (sinCupo)
-                                                {
-                                                    <strong>
-                                                        0
-                                                    </strong>
-
-                                                    <span>
-                                                        sin lugares
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <strong>
-                                                        @turno.Disponibles
-                                                    </strong>
-
-                                                    <span>
-                                                        de @turno.Cupo libres
-                                                    </span>
-                                                }
+                                                <strong>@turno.Ocupados / @turno.Cupo</strong>
+                                                    <span>@(turno.Ocupados > turno.Cupo ? $"Excedido por {turno.Ocupados - turno.Cupo}" : turno.Disponibles == 0 ? "Completo" : $"{turno.Disponibles} libres")</span>
 
                                             </div>
 

@@ -668,7 +668,7 @@ public partial class Recuperos : ComponentBase
             /*
              * Si ya no quedan lugares, cerramos el modal.
              */
-            if (actualizada is null || actualizada.VacantesParaRecupero <= 0)
+            if (actualizada is null)
             {
                 _sesionSeleccionada = null;
 

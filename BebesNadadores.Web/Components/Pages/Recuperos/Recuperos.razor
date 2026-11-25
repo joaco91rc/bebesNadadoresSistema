@@ -752,7 +752,7 @@
 
                         <p>
 
-                            Clases con cupos disponibles para asignar recuperos,
+                            Clases compatibles para asignar recuperos, con cupo informativo,
 
                             incluyendo vacantes libres y lugares liberados por aviso.
 
@@ -1065,7 +1065,7 @@
                             }
                             else
                             {
-                                <span>No hay clases con lugares disponibles para recuperos en esta semana.</span>
+                                <span>No hay clases compatibles para recuperos en esta semana.</span>
                             }
 
                         </span>
@@ -1161,9 +1161,9 @@
 
                                             @(grupo.Count() == 1
 
-                                                ? " clase con lugar disponible"
+                                                ? " clase disponible para recupero"
 
-                                                : " clases con lugares disponibles")
+                                                : " clases disponibles para recupero")
 
 
 
@@ -1333,18 +1333,11 @@
 
 
 
-                                                    @if (vacante.OcupacionActual == 13)
+                                                    @if (vacante.ConSobrecupoPermitido)
                                                     {
                                                         <div class="overcapacity-recovery-warning" role="status">
-                                                            Último lugar disponible · 13/14 alumnos.
-                                                            Al asignarlo, la clase quedará completa.
-                                                        </div>
-                                                    }
-                                                    else if (vacante.ConSobrecupoPermitido)
-                                                    {
-                                                        <div class="overcapacity-recovery-warning" role="status">
-                                                            Clase con sobrecupo permitido ·
-                                                            @vacante.OcupacionActual/14 alumnos (máximo 14)
+                                                            Clase completa o excedida ·
+                                                            @vacante.OcupacionActual / @vacante.Cupo alumnos (cupo informativo)
                                                         </div>
                                                     }
                                                     <div class="vacancy-capacity">
@@ -2127,7 +2120,7 @@
 
                     <span>
 
-                        DISPONIBLES
+                        LUGARES LIBRES (REFERENCIA)
 
                     </span>
 

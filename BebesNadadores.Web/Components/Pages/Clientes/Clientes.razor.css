@@ -1618,3 +1618,9 @@
 .baby-schedule-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:12px 14px 14px}.baby-schedule-grid.has-first-class{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.baby-schedule-grid .baby-schedule{margin:0;min-width:0}.baby-first-class{border-color:#21ace566;background:#21ace512}.baby-first-class .baby-schedule-icon{color:#e8ba58}
 
 .baby-first-followup{border-color:#e8ba5866;background:#e8ba5812}.baby-first-followup small{color:#d2a94e}
+
+/* Advertencia de baja / eliminación definitiva, compatible con ambos temas. */
+.bebe-baja-aviso { display:flex; gap:12px; align-items:flex-start; padding:14px; border:1px solid #c28a48; border-radius:12px; background:rgba(210,145,58,.08); color:var(--mud-palette-text-primary); }
+.bebe-baja-aviso ::deep .mud-icon-root { flex:none; color:#c28a48; margin-top:2px; }
+.bebe-baja-aviso strong { display:block; line-height:1.4; }
+.bebe-baja-aviso p { margin:8px 0 0; line-height:1.5; }

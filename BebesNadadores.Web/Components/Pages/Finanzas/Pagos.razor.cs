@@ -6,6 +6,7 @@ using BebesNadadores.Application.Bancos;
 using BebesNadadores.Application.Bancos.Dtos;
 using BebesNadadores.Application.Caja;
 using BebesNadadores.Application.Caja.Dtos;
+using BebesNadadores.Application.Cuotas;
 using BebesNadadores.Application.Pagos;
 using BebesNadadores.Application.Pagos.Dtos;
 using BebesNadadores.Domain.Enums;
@@ -18,6 +19,148 @@ namespace BebesNadadores.Web.Components.Pages.Finanzas;
 
 public partial class Pagos : ComponentBase
 {
+    [Inject] private IGeneradorCuotasService GeneradorCuotas { get; set; } = default!;
+    [Inject] private IBonificacionCuotaService Bonificaciones { get; set; } = default!;
+
+    private int _cantidadAdelanto = 1;
+    private bool _modalAdelanto;
+    private bool _modalBonificar;
+    private bool _guardandoAdelanto;
+    private bool _guardandoBonificacion;
+    private bool _modalConfirmacionBonificacion;
+    private DateOnly _periodoAdelanto = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private Guid? _cuotaBonificarId;
+    private decimal _importeBonificar;
+    private string _motivoBonificar = string.Empty;
+    private string? _errorOperacion;
+
+    private void AbrirAdelanto()
+    {
+        if (_cuenta is null) return;
+        var hoy = FechaHoyArgentina();
+        _periodoAdelanto = new DateOnly(hoy.Year, hoy.Month, 1).AddMonths(1);
+        _errorOperacion = null;
+        _cantidadAdelanto = 1;
+        _modalAdelanto = true;
+    }
+
+    private void CambiarPeriodoAdelanto(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParseExact($"{e.Value}-01", "yyyy-MM-dd",
+            CultureInfo.InvariantCulture, DateTimeStyles.None, out var periodo))
+            _periodoAdelanto = periodo;
+    }
+
+    private async Task GenerarAdelantoAsync()
+    {
+        if (_cuenta is null || _guardandoAdelanto) return;
+        _guardandoAdelanto = true;
+        _errorOperacion = null;
+        try
+        {
+            await PermisosRevision.ExigirAsync(PoliticasSistema.GestionCaja);
+            var resultado = await GeneradorCuotas.GenerarPeriodosAsync(_periodoAdelanto, _cantidadAdelanto,
+                _cuenta.BebeId, await ObtenerUsuarioIdAsync());
+            _modalAdelanto = false;
+            await RecargarDespuesDePagoAsync();
+            _mensaje = $"Cuotas generadas: {resultado.CuotasGeneradas}. Ya existentes: {resultado.CuotasYaExistentes}.";
+            if (resultado.Advertencias.Count > 0) { _error = string.Join(" | ", resultado.Advertencias); return; }
+            var inicio = new DateOnly(_periodoAdelanto.Year, _periodoAdelanto.Month, 1);
+            var cuota = _cuenta?.Cuotas.Where(x => x.Periodo >= inicio && x.Periodo < inicio.AddMonths(_cantidadAdelanto)
+                && x.Estado != EstadoCuota.Anulada && x.Saldo > 0).OrderBy(x => x.Periodo).FirstOrDefault();
+            if (cuota is not null)
+            {
+                await AbrirRegistrarPagoAsync();
+                _pagoForm.CuotaIdObjetivo = cuota.Id;
+                _pagoForm.Importe = cuota.Saldo;
+                await ActualizarPreviewAsync();
+            }
+        }
+        catch (Exception ex) { _errorOperacion = Errores.Mensaje(ex); }
+        finally { _guardandoAdelanto = false; }
+    }
+
+    private void AbrirBonificacion(CuotaCuentaCorrienteDto? cuota = null)
+    {
+        if (_cuenta is null) return;
+        _modalConfirmacionBonificacion = false;
+        var pendiente = cuota ?? _cuenta.Cuotas
+            .Where(x => x.Estado != EstadoCuota.Anulada && x.Saldo > 0)
+            .OrderBy(x => x.Periodo).FirstOrDefault();
+        _cuotaBonificarId = pendiente?.Id;
+        _importeBonificar = pendiente?.Saldo ?? 0m;
+        _motivoBonificar = string.Empty;
+        _errorOperacion = null;
+        _modalBonificar = true;
+    }
+
+    private void BonificacionSeleccionada(ChangeEventArgs e)
+    {
+        _cuotaBonificarId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        _importeBonificar = _cuenta?.Cuotas.FirstOrDefault(x => x.Id == _cuotaBonificarId)?.Saldo ?? 0;
+    }
+
+    private void BonificacionImporteCambio(ChangeEventArgs e)
+    {
+        var texto = e.Value?.ToString();
+        if (!decimal.TryParse(texto, NumberStyles.Number, CultureInfo.InvariantCulture, out _importeBonificar))
+            if (!decimal.TryParse(texto, NumberStyles.Number, CultureInfo.GetCultureInfo("es-AR"), out _importeBonificar))
+                _importeBonificar = 0;
+    }
+
+    private async Task CuotaObjetivoCambioAsync(ChangeEventArgs e)
+    {
+        _pagoForm.CuotaIdObjetivo = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        var cuota = _cuenta?.Cuotas.FirstOrDefault(x => x.Id == _pagoForm.CuotaIdObjetivo);
+        if (cuota is not null) _pagoForm.Importe = cuota.Saldo;
+        await ActualizarPreviewAsync();
+    }
+
+    private void PasarABonificacion()
+    {
+        var seleccionada = _cuenta?.Cuotas.FirstOrDefault(x => x.Id == _pagoForm.CuotaIdObjetivo);
+        _modalPago = false;
+        _preview = null;
+        AbrirBonificacion(seleccionada);
+    }
+
+    private void SolicitarConfirmacionBonificacionAsync()
+    {
+        if (!_cuotaBonificarId.HasValue || _guardandoBonificacion) return;
+        var cuota = _cuenta?.Cuotas.FirstOrDefault(x => x.Id == _cuotaBonificarId.Value);
+        if (cuota is null || _importeBonificar <= 0 || _importeBonificar > cuota.Saldo)
+        {
+            _errorOperacion = "Ingresá un importe dentro del saldo pendiente de la cuota.";
+            return;
+        }
+
+        _errorOperacion = null;
+        _modalConfirmacionBonificacion = true;
+    }
+
+    private async Task ConfirmarBonificacionAsync()
+    {
+        if (!_cuotaBonificarId.HasValue || _guardandoBonificacion) return;
+        _guardandoBonificacion = true;
+        _errorOperacion = null;
+        try
+        {
+            await PermisosRevision.ExigirAsync(PoliticasSistema.GestionCaja);
+            var cuota = _cuenta?.Cuotas.FirstOrDefault(x => x.Id == _cuotaBonificarId.Value);
+            if (cuota is null || _importeBonificar <= 0 || _importeBonificar > cuota.Saldo)
+                throw new InvalidOperationException("Ingresá un importe dentro del saldo pendiente de la cuota.");
+
+            await Bonificaciones.BonificarAsync(cuota.Id, _importeBonificar,
+                _motivoBonificar, await ObtenerUsuarioIdAsync());
+            _modalConfirmacionBonificacion = false;
+            _modalBonificar = false;
+            _mensaje = $"Bonificación de {FormatearMoneda(_importeBonificar)} registrada correctamente.";
+            await RecargarDespuesDePagoAsync();
+        }
+        catch (Exception ex) { _errorOperacion = Errores.Mensaje(ex); }
+        finally { _guardandoBonificacion = false; }
+    }
+
     [Inject] private BebesNadadores.Web.Services.Comprobantes.EnlaceComprobantePagoService EnlacesComprobantes { get; set; } = default!;
 
     private bool _soloRevisar;
@@ -1624,7 +1767,7 @@ protected async Task LimpiarBusquedaAsync()
     {
         if (cuota.Importe <= 0)
         {
-            return "width:0%;";
+            return cuota.ImporteBonificado > 0 ? "width:100%;" : "width:0%;";
         }
 
 

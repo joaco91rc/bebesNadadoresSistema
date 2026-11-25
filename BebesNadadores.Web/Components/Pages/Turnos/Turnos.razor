@@ -1558,17 +1558,28 @@
 
 
                     <div class="closure-form">
+                        @if (!_editandoDiaId.HasValue)
+                        {
+                            <label class="switch-row"><input type="checkbox" @bind="_diaForm.EsPeriodo" @bind:after="CambiarModoCierre" /><span class="switch-control"></span><span>Período de cierre (rango de fechas)</span></label>
+                        }
 
                         <div class="form-field">
 
                             <label>
-                                Fecha
+                                @(_diaForm.EsPeriodo ? "Fecha desde" : "Fecha")
                             </label>
 
                             <BnDatePicker Value="@_diaForm.Fecha" ValueChanged='@(d => CambiarFechaDiaNoLaborable(new ChangeEventArgs { Value = d.ToString("yyyy-MM-dd") }))' />
 
                         </div>
 
+
+                        @if (_diaForm.EsPeriodo)
+                        {
+                            <div class="form-field"><label>Fecha hasta (inclusive)</label>
+                                <BnDatePicker @bind-Value="_diaForm.FechaHasta" MinDate="@_diaForm.Fecha" />
+                            </div>
+                        }
 
                         <div class="form-field">
 
@@ -1607,7 +1618,7 @@
                         <label class="switch-row">
 
                             <input type="checkbox"
-                                   @bind="_diaForm.TodoElDia" />
+                                   @bind="_diaForm.TodoElDia" disabled="@_diaForm.EsPeriodo" />
 
                             <span class="switch-control"></span>
 
@@ -1618,7 +1629,7 @@
                         </label>
 
 
-                        @if (!_diaForm.TodoElDia)
+                        @if (!_diaForm.TodoElDia && !_diaForm.EsPeriodo)
                         {
                             <div class="time-range">
 
@@ -3098,7 +3109,7 @@ private async Task GuardarDiaNoLaborable()
             null;
 
 
-        if (!_diaForm.TodoElDia)
+        if (!_diaForm.TodoElDia && !_diaForm.EsPeriodo)
         {
             if (!TimeOnly.TryParse(
                 _diaForm.HoraDesde,
@@ -3139,7 +3150,7 @@ private async Task GuardarDiaNoLaborable()
                     _diaForm.Descripcion,
 
                 TodoElDia =
-                    _diaForm.TodoElDia,
+                    _diaForm.TodoElDia || _diaForm.EsPeriodo,
 
                 HoraDesde =
                     horaDesde,
@@ -3168,11 +3179,16 @@ private async Task GuardarDiaNoLaborable()
         }
         else
         {
-            await DiaNoLaborableService
-                .CrearAsync(dto);
-
-            _mensaje =
-                "Feriado o cierre agregado.";
+            if (_diaForm.EsPeriodo)
+            {
+                var creados = await DiaNoLaborableService.CrearPeriodoAsync(dto, _diaForm.FechaHasta);
+                _mensaje = $"Período registrado: {creados} días nuevos. Las fechas ya cerradas no se duplicaron.";
+            }
+            else
+            {
+                await DiaNoLaborableService.CrearAsync(dto);
+                _mensaje = "Feriado o cierre agregado.";
+            }
         }
 
 
@@ -3253,11 +3269,21 @@ private void CambiarFechaDiaNoLaborable(
         e.Value?.ToString(),
         out var fecha))
     {
-        _diaForm.Fecha =
-            fecha;
+        _diaForm.Fecha = fecha;
+        if (_diaForm.FechaHasta < fecha) _diaForm.FechaHasta = fecha;
     }
 }
 
+
+private void CambiarModoCierre()
+{
+    if (_diaForm.EsPeriodo)
+    {
+        _diaForm.FechaHasta = _diaForm.Fecha;
+        _diaForm.Tipo = TipoDiaNoLaborable.CierreNatatorio;
+        _diaForm.TodoElDia = true;
+    }
+}
 
 private void CambiarHoraDesdeCierre(
     ChangeEventArgs e)
@@ -4643,6 +4669,9 @@ private static string ObtenerClaseEstadoCiclo(
     public DateOnly Fecha { get; set; }
         = DateOnly.FromDateTime(
             DateTime.Today);
+
+    public bool EsPeriodo { get; set; }
+    public DateOnly FechaHasta { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 
     public TipoDiaNoLaborable Tipo { get; set; }
         = TipoDiaNoLaborable.Feriado;

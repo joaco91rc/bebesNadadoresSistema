@@ -25,11 +25,8 @@ public partial class GeneracionCuotas
     // ESTADO
     // =========================================================
 
-    protected string _periodoTexto =
-        DateTime.Today.ToString(
-            "yyyy-MM",
-            CultureInfo.InvariantCulture);
-
+    protected DateOnly _periodo = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    protected int _cantidad = 1;
 
     protected bool _generando;
 
@@ -70,19 +67,7 @@ public partial class GeneracionCuotas
         // PARSEAR YYYY-MM
         // -----------------------------------------------------
 
-        if (!DateOnly.TryParseExact(
-                $"{_periodoTexto}-01",
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var periodo))
-        {
-            _error =
-                "Debe seleccionar un período válido.";
-
-            return;
-        }
-
+        var periodo = new DateOnly(_periodo.Year, _periodo.Month, 1);
 
         try
         {
@@ -92,8 +77,7 @@ public partial class GeneracionCuotas
 
             _resultado =
                 await GeneradorCuotasService
-                    .GenerarAsync(
-                        periodo);
+                    .GenerarPeriodosAsync(periodo, _cantidad);
 
 
             _mensaje =
@@ -102,11 +86,10 @@ public partial class GeneracionCuotas
                     ? $"Se generaron " +
                       $"{_resultado.CuotasGeneradas} cuota(s) " +
                       $"para el período " +
-                      $"{periodo:MM/yyyy}."
+                      $"{periodo:MM/yyyy} a {periodo.AddMonths(_cantidad - 1):MM/yyyy}."
 
                     : $"El período " +
-                      $"{periodo:MM/yyyy} ya se encontraba " +
-                      $"procesado.";
+                      $"{periodo:MM/yyyy} a {periodo.AddMonths(_cantidad - 1):MM/yyyy} ya se encontraba procesado.";
         }
         catch (Exception ex)
         {
@@ -124,26 +107,6 @@ public partial class GeneracionCuotas
 // =========================================================
 // CAMBIAR PERÍODO
 // =========================================================
-
-protected void CambiarPeriodo(
-    ChangeEventArgs e)
-{
-    _periodoTexto =
-        e.Value?.ToString()
-        ?? string.Empty;
-
-
-    _error =
-        null;
-
-
-    _mensaje =
-        null;
-
-
-    _resultado =
-        null;
-}
 
     // =========================================================
     // NAVEGACIÓN

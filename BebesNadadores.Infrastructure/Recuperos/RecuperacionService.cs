@@ -256,14 +256,7 @@ public sealed class RecuperosService(
         var ocupacion =
             ocupaciones[sesion.Id];
 
-        // Para recuperos se permite sobrecupo operativo hasta 14 asistentes.
-        // Las clases llenas según cupo base siguen siendo seleccionables.
-        var libresParaRecupero = Math.Max(0,
-            14 - (ocupacion.Esperados - ocupacion.AusentesConAviso));
-        if (libresParaRecupero == 0)
-        {
-            continue;
-        }
+        var libresParaRecupero = Math.Max(0, sesion.Cupo - (ocupacion.Esperados - ocupacion.AusentesConAviso));
 
 
         // -------------------------------------------------
@@ -698,10 +691,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
                 ct);
 
 
-        if (ocupacion.Esperados - ocupacion.AusentesConAviso >= 14)
-        {
-            continue;
-        }
+        
 
 
         var profesores =
@@ -741,7 +731,7 @@ public async Task<IReadOnlyList<VacanteRecuperoDto>>
                 ocupacion.Recuperos,
                 ocupacion.VacantesFijas,
                 ocupacion.AusentesConAviso,
-                Math.Max(0, 14 - (ocupacion.Esperados - ocupacion.AusentesConAviso)),
+                Math.Max(0, sesion.Cupo - (ocupacion.Esperados - ocupacion.AusentesConAviso)),
                 profesores,
                 ocupacion.ClaseInicial,
                 ocupacion.Esperados - ocupacion.AusentesConAviso));
@@ -1291,20 +1281,6 @@ private static string ObtenerPreferenciaListaEsperaTexto(
             || await db.Asistencias.AnyAsync(a => a.BebeId == recuperacion.BebeId && a.SesionClaseId == sesion.Id
                 && a.Estado != EstadoAsistencia.Pendiente, ct))
             throw new InvalidOperationException("El alumno ya tiene una clase o recupero asociado a este horario.");
-
-        var ocupacion =
-            await CalculadoraCupoSesion.CalcularAsync(
-                db,
-                sesion,
-                ct);
-
-
-        if (ocupacion.Esperados - ocupacion.AusentesConAviso >= 14)
-        {
-            throw new InvalidOperationException(
-                "La clase ya tiene 14 alumnos. No se permite inscribir un 15.º recupero.");
-        }
-
 
         // =====================================================
         // RESERVAR

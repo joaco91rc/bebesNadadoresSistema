@@ -665,11 +665,11 @@
                         else if (bebe.Estado ==
                             EstadoBebe.Activo)
                         {
-                            <button type="button" class="toggle-status disable" @onclick="() => AbrirBaja(bebe)">
+                            <button type="button" class="toggle-status disable" @onclick="() => AbrirBajaAsync(bebe)">
 
                                 <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" />
 
-                                Dar de baja
+                                Eliminar / dar de baja
 
                             </button>
                         }
@@ -681,6 +681,10 @@
 
                                 Reactivar
 
+                            </button>
+                            <button type="button" class="toggle-status disable" @onclick="() => AbrirBajaAsync(bebe)">
+                                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
+                                Eliminar
                             </button>
                         }
 
@@ -720,17 +724,17 @@
                 <div>
 
                     <span class="modal-eyebrow danger">
-                        BAJA
+                        GESTIÓN DEL ALUMNO
                     </span>
 
                     <h2>
-                        Dar de baja
+                        @(!_evaluacionBajaLista ? "Eliminar o dar de baja" : _motivoConservarHistorial is null ? "Eliminar bebé definitivamente" : "Dar de baja")
                     </h2>
 
                 </div>
 
 
-                <button type="button" class="modal-close" @onclick="CerrarBaja">
+                <button type="button" class="modal-close" disabled="@(_guardando || _consultandoBaja)" @onclick="CerrarBaja">
 
                     <MudIcon Icon="@Icons.Material.Filled.Close" />
 
@@ -767,37 +771,49 @@
                 </div>
 
 
-                <p>
-                    La baja conserva todo el historial del bebé.
-                    Se finaliza su inscripción (deja de generar cuotas y
-                    libera su lugar en el turno) y se anulan sus recuperos
-                    y reservas pendientes. Podrá reactivarse posteriormente
-                    con una nueva inscripción.
-                </p>
-
-
-                <div class="form-field">
-
-                    <label>
-                        Fecha de baja
-                    </label>
-
-                    <BnDatePicker @bind-Value="_fechaBaja" MaxDate="@DateOnly.FromDateTime(DateTime.Today)" />
-
-                </div>
-
-
-                <div class="form-field">
-
-                    <label>
-                        Motivo *
-                    </label>
-
-                    <textarea rows="4" maxlength="300" placeholder="Indicá el motivo de la baja..." @bind="_motivoBaja">
-                    </textarea>
-
-                </div>
-
+                @if (_consultandoBaja)
+                {
+                    <p><MudProgressCircular Indeterminate="true" Size="Size.Small" /> Verificando pagos e historial financiero...</p>
+                }
+                else if (_evaluacionBajaLista)
+                {
+                    @if (_motivoConservarHistorial is null)
+                    {
+                        <div class="bebe-baja-aviso">
+                            <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" />
+                            <div><strong>El bebé no tiene pagos ni historial financiero que impida eliminarlo.</strong>
+                                <p>Se eliminará definitivamente su ficha, inscripciones, cuotas sin pagos, asistencias, recuperos y reservas. Esta acción no puede deshacerse. Los responsables compartidos no se eliminan.</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bebe-baja-aviso">
+                            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                            <div><strong>@_motivoConservarHistorial</strong>
+                                @if (_bebeBaja.Estado == EstadoBebe.Baja)
+                                {
+                                    <p>El bebé ya está dado de baja. No se puede eliminar físicamente.</p>
+                                }
+                                else
+                                {
+                                    <p>Se desactivará su ficha y finalizará su inscripción. Podrá reactivarse posteriormente. Los pagos y su historial se conservan.</p>
+                                }
+                            </div>
+                        </div>
+                        @if (_bebeBaja.Estado != EstadoBebe.Baja)
+                        {
+                            <div class="form-field">
+                                <label>Fecha de baja</label>
+                                <BnDatePicker @bind-Value="_fechaBaja" MaxDate="@BebesNadadores.Domain.Common.FechaArgentina.Hoy" />
+                            </div>
+                            <div class="form-field">
+                                <label>Motivo *</label>
+                                <textarea rows="4" maxlength="300" placeholder="Indicá el motivo de la baja..." @bind="_motivoBaja"></textarea>
+                            </div>
+                        }
+                    }
+                }
 
                 @if (!string.IsNullOrWhiteSpace(
                     _errorBaja))
@@ -816,14 +832,14 @@
 
             <footer class="modal-actions">
 
-                <button type="button" class="secondary-action" disabled="@_guardando" @onclick="CerrarBaja">
+                <button type="button" class="secondary-action" disabled="@(_guardando || _consultandoBaja)" @onclick="CerrarBaja">
 
                     Cancelar
 
                 </button>
 
 
-                <button type="button" class="danger-action" disabled="@_guardando" @onclick="ConfirmarBajaAsync">
+                <button type="button" class="danger-action" disabled="@(_guardando || !_evaluacionBajaLista || (_motivoConservarHistorial is not null && _bebeBaja.Estado == EstadoBebe.Baja))" @onclick="ConfirmarBajaAsync">
 
                     @if (_guardando)
                     {
@@ -834,7 +850,7 @@
                         <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" />
                     }
 
-                    Confirmar baja
+                    @(_evaluacionBajaLista && _motivoConservarHistorial is null ? "Eliminar definitivamente" : "Confirmar baja")
 
                 </button>
 
@@ -868,6 +884,9 @@
 
 
     private BebeDto? _bebeBaja;
+    private bool _consultandoBaja;
+    private bool _evaluacionBajaLista;
+    private string? _motivoConservarHistorial;
 
 
     private bool _cargando =
@@ -1170,30 +1189,33 @@
     // BAJA
     // =========================================================
 
-    private void AbrirBaja(
-        BebeDto bebe)
+    private async Task AbrirBajaAsync(BebeDto bebe)
     {
-        _bebeBaja =
-            bebe;
-
-
-        _fechaBaja =
-            DateOnly.FromDateTime(
-                DateTime.Today);
-
-
-        _motivoBaja =
-            string.Empty;
-
-
-        _errorBaja =
-            null;
+        if (_guardando || _consultandoBaja || !_puedeGestionar) return;
+        _bebeBaja = bebe;
+        _fechaBaja = BebesNadadores.Domain.Common.FechaArgentina.Hoy;
+        _motivoBaja = string.Empty;
+        _errorBaja = null;
+        _motivoConservarHistorial = null;
+        _evaluacionBajaLista = false;
+        _consultandoBaja = true;
+        try
+        {
+            await Permisos.ExigirAsync(PoliticasSistema.GestionAdministrativa);
+            _motivoConservarHistorial = await BebeService.MotivoConservarHistorialAsync(bebe.Id);
+            _evaluacionBajaLista = true;
+        }
+        catch (Exception ex)
+        {
+            _errorBaja = Errores.Mensaje(ex);
+        }
+        finally { _consultandoBaja = false; }
     }
 
 
     private void CerrarBaja()
     {
-        if (_guardando)
+        if (_guardando || _consultandoBaja)
             return;
 
 
@@ -1212,7 +1234,7 @@
 
     private async Task ConfirmarBajaAsync()
     {
-        if (_bebeBaja is null || _guardando)
+        if (_bebeBaja is null || _guardando || !_evaluacionBajaLista)
             return;
 
         if (!_puedeGestionar)
@@ -1224,8 +1246,7 @@
         }
 
 
-        if (string.IsNullOrWhiteSpace(
-            _motivoBaja))
+        if (_motivoConservarHistorial is not null && string.IsNullOrWhiteSpace(_motivoBaja))
         {
             _errorBaja =
                 "Debe indicar el motivo de la baja.";
@@ -1248,21 +1269,15 @@
                 _bebeBaja;
 
 
-            await BebeService
-                .DarDeBajaAsync(
-                    bebe.Id,
-                    new DarDeBajaBebeDto
-                    {
-                        Fecha =
-                            _fechaBaja,
+            await Permisos.ExigirAsync(PoliticasSistema.GestionAdministrativa);
+            var eliminado = await BebeService.EliminarODarDeBajaAsync(
+                bebe.Id,
+                new DarDeBajaBebeDto { Fecha = _fechaBaja, Motivo = _motivoBaja },
+                confirmarBorradoFisico: _motivoConservarHistorial is null);
 
-                        Motivo =
-                            _motivoBaja
-                    });
-
-
-            _mensaje =
-                $"{bebe.NombreCompleto} fue dado de baja.";
+            _mensaje = eliminado
+                ? $"{bebe.NombreCompleto} fue eliminado definitivamente."
+                : $"{bebe.NombreCompleto} fue dado de baja y desactivado. Se conservó su historial financiero.";
 
 
             /*

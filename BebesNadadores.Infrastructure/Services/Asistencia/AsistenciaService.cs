@@ -465,8 +465,7 @@ foreach (var reserva in
         bool LugarPropio(SesionClase x) => turnosPropios.Contains(x.TurnoId)
             && CalculadoraCupoSesion.InscripcionValidaEnFecha(inscripcion, x.Fecha)
             && !PrimeraClaseExcepcional.TodaviaNoComenzo(primeras, inscripcionId, x.Fecha);
-        return sesiones.Where(x => (ocupaciones[x.Id].Libres > 0 || LugarPropio(x))
-                && !ocupadas.Contains(x.Id) && !reservas.Contains(x.Id) && !recuperos.Contains(x.Id))
+        return sesiones.Where(x => !ocupadas.Contains(x.Id) && !reservas.Contains(x.Id) && !recuperos.Contains(x.Id))
             .Select(x => new OpcionPrimeraClaseDto(x.Id, x.Fecha, x.HoraInicio, x.Nivel.Nombre, ocupaciones[x.Id].Libres, LugarPropio(x))).ToList();
     }
 
@@ -495,8 +494,7 @@ foreach (var reserva in
         var lugarPropio = CalculadoraCupoSesion.InscripcionValidaEnFecha(inscripcion, destino.Fecha)
             && !PrimeraClaseExcepcional.TodaviaNoComenzo(primerasDestino, inscripcionId, destino.Fecha)
             && await db.InscripcionesTurnos.AnyAsync(t => t.InscripcionId == inscripcionId && t.TurnoId == destino.TurnoId, ct);
-        if (!lugarPropio && (await CalculadoraCupoSesion.CalcularAsync(db, destino, ct)).Libres <= 0)
-            throw new InvalidOperationException("La clase elegida ya no tiene cupos disponibles.");
+
         if (await db.Asistencias.AnyAsync(x => x.SesionClaseId == destinoId && x.BebeId == bebeId && x.Estado != EstadoAsistencia.Pendiente, ct))
             throw new InvalidOperationException("El alumno ya registra asistencia en la clase elegida.");
         if (await db.Recuperaciones.AnyAsync(x => x.SesionUsoId == destinoId && x.BebeId == bebeId

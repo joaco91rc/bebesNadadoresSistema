@@ -452,18 +452,7 @@ protected bool EsPrimeraInscripcion =>
         }
 
 
-        if (
-            turno.Disponibles <= 0
-            &&
-            !EsTurnoActual(
-                turno.TurnoId)
-            && !_form.PermitirSobrecupo)
-        {
-            _error =
-                "El horario seleccionado no tiene cupo.";
-
-            return;
-        }
+        
 
 
         var mismoDia =
@@ -659,13 +648,6 @@ protected bool EsPrimeraInscripcion =>
             _error =
                 "Debe indicar el valor del descuento.";
 
-            return;
-        }
-
-
-        if (_form.PermitirSobrecupo && string.IsNullOrWhiteSpace(_form.MotivoSobrecupo))
-        {
-            _error = "Indicá el motivo del sobrecupo antes de guardar.";
             return;
         }
 

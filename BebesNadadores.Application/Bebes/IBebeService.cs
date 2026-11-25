@@ -31,6 +31,13 @@ public interface IBebeService
         CancellationToken ct = default);
 
 
+    // null: puede eliminarse físicamente; de lo contrario explica qué historial conservar.
+    Task<string?> MotivoConservarHistorialAsync(Guid id, CancellationToken ct = default);
+
+    // true: eliminado físicamente; false: baja lógica. Revalida lo confirmado en pantalla.
+    Task<bool> EliminarODarDeBajaAsync(Guid id, DarDeBajaBebeDto dto,
+        bool confirmarBorradoFisico, CancellationToken ct = default);
+
     Task ReactivarAsync(
         Guid id,
         CancellationToken ct = default);

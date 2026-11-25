@@ -427,14 +427,7 @@ public sealed class BebeService(
             {
                 var ocupados = ocupacion.TryGetValue(turno.Id, out var cantidad) ? cantidad : 0;
 
-                if (ocupados >= turno.Cupo && !dto.PermitirSobrecupo)
-                {
-                    throw new InvalidOperationException(
-                        $"El turno {turno.DiaSemana} "
-                            + $"{turno.HoraInicio:HH\\:mm} - "
-                            + $"{turno.HoraFin:HH\\:mm} ya no posee cupos disponibles."
-                    );
-                }
+                
             }
         }
 
@@ -553,19 +546,9 @@ public sealed class BebeService(
                     ct
                 );
 
-                if (ocupacion.Libres <= 0 && !dto.PermitirSobrecupo)
-                {
-                    throw new InvalidOperationException(
-                        $"La clase del {sesionInicial.Fecha:dd/MM/yyyy} "
-                            + $"a las {sesionInicial.HoraInicio:HH\\:mm} "
-                            + $"ya no posee cupos disponibles."
-                    );
-                }
+                
             }
         }
-
-        if (dto.PermitirSobrecupo && string.IsNullOrWhiteSpace(dto.MotivoSobrecupo))
-            throw new InvalidOperationException("Indicá el motivo para autorizar un sobrecupo.");
 
         // =========================================================
         // CREAR BEBÉ
@@ -649,7 +632,7 @@ public sealed class BebeService(
 
             BonificaRecuperoInicio = false,
             Observaciones = dto.PermitirSobrecupo
-                ? $"Sobrecupo autorizado en inscripción: {dto.MotivoSobrecupo!.Trim()}"
+                ? $"Sobrecupo autorizado en inscripción: {dto.MotivoSobrecupo?.Trim()}"
                 : null,
         };
 
@@ -1056,8 +1039,116 @@ public sealed class BebeService(
     // DAR DE BAJA
     // =========================================================
 
+    public async Task<string?> MotivoConservarHistorialAsync(Guid id, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        if (!await db.Bebes.AnyAsync(x => x.Id == id, ct))
+            throw new InvalidOperationException("El bebé indicado no existe.");
+        return await MotivoConservarHistorialAsync(db, id, ct);
+    }
+
+    private static async Task<bool> ExisteTablaAsync(AppDbContext db, string nombre, CancellationToken ct)
+        => await db.Database.SqlQuery<bool>($"SELECT to_regclass({nombre}) IS NOT NULL AS \"Value\"").SingleAsync(ct);
+
+    private static async Task<bool> ExisteColumnaAsync(AppDbContext db, string tabla, string columna, CancellationToken ct)
+        => await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass({tabla}) AND attname = {columna} AND NOT attisdropped) AS \"Value\"").SingleAsync(ct);
+
+    private static async Task<string?> MotivoConservarHistorialAsync(AppDbContext db, Guid id, CancellationToken ct)
+    {
+        // Incluye pagos anulados, anticipos, saldos a favor e imputaciones de cualquier origen.
+        if (await db.Pagos.AnyAsync(x => x.BebeId == id, ct)
+            || await db.Cuotas.AnyAsync(x => x.Inscripcion.BebeId == id && x.Imputaciones.Any(), ct)
+            || await db.ReservasVacantesCiclo.AnyAsync(x => x.BebeId == id && x.PagoId.HasValue, ct))
+            return "El bebé tiene pagos asociados. Se conservará su historial y se dará de baja sin eliminarlo.";
+
+        if (await db.BonificacionesCuota.AnyAsync(x => x.Cuota.Inscripcion.BebeId == id, ct))
+            return "El bebé tiene bonificaciones registradas. Se conservará su historial y se dará de baja sin eliminarlo.";
+
+        // Las tablas fiscales se instalan mediante scripts SQL, fuera del modelo EF.
+        if (await ExisteTablaAsync(db, "\"FacturasFiscalesBebes\"", ct)
+            && await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM \"FacturasFiscalesBebes\" WHERE \"BebeId\"={id}) AS \"Value\"").SingleAsync(ct))
+            return "El bebé tiene facturas asociadas. Se conservará su historial y se dará de baja sin eliminarlo.";
+
+        if (await ExisteColumnaAsync(db, "\"FacturasFiscales\"", "BebeId", ct)
+            && await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM \"FacturasFiscales\" WHERE \"BebeId\"={id}) AS \"Value\"").SingleAsync(ct))
+            return "El bebé tiene facturas asociadas. Se conservará su historial y se dará de baja sin eliminarlo.";
+
+        if (await ExisteTablaAsync(db, "\"BebesIdentidadesFiscales\"", ct)
+            && await ExisteColumnaAsync(db, "\"FacturasFiscales\"", "IdentidadBebeId", ct)
+            && await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM \"FacturasFiscales\" f JOIN \"BebesIdentidadesFiscales\" i ON i.\"Id\"=f.\"IdentidadBebeId\" WHERE i.\"BebeId\"={id}) AS \"Value\"").SingleAsync(ct))
+            return "El bebé tiene facturas asociadas. Se conservará su historial y se dará de baja sin eliminarlo.";
+
+        if (await db.ConciliacionesFinancierasBebes.AnyAsync(x => x.BebeId == id && x.MesesVencidosSinConciliar > 0, ct)
+            || (await ExisteTablaAsync(db, "\"RevisionesFinancierasManuales\"", ct)
+                && await db.Database.SqlQuery<bool>($"SELECT EXISTS (SELECT 1 FROM \"RevisionesFinancierasManuales\" WHERE \"BebeId\"={id}) AS \"Value\"").SingleAsync(ct)))
+            return "El bebé tiene antecedentes de conciliación financiera. Se conservará su historial y se dará de baja sin eliminarlo.";
+
+        return null;
+    }
+
+    public async Task<bool> EliminarODarDeBajaAsync(Guid id, DarDeBajaBebeDto dto,
+        bool confirmarBorradoFisico, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        // Bloquea la ficha durante la comprobación y la eliminación. Las FK impiden
+        // borrar registros a los que se les asocie un pago concurrentemente.
+        var bloqueados = await db.Bebes.FromSqlInterpolated($"SELECT * FROM \"Bebes\" WHERE \"Id\"={id} FOR UPDATE").ToListAsync(ct);
+        var bebe = bloqueados.SingleOrDefault()
+            ?? throw new InvalidOperationException("El bebé indicado no existe.");
+        var motivo = await MotivoConservarHistorialAsync(db, id, ct);
+        var eliminar = motivo is null;
+        if (eliminar != confirmarBorradoFisico)
+            throw new InvalidOperationException("La situación del bebé cambió. Cerrá y volvé a abrir la ventana para confirmar la operación actual.");
+
+        if (eliminar)
+            await EliminarFisicamenteAsync(db, id, ct);
+        else
+            await DarDeBajaEnContextoAsync(db, bebe, dto, ct);
+
+        await transaction.CommitAsync(ct);
+        return eliminar;
+    }
+
+    private static async Task EliminarFisicamenteAsync(AppDbContext db, Guid id, CancellationToken ct)
+    {
+        // Sólo datos propios del alumno. No borrar responsables compartidos, planes,
+        // turnos, sesiones, ni ningún pago. El orden respeta las FK restrictivas.
+        var cuotas = db.Cuotas.Where(x => x.Inscripcion.BebeId == id);
+        await db.CuotasReactivaciones.Where(x => cuotas.Any(c => c.Id == x.CuotaId)).ExecuteDeleteAsync(ct);
+        await db.ReservasVacantesCiclo.Where(x => x.BebeId == id && !x.PagoId.HasValue).ExecuteDeleteAsync(ct);
+        await db.ReservasSesionesClase.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.InvitacionesVacante.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.ListaEspera.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.Recuperaciones.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.Asistencias.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await cuotas.ExecuteDeleteAsync(ct);
+        await db.InscripcionesTurnos.Where(x => x.Inscripcion.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.Inscripciones.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.AptosMedicos.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.PreferenciasRecuperacion.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.Set<EsperaInscripcion>().Where(x => x.BebeInscriptoId == id).ExecuteDeleteAsync(ct);
+        await db.BebesResponsables.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        await db.ConciliacionesFinancierasBebes.Where(x => x.BebeId == id).ExecuteDeleteAsync(ct);
+        // Identidades fiscales sin facturas se eliminan por cascada; el archivo legacy
+        // se desvincula por SET NULL. No se borra el archivo histórico de migración.
+        if (await db.Bebes.Where(x => x.Id == id).ExecuteDeleteAsync(ct) != 1)
+            throw new InvalidOperationException("No se pudo eliminar la ficha del bebé.");
+    }
+
     public async Task DarDeBajaAsync(Guid id, DarDeBajaBebeDto dto, CancellationToken ct = default)
     {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var bebe = await db.Bebes.FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new InvalidOperationException("El bebé indicado no existe.");
+        await DarDeBajaEnContextoAsync(db, bebe, dto, ct);
+        await transaction.CommitAsync(ct);
+    }
+
+    private static async Task DarDeBajaEnContextoAsync(AppDbContext db, Bebe bebe, DarDeBajaBebeDto dto, CancellationToken ct)
+    {
+        if (bebe.Estado == EstadoBebe.Baja) return;
         if (string.IsNullOrWhiteSpace(dto.Motivo))
         {
             throw new InvalidOperationException("Debe indicar el motivo de la baja.");
@@ -1082,19 +1173,6 @@ public sealed class BebeService(
             throw new InvalidOperationException(
                 "La fecha de baja no puede ser futura. Registrá la baja el día que corresponda."
             );
-        }
-
-        await using var db = await factory.CreateDbContextAsync(ct);
-
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
-        var bebe =
-            await db.Bebes.FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new InvalidOperationException("El bebé indicado no existe.");
-
-        if (bebe.Estado == EstadoBebe.Baja)
-        {
-            return;
         }
 
         if (dto.Fecha < bebe.FechaAlta)
@@ -1165,6 +1243,7 @@ public sealed class BebeService(
                 && x.Periodo > periodoBaja
                 && x.Estado != EstadoCuota.Anulada
                 && !x.Imputaciones.Any()
+                && !x.Bonificaciones.Any()
             )
             .ToListAsync(ct);
 
@@ -1252,9 +1331,16 @@ public sealed class BebeService(
             invitacion.ModificadoUtc = DateTimeOffset.UtcNow;
         }
 
+        // Las reservas de ciclo sin cobro pueden liberarse sin afectar Caja.
+        var reservasSinPago = await db.ReservasVacantesCiclo.Where(x => x.BebeId == bebe.Id
+            && !x.PagoId.HasValue && x.Estado != EstadoReservaVacanteCiclo.Cancelada
+            && x.CicloLectivo.FechaInicio > fechaBaja).ToListAsync(ct);
+        foreach (var reserva in reservasSinPago)
+        {
+            reserva.Estado = EstadoReservaVacanteCiclo.Cancelada;
+            reserva.ModificadoUtc = DateTimeOffset.UtcNow;
+        }
         await db.SaveChangesAsync(ct);
-
-        await transaction.CommitAsync(ct);
     }
 
     // =========================================================

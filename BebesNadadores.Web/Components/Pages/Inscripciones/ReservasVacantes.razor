@@ -53,7 +53,7 @@
             <option value="">@(string.IsNullOrWhiteSpace(_nivelReservaId) ? "Primero elegí un nivel" : "Elegí horario")</option>
             @foreach(var turno in _turnos.Where(t => t.CicloId.ToString() == _cicloId
                 && t.NivelId.ToString() == _nivelReservaId)){
-                <option value="@turno.Id" disabled="@(CuposLibres(turno.Id) <= 0)">
+                <option value="@turno.Id">
                     @turno.Nombre · @TextoDia(turno.Dia) · @turno.Hora.ToString("HH:mm")
                     (@(CuposLibres(turno.Id) > 0 ? $"{CuposLibres(turno.Id)} libres" : "COMPLETO"))
                 </option>
@@ -415,11 +415,8 @@
                                             {
                                                 <strong class="rv-overbooked">Excedido por @(item.Ocupados - item.CupoTotal)</strong>
                                             }
-                                            else if (item.Disponibles > 0)
-                                            {
                                                 <a href="#nueva-reserva" class="rv-select-turno"
                                                    @onclick="() => ElegirTurno(item.TurnoId)">Elegir horario</a>
-                                            }
                                         </div>
                                     </div>
                                 }
@@ -769,7 +766,7 @@
 
     private void ElegirTurno(Guid turnoId)
     {
-        if (CuposLibres(turnoId) <= 0) return;
+
         var turno = _turnos.FirstOrDefault(x => x.Id == turnoId && x.CicloId.ToString() == _cicloId);
         if (turno is null) return;
         _nivelReservaId = turno.NivelId.ToString();
@@ -828,8 +825,6 @@
             if(!Guid.TryParse(_turnoId,out var turno)) throw new InvalidOperationException("Elegí un turno.");
             if (!_turnos.Any(x => x.Id == turno && x.CicloId == ciclo && x.NivelId == nivel))
                 throw new InvalidOperationException("El horario seleccionado no corresponde al nivel y ciclo elegidos.");
-            if (CuposLibres(turno) <= 0)
-                throw new InvalidOperationException("El horario seleccionado ya no tiene vacantes. Actualizá los cupos.");
             var auth=await AuthenticationStateProvider.GetAuthenticationStateAsync();
             if(!Guid.TryParse(auth.User.FindFirstValue(ClaimTypes.NameIdentifier),out var usuario))
                 throw new InvalidOperationException("No se identificó el usuario que registra el cobro.");

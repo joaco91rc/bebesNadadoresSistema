@@ -868,8 +868,8 @@
             }
 
 
-            CerrarFormulario();
-
+            CerrarFormularioInterno();
+            await InvokeAsync(StateHasChanged);
             await CargarAsync();
         }
         catch (Exception ex)
@@ -890,7 +890,11 @@
         if (_guardando)
             return;
 
+        CerrarFormularioInterno();
+    }
 
+    private void CerrarFormularioInterno()
+    {
         _mostrarFormulario =
             false;
 

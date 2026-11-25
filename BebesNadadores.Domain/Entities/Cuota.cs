@@ -18,6 +18,9 @@ public class Cuota : EntidadAuditable
     public string? Descripcion { get; set; }
 
     public ICollection<ImputacionPago> Imputaciones { get; set; } = new List<ImputacionPago>();
+    public ICollection<BonificacionCuota> Bonificaciones { get; set; } = new List<BonificacionCuota>();
+    // Importe almacena el monto NETO exigible; las bonificaciones conservan
+    // por separado el valor original y el historial de modificaciones.
 
     public decimal ImportePagado => Imputaciones.Sum(x => x.Importe);
     public decimal Saldo => Math.Max(0, Importe - ImportePagado);

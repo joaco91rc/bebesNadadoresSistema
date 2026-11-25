@@ -654,3 +654,4 @@
             wrap;
     }
 }
+.batch-count { width:100%; padding:10px; border:1px solid var(--mud-palette-divider); border-radius:8px; background:var(--mud-palette-surface); color:var(--mud-palette-text-primary); }

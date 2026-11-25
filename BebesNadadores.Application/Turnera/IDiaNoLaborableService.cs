@@ -9,6 +9,8 @@ public interface IDiaNoLaborableService
         CancellationToken ct = default);
 
 
+    Task<int> CrearPeriodoAsync(GuardarDiaNoLaborableDto dto, DateOnly hasta, CancellationToken ct = default);
+
     Task<Guid> CrearAsync(
         GuardarDiaNoLaborableDto dto,
         CancellationToken ct = default);

@@ -121,16 +121,6 @@ public sealed class ReservaVacanteCicloService(
              anterior.PagoId.HasValue || anterior.InscripcionId.HasValue))
             throw new InvalidOperationException("Ya existe una reserva para este alumno y ciclo.");
 
-        var idsFijos = await db.InscripcionesTurnos.AsNoTracking()
-            .Where(x => x.TurnoId == turno.Id && x.Inscripcion.Estado == EstadoInscripcion.Activa
-                && x.Inscripcion.FechaInicio <= ciclo.FechaInicio
-                && (!x.Inscripcion.FechaFin.HasValue || x.Inscripcion.FechaFin >= ciclo.FechaInicio))
-            .Select(x => x.Inscripcion.BebeId).Distinct().ToListAsync(ct);
-        var idsReservados = await db.ReservasVacantesCiclo.AsNoTracking()
-            .Where(x => x.TurnoId == turno.Id && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
-            .Select(x => x.BebeId).ToListAsync(ct);
-        if (idsFijos.Concat(idsReservados).Distinct().Count() >= turno.Cupo)
-            throw new InvalidOperationException("El turno elegido ya no tiene cupos disponibles.");
 
         Guid? pagoId = null;
         if (datos.CobrarAhora)
@@ -399,9 +389,6 @@ public sealed class ReservaVacanteCicloService(
             || (destino.VigenteHasta.HasValue && destino.VigenteHasta.Value < reserva.CicloLectivo.FechaInicio))
             throw new InvalidOperationException("El turno no está vigente al inicio del mismo ciclo lectivo.");
 
-        var cupo = await CupoDisponibleAsync(db, destino, reserva.CicloLectivo.FechaInicio,
-            reserva.BebeId, ct);
-        if (!cupo) throw new InvalidOperationException("El nuevo turno no tiene vacantes disponibles.");
 
         if (reserva.InscripcionId.HasValue)
         {
@@ -433,21 +420,6 @@ public sealed class ReservaVacanteCicloService(
 
     private static string Nombre(Bebe bebe) => $"{bebe.Nombre} {bebe.Apellido}".Trim();
 
-    private static async Task<bool> CupoDisponibleAsync(
-        AppDbContext db, Turno turno, DateOnly fecha, Guid bebeExcluir,
-        CancellationToken ct)
-    {
-        var regulares = await db.InscripcionesTurnos.AsNoTracking()
-            .Where(x => x.TurnoId == turno.Id
-                && x.Inscripcion.Estado == EstadoInscripcion.Activa
-                && x.Inscripcion.FechaInicio <= fecha
-                && (!x.Inscripcion.FechaFin.HasValue || x.Inscripcion.FechaFin.Value >= fecha))
-            .Select(x => x.Inscripcion.BebeId).ToListAsync(ct);
-        var reservados = await db.ReservasVacantesCiclo.AsNoTracking()
-            .Where(x => x.TurnoId == turno.Id && x.Estado != EstadoReservaVacanteCiclo.Cancelada)
-            .Select(x => x.BebeId).ToListAsync(ct);
-        return regulares.Concat(reservados).Where(x => x != bebeExcluir).Distinct().Count() < turno.Cupo;
-    }
 
     private static async Task<DatosFormalizacion> PrepararAsync(
         AppDbContext db, Guid cicloId, CancellationToken ct)
@@ -531,11 +503,6 @@ public sealed class ReservaVacanteCicloService(
                 && (x.FechaInicio >= ciclo.FechaInicio
                     || x.Turnos.Any(t => t.Turno.CicloLectivoId == cicloId))))
                 error = "Ya existe una inscripción para este ciclo; no se creó otra";
-            else if (regularesTurno.Where(x => x.TurnoId == reserva.TurnoId)
-                .Select(x => x.BebeId)
-                .Concat(todasReservas.Where(x => x.TurnoId == reserva.TurnoId)
-                    .Select(x => x.BebeId)).Distinct().Count() > reserva.Turno.Cupo)
-                error = "El turno tiene más ocupantes que su capacidad";
 
             evaluaciones.Add(new Evaluacion(reserva, error));
         }

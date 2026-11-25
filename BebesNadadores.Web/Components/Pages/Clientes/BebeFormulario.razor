@@ -1331,22 +1331,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
 }
 
 
-<div class="capacity-override @(_form.PermitirSobrecupo ? "capacity-override-active" : "")">
-    <label class="capacity-override-toggle">
-        <input type="checkbox" @bind="_form.PermitirSobrecupo" />
-        <span><strong>Permitir sobrecupo (autorización administrativa)</strong>
-            <small>Los lugares disponibles son informativos. Activá esta opción únicamente si necesitás inscribir en un horario completo.</small></span>
-    </label>
-    @if (_form.PermitirSobrecupo)
-    {
-        <div class="capacity-override-reason">
-            <label>Motivo de la excepción *</label>
-            <input type="text" maxlength="300" @bind="_form.MotivoSobrecupo"
-                   placeholder="Ej.: autorización de coordinación" />
-            <small>Se guardará en las observaciones de la inscripción.</small>
-        </div>
-    }
-</div>
+<p class="capacity-note">El cupo configurado es informativo. Verificá la ocupación antes de confirmar.</p>
 
 @* =================================================
    MODALIDAD DE HORARIO
@@ -1788,9 +1773,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
 
                                                                    ? "full"
 
-                                                                   : "") @(sinCupo && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
-
-                                                        disabled="@(sinCupo && !_form.PermitirSobrecupo)"
+                                                                   : "") @(sinCupo ? "overcapacity-enabled" : "")"
 
                                                         @onclick="() => AlternarTurno(turno)">
 
@@ -1850,35 +1833,8 @@ else if (_form.MedioPagoInicial.IngresaACaja())
 
                                                     <div class="schedule-option-capacity">
 
-                                                        @if (turno.Disponibles <= 0)
-
-                                                        {
-
-                                                            <span class="no-capacity">
-
-                                                                SIN CUPO
-
-                                                            </span>
-
-                                                        }
-
-                                                        else
-
-                                                        {
-
-                                                            <strong>
-
-                                                                @turno.Disponibles
-
-                                                            </strong>
-
-                                                            <span>
-
-                                                                de @turno.Cupo libres
-
-                                                            </span>
-
-                                                        }
+                                                        <strong>@turno.Ocupados / @turno.Cupo</strong>
+                                                    <span>@(turno.Ocupados > turno.Cupo ? $"Excedido por {turno.Ocupados - turno.Cupo}" : turno.Disponibles == 0 ? "Completo" : $"{turno.Disponibles} libres")</span>
 
                                                     </div>
 
@@ -2042,8 +1998,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
                                             sesion.Id;
 
                                         <button type="button"
-                                                class="schedule-option @(seleccionada ? "selected" : "") @(sesion.Vacantes <= 0 ? "full" : "") @(sesion.Vacantes <= 0 && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
-                                                disabled="@(sesion.Vacantes <= 0 && !_form.PermitirSobrecupo && !seleccionada)"
+                                                class="schedule-option @(seleccionada ? "selected" : "") @(sesion.Vacantes <= 0 ? "full" : "") @(sesion.Vacantes <= 0 ? "overcapacity-enabled" : "")"
                                                 @onclick="() => SeleccionarSesionInicial(sesion)">
 
                                             <div class="schedule-option-check">
@@ -2076,13 +2031,7 @@ else if (_form.MedioPagoInicial.IngresaACaja())
 
                                             <div class="schedule-option-capacity">
 
-                                                <strong>
-                                                    @sesion.Vacantes
-                                                </strong>
-
-                                                <span>
-                                                    de @sesion.Cupo libres
-                                                </span>
+                                                <strong>@sesion.Inscriptos / @sesion.Cupo</strong><span>@(sesion.Inscriptos > sesion.Cupo ? $"Excedido por {sesion.Inscriptos - sesion.Cupo}" : sesion.Vacantes == 0 ? "Completo" : $"{sesion.Vacantes} libres")</span>
 
                                             </div>
 
@@ -2238,8 +2187,7 @@ else
                                     sesion.Id;
 
                                 <button type="button"
-                                        class="schedule-option @(seleccionada ? "selected" : "") @(sesion.Vacantes <= 0 ? "full" : "") @(sesion.Vacantes <= 0 && _form.PermitirSobrecupo ? "overcapacity-enabled" : "")"
-                                        disabled="@(sesion.Vacantes <= 0 && !_form.PermitirSobrecupo && !seleccionada)"
+                                        class="schedule-option @(seleccionada ? "selected" : "") @(sesion.Vacantes <= 0 ? "full" : "") @(sesion.Vacantes <= 0 ? "overcapacity-enabled" : "")"
                                         @onclick="() => SeleccionarSesionInicial(sesion)">
 
                                     <div class="schedule-option-check">
@@ -2272,13 +2220,7 @@ else
 
                                     <div class="schedule-option-capacity">
 
-                                        <strong>
-                                            @sesion.Vacantes
-                                        </strong>
-
-                                        <span>
-                                            de @sesion.Cupo libres
-                                        </span>
+                                        <strong>@sesion.Inscriptos / @sesion.Cupo</strong><span>@(sesion.Inscriptos > sesion.Cupo ? $"Excedido por {sesion.Inscriptos - sesion.Cupo}" : sesion.Vacantes == 0 ? "Completo" : $"{sesion.Vacantes} libres")</span>
 
                                     </div>
 

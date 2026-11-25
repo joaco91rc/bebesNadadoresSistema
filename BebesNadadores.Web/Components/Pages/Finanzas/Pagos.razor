@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = PoliticasSistema.GestionCaja)]
 
 @using BebesNadadores.Application.Pagos
+@using BebesNadadores.Application.Cuotas
 @using BebesNadadores.Application.Pagos.Dtos
 @using BebesNadadores.Application.Bancos
 @using BebesNadadores.Application.Bancos.Dtos
@@ -81,25 +82,9 @@
 
 
             <a href="/pagos/comprobantes/mes" class="secondary-action" data-enhance-nav="false">Descargar recibos del mes (ZIP)</a>
-            @if (_cuenta is not null)
-            {
-                if (_estadoOperativo?.Tipo == IndicadorFinancieroTipo.Revisar)
-                {
-                    <button type="button" class="secondary-action" disabled="@_confirmandoRevision" @onclick="ConfirmarRevisionOperativaAsync">Quitar marca Revisar</button>
-                }
-                <button type="button" class="secondary-action" @onclick="AbrirFichaOperativaAsync">Ficha y asistencia</button>
-                <button type="button"
-                        class="primary-action"
-                        @onclick="AbrirRegistrarPagoAsync">
-
-                    <MudIcon Icon="@Icons.Material.Filled.AddCard"
-                             Size="Size.Small" />
-
-                    Registrar pago
-
-                </button>
-            }
-
+            <a href="/pagos/bonificaciones" class="secondary-action">
+                <MudIcon Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small" /> Control de bonificaciones
+            </a>
             <AuthorizeView Policy="@PoliticasSistema.SoloAdministrador">
 
     <Authorized>
@@ -423,15 +408,33 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                         </div>
 
 
-                        <button type="button"
-                                class="hero-pay-button"
-                                @onclick="AbrirRegistrarPagoAsync">
+                        <div class="account-actions">
+            @if (_cuenta is not null)
+            {
+                if (_estadoOperativo?.Tipo == IndicadorFinancieroTipo.Revisar)
+                {
+                    <button type="button" class="secondary-action" disabled="@_confirmandoRevision" @onclick="ConfirmarRevisionOperativaAsync">Quitar marca Revisar</button>
+                }
+                <button type="button" class="secondary-action" @onclick="AbrirFichaOperativaAsync">Ficha y asistencia</button>
+                <button type="button" class="secondary-action" @onclick="AbrirAdelanto">
+                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" /> Adelantar cuotas
+                </button>
+                <button type="button" class="secondary-action" @onclick="() => AbrirBonificacion()">
+                    <MudIcon Icon="@Icons.Material.Filled.Redeem" Size="Size.Small" /> Bonificar
+                </button>
+                <button type="button"
+                        class="primary-action"
+                        @onclick="AbrirRegistrarPagoAsync">
 
-                            <MudIcon Icon="@Icons.Material.Filled.AddCard" />
+                    <MudIcon Icon="@Icons.Material.Filled.AddCard"
+                             Size="Size.Small" />
 
-                            Registrar pago
+                    Registrar pago
 
-                        </button>
+                </button>
+            }
+
+                        </div>
 
                     </section>
 
@@ -590,6 +593,14 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                                     @(cuota.FechaVencimiento.ToString("dd/MM/yyyy"))
                                                 </small>
 
+                                                @if (cuota.ImporteBonificado > 0)
+                                                {
+                                                    <small class="bn-bonif-chip" title="La bonificación no es un pago ni ingreso a caja">
+                                                        Bonificada @FormatearMoneda(cuota.ImporteBonificado)
+                                                        · Original @FormatearMoneda(cuota.ImporteOriginal)
+                                                    </small>
+                                                }
+
                                                 @if (cuota.ReactivadaUtc.HasValue
                                                      && cuota.Estado != EstadoCuota.Anulada)
                                                 {
@@ -665,6 +676,16 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                             </div>
 
 
+                                            <div class="fee-actions">
+                                            @if (cuota.Estado != EstadoCuota.Anulada && cuota.Saldo > 0)
+                                            {
+                                                <button type="button" class="bn-bonif-fee-action"
+                                                        title="Bonificar el saldo de esta cuota"
+                                                        @onclick="() => AbrirBonificacion(cuota)">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Redeem" Size="Size.Small" />
+                                                    <span>Bonificar</span>
+                                                </button>
+                                            }
                                             @if (cuota.Estado == EstadoCuota.Anulada)
                                             {
                                                 <button type="button"
@@ -685,6 +706,7 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
                                                              Size="Size.Small" />
                                                 </button>
                                             }
+                                            </div>
 
                                         </article>
                                     }
@@ -1152,9 +1174,28 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
             }
 
 
+            <div class="bn-payment-choice">
+                <strong>Tipo de operación: Cobro</strong>
+                <button type="button" class="secondary-action" @onclick="PasarABonificacion">
+                    <MudIcon Icon="@Icons.Material.Filled.Redeem" Size="Size.Small" /> Bonificación de cuota
+                </button>
+            </div>
             <div class="modal-body">
 
                 <div class="payment-form">
+
+                    <div class="form-field full">
+                        <label>Imputar el cobro a</label>
+                        <select value="@(_pagoForm.CuotaIdObjetivo?.ToString() ?? string.Empty)"
+                                @onchange="CuotaObjetivoCambioAsync">
+                            <option value="">Automático: deuda más antigua primero</option>
+                            @foreach (var cuota in _cuenta.Cuotas.Where(x => x.Estado != EstadoCuota.Anulada && x.Saldo > 0).OrderBy(x => x.Periodo))
+                            {
+                                <option value="@cuota.Id">@FormatearPeriodo(cuota.Periodo) — saldo @FormatearMoneda(cuota.Saldo)</option>
+                            }
+                        </select>
+                        <small>Elegí un mes específico para pagos adelantados. Si hay excedente, queda como saldo a favor.</small>
+                    </div>
 
                     <div class="form-field amount-field">
 
@@ -1587,6 +1628,118 @@ else if (!string.IsNullOrWhiteSpace(_buscar))
         </section>
 
     </div>
+}
+
+@if (_modalAdelanto && _cuenta is not null)
+{
+    <div class="modal-overlay" @onclick="() => { if (!_guardandoAdelanto) _modalAdelanto = false; }">
+        <section class="payment-modal bn-simple-modal" @onclick:stopPropagation="true">
+            <header class="modal-header">
+                <div><span>COBRO ADELANTADO</span><h2>Generar cuotas de @_cuenta.NombreCompleto</h2>
+                    <p>Se generarán solamente las cuotas de este bebé, no las de todos los alumnos.</p></div>
+                <button type="button" class="modal-close" @onclick="() => _modalAdelanto = false">✕</button>
+            </header>
+            <div class="modal-body">
+                @if (!string.IsNullOrWhiteSpace(_errorOperacion)) { <div class="modal-error">@_errorOperacion</div> }
+                <div class="form-field"><label>Mes inicial</label>
+                    <BnDatePicker @bind-Value="_periodoAdelanto" SoloMes="true" Disabled="@_guardandoAdelanto" />
+                    <label>Cantidad de cuotas</label>
+                    <select @bind="_cantidadAdelanto" disabled="@_guardandoAdelanto">
+                        @for (var n = 1; n <= 12; n++) { <option value="@n">@n</option> }
+                    </select>
+                    <small>Hasta @(_periodoAdelanto.AddMonths(_cantidadAdelanto - 1).ToString("MM/yyyy")). Se abrirá el cobro de la primera cuota pendiente.</small>
+                    <small>Se aplicará la tarifa vigente de ese mes. No se duplican cuotas existentes.</small>
+                </div>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="cancel-action" disabled="@_guardandoAdelanto" @onclick="() => _modalAdelanto = false">Cancelar</button>
+                <button type="button" class="primary-action" disabled="@_guardandoAdelanto" @onclick="GenerarAdelantoAsync">
+                    @(_guardandoAdelanto ? "Generando..." : "Generar cuotas y continuar al cobro")
+                </button>
+            </footer>
+        </section>
+    </div>
+}
+
+@if (_modalBonificar && _cuenta is not null)
+{
+    <div class="modal-overlay" @onclick="() => { if (!_guardandoBonificacion) _modalBonificar = false; }">
+        <section class="payment-modal bn-simple-modal" @onclick:stopPropagation="true">
+            <header class="modal-header">
+                <div><span>BONIFICACIÓN · SIN INGRESO DE DINERO</span><h2>Bonificar cuota de @_cuenta.NombreCompleto</h2>
+                    <p>Podés cubrir todo o parte del saldo pendiente, dejando el usuario registrado y un motivo opcional.</p></div>
+                <button type="button" class="modal-close" @onclick="() => _modalBonificar = false">✕</button>
+            </header>
+            <div class="modal-body bn-bonif-form">
+                @if (!string.IsNullOrWhiteSpace(_errorOperacion)) { <div class="modal-error">@_errorOperacion</div> }
+                <div class="form-field"><label>Cuota a bonificar *</label>
+                    <select value="@(_cuotaBonificarId?.ToString() ?? string.Empty)" @onchange="BonificacionSeleccionada">
+                        <option value="">Seleccionar cuota</option>
+                        @foreach (var c in _cuenta.Cuotas.Where(x => x.Estado != EstadoCuota.Anulada && x.Saldo > 0).OrderBy(x => x.Periodo))
+                        {
+                            <option value="@c.Id">@FormatearPeriodo(c.Periodo) — pendiente @FormatearMoneda(c.Saldo)</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field"><label>Importe a bonificar *</label>
+                    <input type="number" min="0.01" step="0.01"
+                        value="@_importeBonificar.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                        @onchange="BonificacionImporteCambio" />
+                    <small>Para bonificación completa, dejá el importe igual al saldo pendiente.</small>
+                </div>
+                <div class="form-field"><label>Motivo (opcional)</label>
+                    <textarea maxlength="500" rows="3" placeholder="Ej.: beca, cortesía, excepción autorizada..."
+                        @bind="_motivoBonificar"></textarea>
+                </div>
+                <p class="bn-bonif-note">La bonificación reduce la deuda. No crea un Pago, ni movimiento de caja o banco, y figura en el control de bonificaciones.</p>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="cancel-action" disabled="@_guardandoBonificacion" @onclick="() => _modalBonificar = false">Cancelar</button>
+                <button type="button" class="primary-action" disabled="@(_guardandoBonificacion || !_cuotaBonificarId.HasValue || _importeBonificar <= 0)" @onclick="SolicitarConfirmacionBonificacionAsync">
+                    @(_guardandoBonificacion ? "Guardando..." : "Confirmar bonificación")
+                </button>
+            </footer>
+        </section>
+    </div>
+}
+
+
+@if (_modalConfirmacionBonificacion && _cuenta is not null && _cuotaBonificarId.HasValue)
+{
+    var cuotaConfirmacion = _cuenta.Cuotas.FirstOrDefault(x => x.Id == _cuotaBonificarId.Value);
+    if (cuotaConfirmacion is not null)
+    {
+        <div class="modal-overlay" @onclick="() => { if (!_guardandoBonificacion) _modalConfirmacionBonificacion = false; }">
+            <section class="payment-modal bn-simple-modal bn-confirm-modal" @onclick:stopPropagation="true">
+                <header class="modal-header">
+                    <div>
+                        <span>CONFIRMAR ACCIÓN</span>
+                        <h2>Confirmar bonificación</h2>
+                        <p>Se registrará una bonificación sin generar ingreso de dinero en caja ni en banco.</p>
+                    </div>
+                    <button type="button" class="modal-close" @onclick="() => _modalConfirmacionBonificacion = false">✕</button>
+                </header>
+                <div class="modal-body">
+                    <div class="bn-confirm-summary">
+                        <div><small>Alumno</small><strong>@_cuenta.NombreCompleto</strong></div>
+                        <div><small>Período</small><strong>@FormatearPeriodo(cuotaConfirmacion.Periodo)</strong></div>
+                        <div><small>Importe a bonificar</small><strong>@FormatearMoneda(_importeBonificar)</strong></div>
+                        <div><small>Saldo actual</small><strong>@FormatearMoneda(cuotaConfirmacion.Saldo)</strong></div>
+                        @if (!string.IsNullOrWhiteSpace(_motivoBonificar))
+                        {
+                            <div class="full"><small>Motivo</small><strong>@_motivoBonificar</strong></div>
+                        }
+                    </div>
+                </div>
+                <footer class="modal-footer">
+                    <button type="button" class="cancel-action" disabled="@_guardandoBonificacion" @onclick="() => _modalConfirmacionBonificacion = false">Cancelar</button>
+                    <button type="button" class="primary-action" disabled="@_guardandoBonificacion" @onclick="ConfirmarBonificacionAsync">
+                        @(_guardandoBonificacion ? "Guardando..." : "Sí, registrar bonificación")
+                    </button>
+                </footer>
+            </section>
+        </div>
+    }
 }
 
 @code {
