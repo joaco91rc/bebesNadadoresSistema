@@ -1,4 +1,6 @@
+using System.Globalization;
 using BebesNadadores.Application.Cuotas;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +13,8 @@ namespace BebesNadadores.Web.BackgroundServices;
  */
 public sealed class GeneracionCuotasBackgroundService(
     IServiceScopeFactory scopeFactory,
-    ILogger<GeneracionCuotasBackgroundService> logger)
+    ILogger<GeneracionCuotasBackgroundService> logger,
+    IConfiguration configuracion)
     : TareaDiariaBackgroundService(scopeFactory, logger)
 {
     protected override string NombreTarea =>
@@ -33,6 +36,21 @@ public sealed class GeneracionCuotasBackgroundService(
                 hoy.Year,
                 hoy.Month,
                 1);
+
+        // Configuración opcional fuera de producción. Si se define mal, no generar.
+        var inicio = configuracion["BackgroundServices:GeneracionCuotasDesde"];
+        if (inicio is not null)
+        {
+            if (!DateOnly.TryParseExact(inicio, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var desde) || desde.Day != 1)
+                throw new InvalidOperationException("GeneracionCuotasDesde debe ser el primer día del mes (yyyy-MM-dd).");
+            if (periodo < desde)
+            {
+                Logger.LogInformation("Generación automática de cuotas omitida para {Periodo}: inicio configurado {Desde}.",
+                    periodo.ToString("MM/yyyy"), desde.ToString("dd/MM/yyyy"));
+                return;
+            }
+        }
 
         Logger.LogInformation(
             "Iniciando generación automática de cuotas para {Periodo}.",
